@@ -5,7 +5,9 @@ import { Icons } from './ui-components';
 const ADMIN_EMAIL = 's01025144826@gmail.com';
 
 // --- Schedule Management (Google Sheets Sync View) ---
-const ROUTE_COLUMNS = ['503AB', '503CD', '402CD', '001CD', '901CD', '452ABCD', '454ABD', '452D+454B', '323CD'];
+// 기본값 (관리자가 아래 '노선 이름 관리'에서 언제든 직접 수정 가능 — Firestore settings/schedule.routeColumns 에 저장됨)
+const DEFAULT_ROUTE_COLUMNS = ['503AB', '503CD', '402CD', '001CD', '901CD', '452ABCD', '454ABD', '452D+454B', '303CD'];
+const colLetter = (i) => String.fromCharCode(65 + 3 + i); // D열부터 시작
 
 // 시트 연동 전 기본 더미 데이터
 const MOCK_SCHEDULE_DATA = [
@@ -47,6 +49,9 @@ const getLocalDateString = (d) => {
     const [csvUrl, setCsvUrl] = useState('');
     const [isEditingUrl, setIsEditingUrl] = useState(false);
     const [tempUrl, setTempUrl] = useState('');
+    const [routeColumns, setRouteColumns] = useState(DEFAULT_ROUTE_COLUMNS);
+    const [isEditingRoutes, setIsEditingRoutes] = useState(false);
+    const [tempRoutes, setTempRoutes] = useState(DEFAULT_ROUTE_COLUMNS);
 
     const isAdmin = user && user.email === ADMIN_EMAIL;
 
@@ -55,6 +60,10 @@ const getLocalDateString = (d) => {
             if (doc.exists && doc.data().csvUrl) {
                 setCsvUrl(doc.data().csvUrl);
                 setTempUrl(doc.data().csvUrl);
+            }
+            if (doc.exists && Array.isArray(doc.data().routeColumns) && doc.data().routeColumns.length > 0) {
+                setRouteColumns(doc.data().routeColumns);
+                setTempRoutes(doc.data().routeColumns);
             }
         });
     }, []);
@@ -78,7 +87,7 @@ const getLocalDateString = (d) => {
 
                     const rawDate = cols[0].replace(/\s+/g, ''); // "1월1일"
 
-                    ROUTE_COLUMNS.forEach((route, i) => {
+                    routeColumns.forEach((route, i) => {
                         const driverName = cols[3 + i]; // D열(인덱스 3)부터 시작
                         if (driverName && driverName !== '') {
                             newSchedule.push({
@@ -95,7 +104,7 @@ const getLocalDateString = (d) => {
                 console.error(e);
             })
             .finally(() => setIsLoading(false));
-    }, [csvUrl, startOfWeek]);
+    }, [csvUrl, startOfWeek, routeColumns]);
 
     const handleSaveUrl = async () => {
         try {
@@ -104,6 +113,22 @@ const getLocalDateString = (d) => {
             setIsEditingUrl(false);
             alert('구글 시트 연동 URL이 저장되었습니다.');
         } catch (e) { alert('URL 저장 실패: ' + e.message); }
+    };
+
+    const handleAddRouteColumn = () => setTempRoutes([...tempRoutes, '']);
+    const handleRemoveRouteColumn = (idx) => setTempRoutes(tempRoutes.filter((_, i) => i !== idx));
+    const handleRouteColumnChange = (idx, value) => setTempRoutes(tempRoutes.map((r, i) => i === idx ? value : r));
+
+    const handleSaveRoutes = async () => {
+        const cleaned = tempRoutes.map(r => r.trim()).filter(r => r !== '');
+        if (cleaned.length === 0) return alert('노선을 최소 1개 이상 입력해주세요.');
+        try {
+            await db.collection('settings').doc('schedule').set({ routeColumns: cleaned }, { merge: true });
+            setRouteColumns(cleaned);
+            setTempRoutes(cleaned);
+            setIsEditingRoutes(false);
+            alert('노선 이름이 저장되었습니다.');
+        } catch (e) { alert('노선 저장 실패: ' + e.message); }
     };
 
     const getWeekDates = () => Array.from({ length: 7 }, (_, i) => {
@@ -204,6 +229,55 @@ const getLocalDateString = (d) => {
                 </div>
             )}
 
+            {/* 관리자 - 노선 이름 관리 (언제든 직접 수정 가능) */}
+            {isAdmin && (
+                <div className="w-full max-w-[1200px] mb-8 p-6 bg-white border border-gray-100 rounded-3xl shadow-sm flex flex-col gap-4">
+                    <div className="flex flex-wrap items-center justify-between gap-2">
+                        <div>
+                            <h3 className="font-extrabold text-[#1E293B] flex items-center gap-2.5 text-[16px]"><Icons.Map /> 노선 이름 관리</h3>
+                            <p className="text-[13px] text-gray-400 font-medium mt-1">표 맨 위에 표시되는 노선 이름이 바뀌면 여기서 직접 수정하세요. 코드 수정 없이 바로 반영됩니다.</p>
+                        </div>
+                        <button
+                            onClick={() => { if (isEditingRoutes) { setTempRoutes(routeColumns); } setIsEditingRoutes(!isEditingRoutes); }}
+                            className="shrink-0 whitespace-nowrap text-sm font-bold text-blue-600 hover:text-blue-700 transition-colors"
+                        >
+                            {isEditingRoutes ? '수정 취소' : '노선 이름 수정'}
+                        </button>
+                    </div>
+                    {isEditingRoutes ? (
+                        <>
+                            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                                {tempRoutes.map((route, idx) => (
+                                    <div key={idx} className="flex items-center gap-2">
+                                        <span className="shrink-0 w-9 h-9 flex items-center justify-center rounded-lg bg-gray-100 text-gray-500 font-bold text-xs">{colLetter(idx)}열</span>
+                                        <input
+                                            type="text"
+                                            value={route}
+                                            onChange={e => handleRouteColumnChange(idx, e.target.value)}
+                                            className="flex-1 min-w-0 px-3 py-2.5 bg-gray-50 border border-gray-200 rounded-xl text-sm font-bold outline-none focus:border-blue-500 focus:bg-white transition-all"
+                                        />
+                                        <button onClick={() => handleRemoveRouteColumn(idx)} className="shrink-0 w-9 h-9 flex items-center justify-center rounded-lg text-gray-400 hover:text-red-500 hover:bg-red-50 transition-colors">
+                                            <Icons.X />
+                                        </button>
+                                    </div>
+                                ))}
+                            </div>
+                            <div className="flex flex-wrap items-center justify-between gap-3">
+                                <button onClick={handleAddRouteColumn} className="px-4 py-2.5 rounded-xl bg-gray-100 hover:bg-gray-200 text-gray-700 text-sm font-bold transition-colors">+ 노선 추가</button>
+                                <button onClick={handleSaveRoutes} className="px-6 py-3 bg-blue-600 hover:bg-blue-700 text-white rounded-xl text-sm font-bold shadow-md active:scale-95 transition-all">저장 후 즉시 반영</button>
+                            </div>
+                            <p className="text-xs text-gray-400 font-medium leading-relaxed">※ 순서가 구글 시트의 D열부터 순서와 정확히 같아야 합니다. 시트에 새 노선 열을 추가했다면 맨 아래 "+ 노선 추가"로 같은 순서에 맞춰 추가해주세요. 이름만 바뀐 경우는 순서를 그대로 두고 글자만 고치면 됩니다.</p>
+                        </>
+                    ) : (
+                        <div className="flex flex-wrap gap-2">
+                            {routeColumns.map((route, idx) => (
+                                <span key={idx} className="px-3 py-1.5 bg-gray-50 border border-gray-200 rounded-lg text-[13px] font-bold text-gray-700">{route}</span>
+                            ))}
+                        </div>
+                    )}
+                </div>
+            )}
+
             {/* 메인 스케줄 테이블 */}
             <div className="scroll-container bg-white rounded-3xl border border-gray-100 shadow-[0_8px_30px_rgb(0,0,0,0.02)]">
                     <table className="w-full text-center table-fixed min-w-[1000px] border-collapse">
@@ -211,7 +285,7 @@ const getLocalDateString = (d) => {
                             <tr className="bg-[#0F172A] text-white select-none border-b border-gray-800">
                                 <th className="w-[90px] py-4.5 text-[13.5px] font-bold tracking-wider uppercase opacity-85">날짜</th>
                                 <th className="w-[70px] py-4.5 text-[13.5px] font-bold tracking-wider uppercase opacity-85">요일</th>
-                                {ROUTE_COLUMNS.map((route) => (
+                                {routeColumns.map((route) => (
                                     <th key={route} className="py-4.5 text-[13.5px] font-extrabold tracking-wider uppercase hover:bg-slate-800 transition-colors cursor-pointer">
                                         {route}
                                     </th>
@@ -237,7 +311,7 @@ const getLocalDateString = (d) => {
                                         <td className={`py-4.5 text-[14.5px] font-bold ${isSunday ? 'text-red-500' : isSaturday ? 'text-blue-500' : 'text-slate-500'}`}>
                                             {dayName}
                                         </td>
-                                        {ROUTE_COLUMNS.map((route) => {
+                                        {routeColumns.map((route) => {
                                             const driver = getDriver(dateObj, route);
 
                                             let cellClass = 'py-4.5 text-[13.5px] font-bold transition-all duration-200 cursor-pointer';
