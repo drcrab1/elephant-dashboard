@@ -4237,7 +4237,7 @@ const SafetyManagement = ({ user, records, setRecords }) => {
     }
 
     return (
-        <main className="md:ml-[260px] ml-0 px-4 md:px-10 py-6 md:py-12 flex-1 relative bg-[#F4F7FB] min-h-[100vh]">
+        <main className="md:ml-[260px] ml-0 px-4 md:px-10 py-6 md:py-12 flex-1 relative bg-[#F4F7FB] min-h-[100vh] w-full max-w-[100vw] md:max-w-[calc(100vw-260px)] overflow-x-hidden">
             <header className="mb-10 w-full flex flex-col xl:flex-row justify-between xl:items-end border-b pb-6 border-gray-200 gap-6">
                 <div>
                     <h2 className="text-[28px] font-extrabold mb-2 text-[#1E293B]">안전보건 및 위험관리</h2>
