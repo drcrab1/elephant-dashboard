@@ -75,6 +75,11 @@ export const DispatchConverter = ({ user }) => {
     const tableWrapRef = useRef(null);
     const fileInputRef = useRef(null);
 
+    // 스케줄관리(구글 시트)와 연동 — 같은 csvUrl 설정을 공유해서 배차 입력을 자동으로 채워줍니다.
+    const [scheduleCsvUrl, setScheduleCsvUrl] = useState('');
+    const [isSyncingSchedule, setIsSyncingSchedule] = useState(false);
+    const [lastSyncedAt, setLastSyncedAt] = useState(null);
+
     useEffect(() => {
         db.collection('settings').doc('dispatchConverter').get().then(doc => {
             if (doc.exists) {
@@ -86,7 +91,53 @@ export const DispatchConverter = ({ user }) => {
             }
             setConfigLoaded(true);
         });
+        db.collection('settings').doc('schedule').get().then(doc => {
+            if (doc.exists && doc.data().csvUrl) setScheduleCsvUrl(doc.data().csvUrl);
+        });
     }, []);
+
+    const syncFromSchedule = async (targetRoutes, targetStart, silent) => {
+        if (!scheduleCsvUrl) return;
+        setIsSyncingSchedule(true);
+        try {
+            const res = await fetch(scheduleCsvUrl);
+            const csv = await res.text();
+            const rows = csv.split('\n');
+            const weekKeys = new Set(Array.from({ length: 7 }, (_, i) => fmt(addDays(targetStart, i))));
+            const updates = {};
+            rows.forEach(r => {
+                const cols = r.split(',').map(c => c.trim().replace(/^"|"$/g, ''));
+                if (cols.length < 12) return;
+                if (cols[0].replace(/\s+/g, '') === '출근일') return;
+                const rawDate = cols[0].replace(/\s+/g, '');
+                const m = rawDate.match(/(\d+)월(\d+)일/);
+                if (!m) return;
+                const guessYear = targetStart.getFullYear();
+                const d = new Date(guessYear, Number(m[1]) - 1, Number(m[2]));
+                const dk = fmt(d);
+                if (!weekKeys.has(dk)) return;
+                targetRoutes.forEach((route, i) => {
+                    const driverName = (cols[3 + i] || '').trim();
+                    if (driverName) updates[`${dk}__${route.key}`] = driverName;
+                });
+            });
+            setSchedule(prev => ({ ...prev, ...updates }));
+            setLastSyncedAt(new Date());
+            if (!silent) alert(`스케줄관리에서 ${Object.keys(updates).length}개 셀을 불러왔습니다.`);
+        } catch (e) {
+            console.error(e);
+            if (!silent) alert('스케줄 연동 실패: ' + e.message);
+        } finally {
+            setIsSyncingSchedule(false);
+        }
+    };
+
+    // 주간이 바뀌거나(스케줄 URL/노선 설정 로드 후) 자동으로 스케줄관리 내용을 불러옵니다.
+    useEffect(() => {
+        if (!configLoaded || !scheduleCsvUrl || routes.length === 0) return;
+        syncFromSchedule(routes, startDate, true);
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [configLoaded, scheduleCsvUrl, startDate]);
 
     const saveConfig = async (next) => {
         try {
@@ -372,10 +423,27 @@ export const DispatchConverter = ({ user }) => {
                         <button onClick={() => changeWeek(-7)} className="px-4 py-2 rounded-xl bg-gray-100 hover:bg-gray-200 text-gray-700 text-sm font-bold">◀ 이전주</button>
                         <button onClick={() => changeWeek(7)} className="px-4 py-2 rounded-xl bg-gray-100 hover:bg-gray-200 text-gray-700 text-sm font-bold">다음주 ▶</button>
                         <label className="px-4 py-2 rounded-xl bg-gray-100 hover:bg-gray-200 text-gray-700 text-sm font-bold cursor-pointer">
-                            📂 스케줄 불러오기
+                            📎 XLSX 파일로 불러오기
                             <input ref={fileInputRef} type="file" accept=".xlsx,.xls" className="hidden" onChange={handleImportSchedule} />
                         </label>
                         <button onClick={generateUpload} className="px-6 py-2.5 rounded-xl bg-[#2E68ED] hover:bg-blue-700 text-white text-sm font-extrabold shadow-sm ml-auto">⚡ 변환 생성</button>
+                    </div>
+
+                    <div className="flex flex-wrap items-center gap-2">
+                        {scheduleCsvUrl ? (
+                            <>
+                                <span className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-green-50 text-green-700 text-xs font-bold border border-green-100">
+                                    🔗 스케줄관리와 연동됨{lastSyncedAt ? ` · ${lastSyncedAt.toLocaleTimeString('ko-KR', { hour: '2-digit', minute: '2-digit' })} 기준` : ''}
+                                </span>
+                                <button onClick={() => syncFromSchedule(routes, startDate, false)} disabled={isSyncingSchedule} className="text-xs font-bold text-blue-600 hover:text-blue-700 disabled:opacity-50">
+                                    {isSyncingSchedule ? '불러오는 중...' : '↻ 스케줄에서 다시 불러오기'}
+                                </button>
+                            </>
+                        ) : (
+                            <span className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-amber-50 text-amber-700 text-xs font-bold border border-amber-100">
+                                ⚠️ 스케줄관리에 구글 시트 연동 주소가 없어 자동 연동이 꺼져있어요. (스케줄관리 화면에서 먼저 설정해주세요)
+                            </span>
+                        )}
                     </div>
 
                     {pasteNotif && <div className="inline-block px-4 py-2 bg-blue-50 text-blue-700 rounded-xl text-sm font-bold">{pasteNotif}</div>}
