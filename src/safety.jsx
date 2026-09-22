@@ -105,6 +105,7 @@ const SAFETY_RECURRING_TASKS = [
     { id: 'daily_vehicle_check', freq: 'daily', title: '일일 차량·장비 점검', desc: '타이어, 브레이크, 적재함 도어, 후방카메라 등 운행 전 점검', perUser: true },
     { id: 'weekly_tire', freq: 'weekly', title: '타이어·공기압 점검', desc: '차량별 타이어 마모 상태 및 공기압 확인', perUser: true },
     { id: 'monthly_edu', freq: 'monthly', title: '월간 안전교육 실시', desc: '전 직원 대상 안전수칙 및 사고사례 교육', perUser: true },
+    { id: 'vehicle_inspection', freq: 'daily', title: '일일 자동차 안전점검표', desc: '번호판·등화장치·타이어·안전벨트 등 11개 항목 점검 (법정 서식)', perUser: true },
     { id: 'monthly_fire', freq: 'monthly', title: '소화기 등 소방시설 점검', desc: '소화기 압력게이지, 비상구, 유도등 등 점검' },
     { id: 'yearly_risk', freq: 'yearly', title: '위험성평가 정기평가', desc: '사업장 전체 위험성평가 연 1회 실시 (산업안전보건법)' },
     { id: 'yearly_edu', freq: 'yearly', title: '정기 안전보건교육 이수', desc: '근로자 정기교육 및 관리감독자 교육 이수' },
@@ -229,6 +230,194 @@ const PerUserTaskRow = ({ task, user, allLogs, onLogged }) => {
     );
 };
 
+// --- 일일 자동차 안전점검표 (법정 서식) ---
+const VEHICLE_INSPECTION_ITEMS = [
+    { category: '외관점검', label: '번호판, 전면유리, 후사경 등의 청결상태' },
+    { category: '외관점검', label: '후미등, 차폭등 등 등화장치 작동상태' },
+    { category: '외관점검', label: '창닦이기 작동상태' },
+    { category: '외관점검', label: '적재함(보조지지대 포함), 측면 보호대, 후부반사판, 트레일러 연결장치의 부착상태 및 훼손 여부' },
+    { category: '상태점검', label: '타이어 손상 및 마모(1.6mm 이상) 여부' },
+    { category: '상태점검', label: '화물, 적재함 지지대(판스프링) 등의 고정상태' },
+    { category: '상태점검', label: '바퀴 너트 등 균열 여부' },
+    { category: '상태점검', label: '냉각수, 공기압, 엔진오일 등 차량 이상 여부(계기판 확인)' },
+    { category: '기타', label: '좌석안전띠 상태' },
+    { category: '기타', label: '소화기 비치 여부' },
+    { category: '기타', label: '안전삼각대 등 비치 여부' }
+];
+const RESULT_OPTS = [
+    { v: 'O', label: '양호', cls: 'bg-green-600 text-white border-green-600' },
+    { v: 'X', label: '불량', cls: 'bg-red-600 text-white border-red-600' },
+    { v: '미', label: '미운행', cls: 'bg-gray-500 text-white border-gray-500' }
+];
+
+const VehicleInspectionModal = ({ user, defaultVehicleNumber, onClose, onSubmit }) => {
+    const [vehicleNumber, setVehicleNumber] = useState(defaultVehicleNumber || '');
+    const [results, setResults] = useState(() => VEHICLE_INSPECTION_ITEMS.map(() => 'O'));
+    const [actionNote, setActionNote] = useState('');
+    const [saving, setSaving] = useState(false);
+
+    const hasDefect = results.some(r => r === 'X');
+    const okCount = results.filter(r => r === 'O').length;
+    const defectCount = results.filter(r => r === 'X').length;
+    const skipCount = results.filter(r => r === '미').length;
+
+    const setResult = (idx, v) => setResults(prev => prev.map((r, i) => i === idx ? v : r));
+
+    const handleSubmit = async () => {
+        if (!vehicleNumber.trim()) return alert('차량번호를 입력해주세요.');
+        if (hasDefect && !actionNote.trim()) return alert('불량 항목이 있어요. 조치 기록을 입력해주세요.');
+        setSaving(true);
+        try {
+            await onSubmit({ vehicleNumber: vehicleNumber.trim(), results, actionNote: actionNote.trim(), okCount, defectCount, skipCount });
+        } finally {
+            setSaving(false);
+        }
+    };
+
+    return (
+        <div className="fixed inset-0 z-50 bg-[#0F172A]/50 backdrop-blur-sm flex justify-center items-center py-8 px-4">
+            <div className="bg-white rounded-[24px] w-full max-w-[520px] max-h-[90vh] overflow-hidden shadow-2xl animate-fade-in flex flex-col">
+                <div className="px-6 py-5 border-b border-gray-100 bg-[#f8fafc] flex justify-between items-start shrink-0">
+                    <div>
+                        <h3 className="text-[18px] font-extrabold text-[#0F172A]">일일 자동차 안전점검표</h3>
+                        <p className="text-[12.5px] text-gray-500 font-medium mt-1">기본값은 전부 "양호"예요. 문제 있는 항목만 눌러서 바꿔주세요.</p>
+                    </div>
+                    <button onClick={onClose} className="text-gray-400 hover:text-black font-extrabold text-2xl leading-none">&times;</button>
+                </div>
+
+                <div className="px-6 py-4 border-b border-gray-100 shrink-0">
+                    <label className="text-[12.5px] font-bold text-gray-600 mb-1.5 block">차량번호</label>
+                    <input type="text" value={vehicleNumber} onChange={e => setVehicleNumber(e.target.value)} placeholder="예: 12가 3456" className="w-full border border-gray-200 rounded-xl px-3.5 py-2.5 text-[14px] font-bold outline-none focus:border-blue-500 bg-gray-50" />
+                </div>
+
+                <div className="flex-1 overflow-y-auto px-6 py-4 space-y-2.5">
+                    {VEHICLE_INSPECTION_ITEMS.map((item, idx) => (
+                        <div key={idx} className={`rounded-xl border p-3 ${results[idx] === 'X' ? 'bg-red-50/60 border-red-200' : 'bg-[#FAFBFC] border-gray-100'}`}>
+                            <div className="flex items-center justify-between gap-3">
+                                <div className="min-w-0">
+                                    <span className="text-[10px] font-extrabold text-gray-400">{item.category}</span>
+                                    <p className="text-[12.5px] font-bold text-gray-800 leading-snug">{item.label}</p>
+                                </div>
+                                <div className="flex gap-1 shrink-0">
+                                    {RESULT_OPTS.map(opt => (
+                                        <button
+                                            key={opt.v}
+                                            onClick={() => setResult(idx, opt.v)}
+                                            className={`w-11 h-8 rounded-lg text-[11px] font-extrabold border transition-colors ${results[idx] === opt.v ? opt.cls : 'bg-white text-gray-400 border-gray-200 hover:border-gray-300'}`}
+                                        >
+                                            {opt.label}
+                                        </button>
+                                    ))}
+                                </div>
+                            </div>
+                        </div>
+                    ))}
+
+                    {hasDefect && (
+                        <div className="mt-2">
+                            <label className="text-[12.5px] font-bold text-red-600 mb-1.5 block">불량상태 조치 기록 <span className="text-red-500">*</span></label>
+                            <textarea value={actionNote} onChange={e => setActionNote(e.target.value)} placeholder="예: 창닦이기 불량 → 9/22 교체 완료" className="w-full border border-red-200 rounded-xl px-3.5 py-2.5 text-[13px] font-medium outline-none focus:border-red-400 bg-red-50/30 min-h-[70px] resize-y" />
+                        </div>
+                    )}
+                </div>
+
+                <div className="p-5 border-t border-gray-100 bg-[#f8fafc] shrink-0 flex gap-3">
+                    <button onClick={onClose} className="flex-1 py-3 bg-white border border-gray-200 hover:bg-gray-50 text-gray-700 font-bold rounded-xl text-sm">취소</button>
+                    <button onClick={handleSubmit} disabled={saving} className="flex-[2] py-3 bg-[#2E68ED] hover:bg-blue-700 disabled:opacity-50 text-white font-extrabold rounded-xl text-sm shadow-sm transition-colors">
+                        {saving ? '저장 중...' : `점검 완료 제출 (양호 ${okCount} · 불량 ${defectCount} · 미운행 ${skipCount})`}
+                    </button>
+                </div>
+            </div>
+        </div>
+    );
+};
+
+const VehicleInspectionTaskRow = ({ task, user, allLogs, onLogged }) => {
+    const currentPeriod = getPeriodKey('daily');
+    const [showModal, setShowModal] = useState(false);
+    const [showDetail, setShowDetail] = useState(false);
+
+    const myLog = allLogs.find(l => l.taskId === task.id && l.periodKey === currentPeriod && l.email === user.email);
+    const otherLogs = allLogs.filter(l => l.taskId === task.id && l.periodKey === currentPeriod && l.email !== user.email);
+    const isUrgent = !myLog;
+
+    // 마지막으로 입력했던 차량번호를 기본값으로 (편의성)
+    const lastMyLog = allLogs.filter(l => l.taskId === task.id && l.email === user.email && l.vehicleNumber).sort((a, b) => (b.timestamp || '').localeCompare(a.timestamp || ''))[0];
+
+    const handleSubmit = async ({ vehicleNumber, results, actionNote, okCount, defectCount, skipCount }) => {
+        const todayStr = new Date().toISOString().split('T')[0];
+        const docId = `${currentPeriod}_${task.id}_${user.email}`;
+        const note = defectCount > 0
+            ? `차량 ${vehicleNumber} · 불량 ${defectCount}건: ${actionNote}`
+            : `차량 ${vehicleNumber} · 전항목 양호 (${okCount}개${skipCount > 0 ? `, 미운행 ${skipCount}개` : ''})`;
+        const entry = {
+            taskId: task.id, freq: 'daily', periodKey: currentPeriod, date: todayStr,
+            email: user.email, name: user.name, timestamp: new Date().toISOString(),
+            note, vehicleNumber,
+            items: VEHICLE_INSPECTION_ITEMS.map((item, idx) => ({ label: item.label, result: results[idx] })),
+            actionNote, okCount, defectCount, skipCount
+        };
+        try {
+            await db.collection('safetyChecklistLogs').doc(docId).set(entry);
+            onLogged(entry);
+            setShowModal(false);
+        } catch (e) {
+            console.error(e);
+            alert('저장 실패: ' + e.message);
+        }
+    };
+
+    return (
+        <div className={`rounded-xl p-3 border ${myLog ? 'bg-green-50/60 border-green-100' : isUrgent ? 'bg-red-50/70 border-red-200' : 'bg-white border-gray-100'}`}>
+            <div className="flex items-start justify-between gap-2">
+                <div className="min-w-0 flex-1">
+                    <p className={`text-[13.5px] font-bold leading-tight ${myLog ? 'text-green-700' : 'text-red-600'}`}>{task.title}</p>
+                    <p className="text-[11.5px] text-gray-400 font-medium mt-1 leading-snug">{task.desc}</p>
+                    {myLog ? (
+                        <div className="mt-1.5">
+                            <p className="text-[10.5px] text-gray-500 font-bold">내가 오늘 {myLog.timestamp.slice(11, 16)}에 완료</p>
+                            <p className={`text-[11px] mt-1 rounded px-2 py-1 border ${myLog.defectCount > 0 ? 'bg-red-50 text-red-700 border-red-100' : 'bg-white/70 text-gray-600 border-green-100'}`}>📝 {myLog.note}</p>
+                            {myLog.items && (
+                                <button onClick={() => setShowDetail(v => !v)} className="text-[10.5px] text-blue-600 font-bold mt-1 hover:underline">{showDetail ? '상세 접기' : '11개 항목 상세보기'}</button>
+                            )}
+                            {showDetail && myLog.items && (
+                                <div className="mt-1.5 bg-white rounded-lg border border-gray-100 divide-y divide-gray-50">
+                                    {myLog.items.map((it, idx) => (
+                                        <div key={idx} className="flex items-center justify-between gap-2 px-2 py-1.5">
+                                            <span className="text-[10.5px] text-gray-600 leading-snug">{it.label}</span>
+                                            <span className={`shrink-0 text-[10px] font-extrabold px-1.5 py-0.5 rounded ${it.result === 'X' ? 'bg-red-100 text-red-700' : it.result === '미' ? 'bg-gray-100 text-gray-600' : 'bg-green-100 text-green-700'}`}>{it.result === 'O' ? '양호' : it.result === 'X' ? '불량' : '미운행'}</span>
+                                        </div>
+                                    ))}
+                                </div>
+                            )}
+                        </div>
+                    ) : (
+                        <p className="text-[11px] text-red-500 font-bold mt-1.5">오늘 아직 점검 전이에요</p>
+                    )}
+                    {otherLogs.length > 0 && (
+                        <p className="text-[10px] text-gray-400 font-bold mt-1.5">오늘 완료한 다른 사람: {otherLogs.map(l => l.name).join(', ')}</p>
+                    )}
+                </div>
+                <button
+                    onClick={() => setShowModal(true)}
+                    disabled={!!myLog}
+                    className={`shrink-0 px-2.5 py-1.5 rounded-lg text-[11px] font-extrabold shadow-sm transition-colors ${myLog ? 'bg-green-100 text-green-700 cursor-default' : 'bg-[#2E68ED] text-white hover:bg-blue-700'}`}
+                >
+                    {myLog ? '✓ 완료' : '점검하기'}
+                </button>
+            </div>
+            {showModal && (
+                <VehicleInspectionModal
+                    user={user}
+                    defaultVehicleNumber={lastMyLog?.vehicleNumber}
+                    onClose={() => setShowModal(false)}
+                    onSubmit={handleSubmit}
+                />
+            )}
+        </div>
+    );
+};
+
 const SafetyRecurringChecklist = ({ user }) => {
     const isAdmin = user && user.email === 's01025144826@gmail.com';
     const [lastDoneMap, setLastDoneMap] = useState({});
@@ -280,7 +469,9 @@ const SafetyRecurringChecklist = ({ user }) => {
                             <span className={`inline-block px-2.5 py-1 rounded-lg text-[12px] font-extrabold border ${meta.color} mb-3`}>{meta.label}</span>
                             <div className="space-y-3">
                                 {tasks.filter(t => t.perUser).map(task => (
-                                    <PerUserTaskRow key={task.id} task={task} user={user} allLogs={allLogs} onLogged={addLog} />
+                                    task.id === 'vehicle_inspection'
+                                        ? <VehicleInspectionTaskRow key={task.id} task={task} user={user} allLogs={allLogs} onLogged={addLog} />
+                                        : <PerUserTaskRow key={task.id} task={task} user={user} allLogs={allLogs} onLogged={addLog} />
                                 ))}
                                 {tasks.filter(t => !t.perUser).map(task => {
                                     const currentPeriod = getPeriodKey(freq, now);
