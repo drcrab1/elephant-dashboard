@@ -1,0 +1,13 @@
+{
+  "name": "elephant-dashboard-functions",
+  "description": "코끼리물류 관리 시스템 - 알림 발송용 Cloud Functions",
+  "private": true,
+  "engines": {
+    "node": "20"
+  },
+  "main": "index.js",
+  "dependencies": {
+    "firebase-admin": "^12.7.0",
+    "firebase-functions": "^6.1.0"
+  }
+}
