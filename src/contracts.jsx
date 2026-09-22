@@ -130,10 +130,22 @@ const ContractManagement = ({ user, contracts, setContracts, contacts }) => {
     const [previewContract, setPreviewContract] = useState(null);
 
     const isAdmin = user && user.email === ADMIN_EMAIL;
+    const [statusFilter, setStatusFilter] = useState('all');
     const visibleContracts = useMemo(() => {
-        if (isAdmin) return contracts;
-        return contracts.filter(c => c.ownerEmail === user.email || c.targetEmail === user.email);
-    }, [user.email, contracts, isAdmin]);
+        const base = isAdmin ? contracts : contracts.filter(c => c.ownerEmail === user.email || c.targetEmail === user.email);
+        if (statusFilter === 'all') return base;
+        return base.filter(c => c.status === statusFilter);
+    }, [user.email, contracts, isAdmin, statusFilter]);
+    const pendingCount = useMemo(() => (isAdmin ? contracts : []).filter(c => c.status === '서명대기').length, [contracts, isAdmin]);
+
+    const handleDeleteContract = async (c) => {
+        if (!window.confirm(`"${c.name} (${c.title})" 서명 요청을 삭제하시겠습니까?\n삭제하면 기사님은 더 이상 서명할 수 없습니다.`)) return;
+        try {
+            await db.collection('contracts').doc(c.id).delete();
+        } catch (e) {
+            alert('삭제 실패: ' + e.message);
+        }
+    };
 
     const [templateData, setTemplateData] = useState({
         templateType: 'standard_consignment',
@@ -361,6 +373,22 @@ const ContractManagement = ({ user, contracts, setContracts, contacts }) => {
                 )}
             </header>
 
+            <div className="flex flex-wrap gap-2 mb-4">
+                {[
+                    { id: 'all', label: '전체' },
+                    { id: '서명대기', label: `서명 대기 중${isAdmin && pendingCount > 0 ? ` (${pendingCount})` : ''}` },
+                    { id: '서명완료', label: '서명 완료' }
+                ].map(t => (
+                    <button
+                        key={t.id}
+                        onClick={() => setStatusFilter(t.id)}
+                        className={`px-4 py-2 rounded-xl text-[13.5px] font-bold transition-colors ${statusFilter === t.id ? 'bg-[#2E68ED] text-white shadow-sm' : 'bg-white border border-gray-200 text-gray-600 hover:bg-gray-50'}`}
+                    >
+                        {t.label}
+                    </button>
+                ))}
+            </div>
+
             <div className="scroll-container bg-white rounded-[20px] shadow-[0_2px_12px_rgba(0,0,0,0.03)] border border-gray-100">
                 <table className="min-w-[650px] w-full divide-y divide-gray-200">
                     <thead className="bg-[#f8fafc]">
@@ -373,7 +401,7 @@ const ContractManagement = ({ user, contracts, setContracts, contacts }) => {
                         </tr>
                     </thead>
                     <tbody className="divide-y divide-gray-100/80">
-                        {visibleContracts.length === 0 ? <tr><td colSpan={5} className="py-16 text-center text-gray-400 font-bold">생성된 계약 문서가 없습니다.</td></tr> : visibleContracts.map(c => (
+                        {visibleContracts.length === 0 ? <tr><td colSpan={5} className="py-16 text-center text-gray-400 font-bold">{statusFilter === 'all' ? '생성된 계약 문서가 없습니다.' : `해당하는 계약 문서가 없습니다.`}</td></tr> : visibleContracts.map(c => (
                             <tr key={c.id} className="hover:bg-blue-50/20 transition-colors">
                                 <td className="px-6 py-5 font-bold text-[15px] text-gray-900">{c.name} <span className="text-gray-400 font-normal ml-1">({c.title})</span></td>
                                 <td className="px-6 py-5 text-[14px] font-medium text-gray-600">{c.templateType === 'standard_supplementary' ? '단가 부속합의서' : (c.templateType === 'custom' ? '맞춤 스캔양식' : '위수탁 표준양식')}</td>
@@ -394,6 +422,11 @@ const ContractManagement = ({ user, contracts, setContracts, contacts }) => {
                                     {(c.status === '서명완료' || isAdmin || c.templateType === 'custom') && (
                                         <button onClick={() => handleDownloadClick(c)} disabled={activePdfContract?.id === c.id && isGeneratingPdf} className="inline-flex gap-1.5 items-center px-4 py-2 bg-gray-50 border border-gray-200 hover:border-gray-300 hover:bg-gray-100 text-gray-700 text-[14px] font-bold rounded-xl shadow-sm transition-colors disabled:opacity-50">
                                             <Icons.Download /> {isGeneratingPdf && activePdfContract?.id === c.id ? '로딩..' : (c.templateType === 'standard_supplementary' ? '부속합의서 다운로드' : '계약서 다운로드')}
+                                        </button>
+                                    )}
+                                    {isAdmin && c.status === '서명대기' && (
+                                        <button onClick={() => handleDeleteContract(c)} className="inline-flex gap-1.5 items-center px-3 py-2 bg-red-50 hover:bg-red-100 text-red-500 border border-red-200 text-[14px] font-bold rounded-xl shadow-sm transition-colors" title="서명 전이므로 삭제 가능">
+                                            <Icons.X /> 삭제
                                         </button>
                                     )}
                                 </td>
