@@ -109,7 +109,7 @@ const SAFETY_RECURRING_TASKS = [
     { id: 'monthly_fire', freq: 'monthly', title: '소화기 등 소방시설 점검', desc: '소화기 압력게이지, 비상구, 유도등 등 점검' },
     { id: 'yearly_risk', freq: 'yearly', title: '위험성평가 정기평가', desc: '사업장 전체 위험성평가 연 1회 실시 (산업안전보건법)' },
     { id: 'yearly_edu', freq: 'yearly', title: '정기 안전보건교육 이수', desc: '근로자 정기교육 및 관리감독자 교육 이수' },
-    { id: 'yearly_health', freq: 'yearly', title: '근로자 건강검진', desc: '일반건강검진 대상자 실시 여부 확인' },
+    { id: 'yearly_health', freq: 'yearly', title: '근로자 건강검진', desc: '일반건강검진 대상자 실시 여부 확인', perUser: true },
     { id: 'yearly_musculo', freq: 'yearly', title: '근골격계 유해요인조사', desc: '근골격계부담작업 보유 시 연 1회 조사' }
 ];
 
@@ -423,6 +423,7 @@ const SafetyRecurringChecklist = ({ user }) => {
     const [lastDoneMap, setLastDoneMap] = useState({});
     const [allLogs, setAllLogs] = useState([]);
     const [historyTaskFilter, setHistoryTaskFilter] = useState('all');
+    const [allUsers, setAllUsers] = useState([]);
 
     useEffect(() => {
         db.collection('settings').doc('safetyRecurringChecklist').get().then(doc => {
@@ -432,7 +433,13 @@ const SafetyRecurringChecklist = ({ user }) => {
         db.collection('safetyChecklistLogs').get().then(snap => {
             setAllLogs(snap.docs.map(d => d.data()));
         }).catch(e => console.error(e));
-    }, []);
+
+        if (isAdmin) {
+            db.collection('users').get().then(snap => {
+                setAllUsers(snap.docs.map(d => ({ email: d.id, ...d.data() })));
+            }).catch(e => console.error(e));
+        }
+    }, [isAdmin]);
 
     const addLog = (entry) => {
         setAllLogs(prev => [...prev.filter(l => !(l.taskId === entry.taskId && l.email === entry.email && l.periodKey === entry.periodKey)), entry]);
@@ -458,6 +465,13 @@ const SafetyRecurringChecklist = ({ user }) => {
                 <div>
                     <h3 className="text-[18px] font-extrabold text-[#0F172A]">정기 안전보건 체크리스트</h3>
                     <p className="text-[13px] text-gray-500 font-medium mt-0.5">주기별로 반드시 해야 할 일들을 놓치지 않도록 표시해드려요.</p>
+                </div>
+            </div>
+            <div className="flex items-start gap-3 bg-amber-50 border border-amber-200 rounded-2xl p-4 mb-5">
+                <span className="text-[20px] shrink-0">⚠️</span>
+                <div>
+                    <p className="text-[13.5px] font-extrabold text-amber-800">왜 매일 확인해야 할까요?</p>
+                    <p className="text-[12.5px] text-amber-700/90 font-medium leading-relaxed mt-1">타이어 공기압, 브레이크, 전조등 같은 작은 이상도 운행 중 큰 사고로 이어질 수 있습니다. 일일 안전점검은 사업주와 운전자 모두에게 법으로 정해진 의무이기도 하고, 매일 남긴 기록은 만에 하나 사고가 났을 때 본인을 지켜주는 증빙 자료가 됩니다. 30초면 끝나니 절대 거르지 말아주세요.</p>
                 </div>
             </div>
             <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-4">
@@ -504,6 +518,34 @@ const SafetyRecurringChecklist = ({ user }) => {
                     );
                 })}
             </div>
+
+            {isAdmin && (() => {
+                const healthYearKey = getPeriodKey('yearly', now);
+                const healthCompletedEmails = new Set(allLogs.filter(l => l.taskId === 'yearly_health' && l.periodKey === healthYearKey).map(l => l.email));
+                const healthCompleted = allUsers.filter(u => healthCompletedEmails.has(u.email));
+                const healthNotCompleted = allUsers.filter(u => !healthCompletedEmails.has(u.email));
+                return (
+                    <div className="mt-6 pt-6 border-t border-gray-100">
+                        <h4 className="text-[15px] font-extrabold text-[#0F172A] mb-3">{healthYearKey}년 건강검진 현황 (관리자)</h4>
+                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                            <div className="rounded-2xl border border-green-100 bg-green-50/50 p-4">
+                                <p className="text-[13px] font-extrabold text-green-700 mb-2">✅ 완료자 ({healthCompleted.length}명)</p>
+                                <div className="flex flex-wrap gap-1.5">
+                                    {healthCompleted.length === 0 ? <span className="text-[12px] text-gray-400 font-medium">아직 없습니다.</span> :
+                                        healthCompleted.map(u => <span key={u.email} className="px-2.5 py-1 rounded-lg bg-white border border-green-200 text-green-700 text-[12px] font-bold">{u.name}</span>)}
+                                </div>
+                            </div>
+                            <div className="rounded-2xl border border-red-100 bg-red-50/50 p-4">
+                                <p className="text-[13px] font-extrabold text-red-600 mb-2">⏳ 미완료자 ({healthNotCompleted.length}명)</p>
+                                <div className="flex flex-wrap gap-1.5">
+                                    {healthNotCompleted.length === 0 ? <span className="text-[12px] text-gray-400 font-medium">전원 완료했습니다!</span> :
+                                        healthNotCompleted.map(u => <span key={u.email} className="px-2.5 py-1 rounded-lg bg-white border border-red-200 text-red-600 text-[12px] font-bold">{u.name}</span>)}
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                );
+            })()}
 
             {isAdmin && (
                 <div className="mt-6 pt-6 border-t border-gray-100">

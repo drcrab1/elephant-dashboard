@@ -33,7 +33,8 @@ const Icons = {
     Users: () => <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2" /><circle cx="9" cy="7" r="4" /><path d="M23 21v-2a4 4 0 0 0-3-3.87" /><path d="M16 3.13a4 4 0 0 1 0 7.75" /></svg>,
     FileText: () => <svg xmlns="http://www.w3.org/2000/svg" width="60" height="60" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z" /><polyline points="14 2 14 8 20 8" /><line x1="16" y1="13" x2="8" y2="13" /><line x1="16" y1="17" x2="8" y2="17" /><polyline points="10 9 9 9 8 9" /></svg>,
     Map: () => <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polygon points="3 6 9 3 15 6 21 3 21 18 15 21 9 18 3 21"></polygon><line x1="9" y1="3" x2="9" y2="18"></line><line x1="15" y1="6" x2="15" y2="21"></line></svg>,
-    Bell: () => <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M6 8a6 6 0 0 1 12 0c0 7 3 9 3 9H3s3-2 3-9" /><path d="M10.3 21a1.94 1.94 0 0 0 3.4 0" /></svg>
+    Bell: () => <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M6 8a6 6 0 0 1 12 0c0 7 3 9 3 9H3s3-2 3-9" /><path d="M10.3 21a1.94 1.94 0 0 0 3.4 0" /></svg>,
+    Table: () => <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect width="18" height="18" x="3" y="3" rx="2" /><path d="M3 9h18" /><path d="M3 15h18" /><path d="M9 3v18" /></svg>
 };
 
 // --- Draggable Layer Node ---
@@ -314,6 +315,7 @@ const PdfTemplate = ({ contract, templateRef, preview = false }) => {
                             <p>① "수탁자"는 배송 업무 수행률을 월 95% 이상 유지하도록 성실히 노력한다.</p>
                             <p>② "수탁자"의 개인 사정으로 인해 정해진 근무 스케줄 외의 휴무가 발생하는 경우, "수탁자"는 본인의 책임과 비용으로 대체 차량(용차) 등을 활용하여 배송 업무에 공백이 발생하지 않도록 조치한다.</p>
                             <p>③ "수탁자"는 프레시백(보냉가방 등) 회수율을 월 95% 이상 유지하도록 성실히 수행한다.</p>
+                            <p>④ "수탁자"는 운행 전 앱 내 일일 안전점검(TBM, 차량 안전점검표 등)을 매일 빠짐없이 성실히 수행하며, 점검 중 발견된 차량 이상 사항은 즉시 "위탁자"에게 보고한다.</p>
                         </div>
 
                         <p className="mt-12 text-center text-gray-700 font-bold leading-relaxed">위 명시된 단가 및 준수사항은 상호 합의 하에 즉시 효력이 발생하며,<br />양 당사자는 본 합의서의 내용에 전적으로 동의한다.</p>
@@ -466,7 +468,7 @@ const Sidebar = ({ activePage, setActivePage, user, onLogout, onWithdraw, isSide
         { id: '차량/서류관리', icon: <Icons.Truck /> },
         { id: '업무내역입력', icon: <Icons.Clipboard /> },
         { id: '노선관리', icon: <Icons.Map /> },
-        ...(isAdmin ? [{ id: '회원관리', icon: <Icons.Users /> }, { id: '알림관리', icon: <Icons.Bell /> }] : [])
+        ...(isAdmin ? [{ id: '회원관리', icon: <Icons.Users /> }, { id: '알림관리', icon: <Icons.Bell /> }, { id: '배차변환기', icon: <Icons.Table /> }] : [])
     ];
     return (
         <>
