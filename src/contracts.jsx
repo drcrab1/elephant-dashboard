@@ -135,11 +135,12 @@ const ContractManagement = ({ user, contracts, setContracts, contacts }) => {
         return contracts.filter(c => c.ownerEmail === user.email || c.targetEmail === user.email);
     }, [user.email, contracts, isAdmin]);
 
-    const [templateData, setTemplateData] = useState({ 
-        templateType: 'standard_consignment', 
-        targetEmail: '', 
-        targetDate: '', 
-        routeFees: [{ route: '', unitPrice: '' }], 
+    const [templateData, setTemplateData] = useState({
+        templateType: 'standard_consignment',
+        targetEmail: '',
+        targetDate: '',
+        targetEndDate: '',
+        routeFees: [{ route: '', unitPrice: '' }],
         docDate: new Date().toISOString().split('T')[0],
         carNumber: '',
         licenseNumber: ''
@@ -219,6 +220,7 @@ const ContractManagement = ({ user, contracts, setContracts, contacts }) => {
             templateType: templateData.templateType,
             variables: {
                 targetDate: templateData.targetDate,
+                targetEndDate: templateData.targetEndDate,
                 routeFees: templateData.routeFees,
                 carNumber: templateData.carNumber || '',
                 licenseNumber: templateData.licenseNumber || ''
@@ -251,6 +253,7 @@ const ContractManagement = ({ user, contracts, setContracts, contacts }) => {
                 templateType: templateData.templateType,
                 variables: {
                     targetDate: templateData.targetDate,
+                    targetEndDate: templateData.targetEndDate,
                     routeFees: templateData.routeFees,
                     carNumber: templateData.carNumber || '',
                     licenseNumber: templateData.licenseNumber || ''
@@ -265,6 +268,7 @@ const ContractManagement = ({ user, contracts, setContracts, contacts }) => {
                 templateType: 'standard_consignment',
                 targetEmail: '',
                 targetDate: '',
+                targetEndDate: '',
                 routeFees: [{ route: '', unitPrice: '' }],
                 docDate: new Date().toISOString().split('T')[0],
                 carNumber: '',
@@ -431,6 +435,11 @@ const ContractManagement = ({ user, contracts, setContracts, contacts }) => {
                                     <div className="flex flex-col gap-2 border-t pt-5 mt-2">
                                         <label className="text-[14px] font-bold text-gray-700">계약 개시일자 <span className="text-red-500">*</span></label>
                                         <input type="date" value={templateData.targetDate} onChange={e => setTemplateData({ ...templateData, targetDate: e.target.value })} className="w-full bg-white border border-gray-200 rounded-xl px-4 py-3 text-[15px] font-bold focus:outline-none focus:border-blue-500" />
+                                    </div>
+                                    <div className="flex flex-col gap-2">
+                                        <label className="text-[14px] font-bold text-gray-700">계약 종료일자</label>
+                                        <input type="date" value={templateData.targetEndDate} onChange={e => setTemplateData({ ...templateData, targetEndDate: e.target.value })} className="w-full bg-white border border-gray-200 rounded-xl px-4 py-3 text-[15px] font-bold focus:outline-none focus:border-blue-500" />
+                                        <p className="text-xs text-gray-400 font-bold">* 비워두면 개시일로부터 자동으로 1년 후로 계산됩니다.</p>
                                     </div>
                                     <div className="flex flex-col gap-2">
                                         <label className="text-[14px] font-bold text-gray-700">자동차 등록번호</label>

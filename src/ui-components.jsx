@@ -229,6 +229,9 @@ const PdfTemplate = ({ contract, templateRef, preview = false }) => {
                                     content = content
                                         .replace('{startDate}', contract.variables?.targetDate || '20   년  월  일')
                                         .replace('{endDate}', (() => {
+                                            if (contract.variables?.targetEndDate) {
+                                                return contract.variables.targetEndDate;
+                                            }
                                             if (contract.variables?.targetDate) {
                                                 const d = new Date(contract.variables.targetDate);
                                                 d.setFullYear(d.getFullYear() + 1);
@@ -237,7 +240,16 @@ const PdfTemplate = ({ contract, templateRef, preview = false }) => {
                                             }
                                             return '20   년  월  일';
                                         })())
-                                        .replace('{contractMonths}', '12')
+                                        .replace('{contractMonths}', (() => {
+                                            if (contract.variables?.targetDate && contract.variables?.targetEndDate) {
+                                                const start = new Date(contract.variables.targetDate);
+                                                const end = new Date(contract.variables.targetEndDate);
+                                                let months = (end.getFullYear() - start.getFullYear()) * 12 + (end.getMonth() - start.getMonth());
+                                                if (end.getDate() >= start.getDate() - 1) months += 1;
+                                                return String(Math.max(months, 1));
+                                            }
+                                            return '12';
+                                        })())
                                         .replace('● 담당구역: {route}\n● 수수료:\n○ 집화수수료: 1건당 {pickupFee}원 또는 택배사업자 – 영업점 간 수수료 기준 금액의 {pickupPct}%\n○ 배송수수료: 1건당 {deliveryFee}원 또는 택배사업자 – 영업점 간 수수료 기준 금액의 {deliveryPct}%', 
                                                  (() => {
                                                      const fees = contract.variables?.routeFees || [

@@ -111,6 +111,12 @@ const WorkRecordManagement = ({ user, records, setRecords }) => {
         setIsModalOpen(true);
     };
 
+    // 관리자가 어떤 화면(전체보기/다른 기사님 보기)을 보고 있더라도, 항상 본인 기록 입력으로 바로 전환해서 입력창을 여는 함수
+    const openSelfModal = () => {
+        setAdminSelectedEmail(user.email);
+        openModal();
+    };
+
     const handleSave = async () => {
         if (!formData.date || !formData.route || !formData.quantity) return alert('모든 항목을 입력해주세요.');
 
@@ -212,7 +218,7 @@ const WorkRecordManagement = ({ user, records, setRecords }) => {
                 </div>
 
                 {/* 수량 입력 / 정산서 다운로드 버튼 컨테이너 */}
-                <div className="flex justify-end gap-3 mt-2">
+                <div className="flex flex-wrap justify-end gap-3 mt-2">
                     <button
                         onClick={handleDownloadSettlement}
                         disabled={isGeneratingSettlement || currentPeriodRecords.length === 0}
@@ -220,8 +226,12 @@ const WorkRecordManagement = ({ user, records, setRecords }) => {
                     >
                         <Icons.Download /> {isGeneratingSettlement ? '생성 중...' : '정산서 PDF 다운로드'}
                     </button>
-                    {/* 관리자가 '전체 직원'을 볼 때는 입력 버튼 숨김 (본인 기록이 아니므로) */}
-                    {(!isAdmin || adminSelectedEmail !== 'all') && (
+                    {isAdmin ? (
+                        // 관리자는 지금 어떤 화면(전체보기/다른 기사님 보기)을 보고 있어도, 이 버튼으로 항상 본인 배송건수를 입력할 수 있음
+                        <button onClick={openSelfModal} className="flex items-center gap-2 bg-[#2E68ED] hover:bg-blue-700 text-white px-7 py-3 rounded-xl font-bold text-[15px] shadow-sm transition-colors">
+                            <Icons.Plus /> 내 배송건수 입력
+                        </button>
+                    ) : (
                         <button onClick={() => openModal()} className="flex items-center gap-2 bg-[#2E68ED] hover:bg-blue-700 text-white px-7 py-3 rounded-xl font-bold text-[15px] shadow-sm transition-colors">
                             <Icons.Plus /> 수량 입력
                         </button>
