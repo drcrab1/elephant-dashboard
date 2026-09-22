@@ -187,7 +187,13 @@ const AutoFitPreview = ({ naturalWidth, children }) => {
 };
 
 const PdfTemplate = ({ contract, templateRef, preview = false }) => {
-    const repName = (contract && contract.reqAdminName && !contract.reqAdminName.includes('대표님') && contract.reqAdminName !== '김코끼리' && contract.reqAdminName !== '김 코 끼 리') ? contract.reqAdminName : '권오민';
+    const repName = (() => {
+        if (!contract || !contract.reqAdminName) return '권오민';
+        const raw = contract.reqAdminName.trim();
+        if (raw.includes('대표님') || raw === '김코끼리' || raw === '김 코 끼 리') return '권오민';
+        const stripped = raw.replace(/관리자$/, '').trim(); // "권오민관리자" 같은 표시용 이름에서 직책 접미사 제거
+        return stripped || '권오민';
+    })();
     if (!contract) return null;
     if (contract.templateType === 'custom') {
         const customStyle = preview
@@ -288,27 +294,7 @@ const PdfTemplate = ({ contract, templateRef, preview = false }) => {
                 {contract.templateType === 'standard_supplementary' && (
                     <div className="flex-1 text-[17px] leading-relaxed space-y-6">
                         <p className="font-bold">합의 대상자: {contract.name} 기사님</p>
-                        <p>본 부속합의서는 기존에 체결된 물류운송 위수탁 계약서의 효력을 유지하며, 특정 노선 또는 추가 업무에 대한 배송 단가 합의를 명확히 함을 목적으로 작성되었다.</p>
-                        
-                        <div className="flex flex-col mt-8 mb-8 border border-black max-w-[600px] mx-auto text-center shadow-sm text-sm">
-                            <div className="flex bg-gray-100 border-b border-black font-extrabold">
-                                <div className="w-16 p-3 border-r border-black">순번</div>
-                                <div className="flex-1 p-3 border-r border-black">담당구역</div>
-                                <div className="flex-1 p-3">위탁 합의 단가</div>
-                            </div>
-                            {(() => {
-                                const fees = contract.variables?.routeFees || [
-                                    { route: contract.variables?.route || '지정구역', unitPrice: contract.variables?.unitPrice || '0' }
-                                ];
-                                return fees.map((rf, idx) => (
-                                    <div className="flex border-b border-black last:border-b-0 font-bold" key={idx}>
-                                        <div className="w-16 p-3 border-r border-black flex items-center justify-center">{idx + 1}</div>
-                                        <div className="flex-1 p-3 border-r border-black flex items-center justify-center">{rf.route || '-'}</div>
-                                        <div className="flex-1 p-3 text-[#1E5DDE] flex items-center justify-center">{rf.unitPrice ? Number(rf.unitPrice).toLocaleString() + ' 원' : '-'}</div>
-                                    </div>
-                                ));
-                            })()}
-                        </div>
+                        <p>본 부속합의서는 기존에 체결된 물류운송 위수탁 계약서(배송 단가 등 계약조건 포함)의 효력을 유지하며, "수탁자"가 성실히 준수해야 할 아래 사항들을 명확히 함을 목적으로 작성되었다.</p>
 
                         <div className="mt-10 space-y-3 text-[14px]">
                             <h4 className="font-bold text-[15px]">■ 수탁자 성실 수행 의무</h4>

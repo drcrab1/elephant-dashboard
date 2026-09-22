@@ -12,7 +12,13 @@ const VehicleDocumentManagement = ({ user, docs, setDocs, contacts = [] }) => {
     const [isModalOpen, setIsModalOpen] = useState(false);
     const [viewingDoc, setViewingDoc] = useState(null); // Document detail modal
 
-    const [formData, setFormData] = useState({ docType: '화물운송자격증', file: null });
+    const [formData, setFormData] = useState({ docType: '화물운송자격증', file: null, docNumber: '' });
+
+    // 서류 종류별로 함께 입력받는 번호 필드 — 계약서 발송 시 자동 입력에 사용됨
+    const DOC_NUMBER_FIELD = {
+        '화물운송자격증': { label: '화물운송종사자격증 번호', placeholder: '예: 12-34-567890', contactField: 'licenseNumber' },
+        '자동차등록증': { label: '자동차 등록번호', placeholder: '예: 12가 3456', contactField: 'carNumber' }
+    };
     const [isSendingReminders, setIsSendingReminders] = useState(false);
     const [sendingReminderEmail, setSendingReminderEmail] = useState(null);
 
@@ -83,6 +89,7 @@ const VehicleDocumentManagement = ({ user, docs, setDocs, contacts = [] }) => {
 
     const handleSave = async () => {
         if (!formData.file) return alert('서류 파일(사진)을 반드시 업로드해 주세요.');
+        const numberField = DOC_NUMBER_FIELD[formData.docType];
         try {
             const docRef = await db.collection('vehicleDocs').add({
                 date: new Date().toISOString().split('T')[0],
@@ -90,6 +97,7 @@ const VehicleDocumentManagement = ({ user, docs, setDocs, contacts = [] }) => {
                 email: user.email,
                 docType: formData.docType,
                 expiryDate: formData.expiryDate || '',
+                docNumber: numberField ? (formData.docNumber || '').trim() : '',
                 file: '' // Will update after upload
             });
 
@@ -102,7 +110,15 @@ const VehicleDocumentManagement = ({ user, docs, setDocs, contacts = [] }) => {
                 await docRef.update({ file: formData.file }); // fallback
             }
 
-            setFormData({ docType: '화물운송자격증', file: null, expiryDate: '' });
+            // 계약서 발송 시 자동으로 채워지도록, 입력한 번호를 본인 연락처 프로필에도 동기화
+            if (numberField && formData.docNumber && formData.docNumber.trim()) {
+                const myContact = contacts.find(c => c.email === user.email);
+                if (myContact) {
+                    await db.collection('contacts').doc(myContact.id).update({ [numberField.contactField]: formData.docNumber.trim() });
+                }
+            }
+
+            setFormData({ docType: '화물운송자격증', file: null, expiryDate: '', docNumber: '' });
             setIsModalOpen(false);
         } catch (e) { console.error(e); alert('업로드 실패: ' + e.message); }
     };
@@ -299,6 +315,7 @@ const VehicleDocumentManagement = ({ user, docs, setDocs, contacts = [] }) => {
                                         <h4 className="text-[16px] font-extrabold text-[#0F172A] truncate tracking-tight">{doc.name} 님의 {doc.docType}</h4>
                                     </div>
                                     <p className="text-[12.5px] text-gray-500 font-bold">제출일자: {doc.date}{doc.expiryDate ? ` · 만료일: ${doc.expiryDate}` : ''}</p>
+                                    {doc.docNumber && <p className="text-[12px] text-blue-600 font-bold mt-0.5">번호: {doc.docNumber}</p>}
                                 </div>
                             </div>
                             );
@@ -333,6 +350,14 @@ const VehicleDocumentManagement = ({ user, docs, setDocs, contacts = [] }) => {
                                     <option value="기타증빙">기타 증빙서류 (범용)</option>
                                 </select>
                             </div>
+
+                            {DOC_NUMBER_FIELD[formData.docType] && (
+                                <div>
+                                    <label className="block text-[14px] font-bold text-gray-700 mb-2">{DOC_NUMBER_FIELD[formData.docType].label}</label>
+                                    <input type="text" value={formData.docNumber || ''} onChange={e => setFormData({ ...formData, docNumber: e.target.value })} placeholder={DOC_NUMBER_FIELD[formData.docType].placeholder} className="w-full bg-white border border-gray-200 rounded-xl px-4 py-3 text-[15px] font-bold focus:outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500 transition-colors shadow-sm text-[#0F172A]" />
+                                    <p className="text-[12px] text-gray-400 font-medium mt-1.5">여기에 입력해두면, 나중에 계약서를 보낼 때 이 번호가 자동으로 채워져요.</p>
+                                </div>
+                            )}
 
                             <div>
                                 <label className="block text-[14px] font-bold text-gray-700 mb-2">서류 유효기간 (만료일, 있는 경우)</label>
@@ -375,7 +400,7 @@ const VehicleDocumentManagement = ({ user, docs, setDocs, contacts = [] }) => {
                         <div className="p-5 border-b flex justify-between items-center bg-[#F8FAFC]">
                             <div className="flex flex-col ml-2">
                                 <h3 className="text-[22px] font-extrabold text-[#0F172A] tracking-tight">{viewingDoc.name} 기사님의 <span className="text-blue-600">{viewingDoc.docType}</span></h3>
-                                <span className="text-[13px] text-gray-500 font-bold mt-1">서류 업로드 일자: {viewingDoc.date}{viewingDoc.expiryDate ? ` | 만료일: ${viewingDoc.expiryDate}` : ''} | 보안 계정 식별: {viewingDoc.email}</span>
+                                <span className="text-[13px] text-gray-500 font-bold mt-1">서류 업로드 일자: {viewingDoc.date}{viewingDoc.expiryDate ? ` | 만료일: ${viewingDoc.expiryDate}` : ''}{viewingDoc.docNumber ? ` | 번호: ${viewingDoc.docNumber}` : ''} | 보안 계정 식별: {viewingDoc.email}</span>
                             </div>
                             <button onClick={() => setViewingDoc(null)} className="text-gray-400 hover:text-black font-extrabold text-[28px] w-12 h-12 flex items-center justify-center rounded-xl bg-white border border-gray-200 hover:bg-gray-100 transition-colors shadow-sm">&times;</button>
                         </div>

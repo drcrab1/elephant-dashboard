@@ -200,10 +200,12 @@ const ContractManagement = ({ user, contracts, setContracts, contacts }) => {
             alert('계약 개시일을 입력해주세요.');
             return false;
         }
-        const invalid = templateData.routeFees.some(rf => !rf.route || !rf.unitPrice);
-        if (invalid || templateData.routeFees.length === 0) {
-            alert('담당구역과 수수료 단가를 모두 빠짐없이 입력해주세요.');
-            return false;
+        if (templateData.templateType === 'standard_consignment') {
+            const invalid = templateData.routeFees.some(rf => !rf.route || !rf.unitPrice);
+            if (invalid || templateData.routeFees.length === 0) {
+                alert('담당구역과 수수료 단가를 모두 빠짐없이 입력해주세요.');
+                return false;
+            }
         }
         return true;
     };
@@ -213,7 +215,7 @@ const ContractManagement = ({ user, contracts, setContracts, contacts }) => {
         const today = new Date().toISOString().split('T')[0];
         return {
             name: targetContact?.name || templateData.targetEmail.split('@')[0],
-            title: templateData.templateType === 'standard_consignment' ? '물류표준 위수탁계약서' : '배송단가 부속합의서',
+            title: templateData.templateType === 'standard_consignment' ? '물류표준 위수탁계약서' : '부속합의서',
             reqAdminName: user.name,
             status: '서명대기',
             date: templateData.docDate || today,
@@ -244,7 +246,7 @@ const ContractManagement = ({ user, contracts, setContracts, contacts }) => {
         try {
             const newRecord = {
                 name: targetContact?.name || templateData.targetEmail.split('@')[0],
-                title: templateData.templateType === 'standard_consignment' ? '물류표준 위수탁계약서' : '배송단가 부속합의서',
+                title: templateData.templateType === 'standard_consignment' ? '물류표준 위수탁계약서' : '부속합의서',
                 ownerEmail: user.email,
                 targetEmail: templateData.targetEmail,
                 reqAdminName: user.name,
@@ -413,7 +415,7 @@ const ContractManagement = ({ user, contracts, setContracts, contacts }) => {
                                 <label className="text-[14px] font-bold text-gray-700">양식 선택 <span className="text-red-500">*</span></label>
                                 <select value={templateData.templateType} onChange={e => setTemplateData({ ...templateData, templateType: e.target.value })} className="w-full bg-white border border-gray-200 rounded-xl px-4 py-3 text-[15px] font-bold focus:outline-none focus:border-blue-500 transition-colors">
                                     <option value="standard_consignment">물류운송 위수탁계약서 (표준)</option>
-                                    <option value="standard_supplementary">배송단가 부속합의서</option>
+                                    <option value="standard_supplementary">부속합의서</option>
                                 </select>
                             </div>
                             <div className="flex flex-col gap-2">
@@ -422,13 +424,26 @@ const ContractManagement = ({ user, contracts, setContracts, contacts }) => {
                             </div>
                             <div className="flex flex-col gap-2">
                                 <label className="text-[14px] font-bold text-gray-700">서명 대상자 (기사님) 선택 <span className="text-red-500">*</span></label>
-                                <select value={templateData.targetEmail} onChange={e => setTemplateData({ ...templateData, targetEmail: e.target.value })} className="w-full bg-white border border-gray-200 rounded-xl px-4 py-3 text-[15px] font-medium focus:outline-none focus:border-blue-500 transition-colors">
+                                <select
+                                    value={templateData.targetEmail}
+                                    onChange={e => {
+                                        const email = e.target.value;
+                                        const matched = contacts?.find(c => c.email === email);
+                                        setTemplateData({
+                                            ...templateData,
+                                            targetEmail: email,
+                                            carNumber: matched?.carNumber || '',
+                                            licenseNumber: matched?.licenseNumber || ''
+                                        });
+                                    }}
+                                    className="w-full bg-white border border-gray-200 rounded-xl px-4 py-3 text-[15px] font-medium focus:outline-none focus:border-blue-500 transition-colors"
+                                >
                                     <option value="">-- 비상연락망에서 기사 선택 --</option>
                                     {availableDrivers.map(d => (
                                         <option key={d.id} value={d.email}>{d.name} 기사님 ({d.tag || '미지정'})</option>
                                     ))}
                                 </select>
-                                <p className="text-xs text-gray-400 font-bold">* 이메일 연동이 완료된 기사님만 노출됩니다.</p>
+                                <p className="text-xs text-gray-400 font-bold">* 이메일 연동이 완료된 기사님만 노출됩니다. 화물운송자격증·자동차등록증 업로드 시 입력한 번호가 자동으로 채워집니다.</p>
                             </div>
                             {templateData.templateType === 'standard_consignment' && (
                                 <>
@@ -452,38 +467,40 @@ const ContractManagement = ({ user, contracts, setContracts, contacts }) => {
                                 </>
                             )}
 
-                            {/* 담당구역 & 단가 동적 추가 영역 (공통) */}
-                            <div className="flex flex-col gap-4 border-t pt-5 mt-2">
-                                <div className="flex flex-wrap justify-between items-center gap-2">
-                                    <label className="text-[14px] font-bold text-gray-700">담당구역 및 위탁 수수료 단가 목록 <span className="text-red-500">*</span></label>
-                                    <button type="button" onClick={handleAddRouteFee} className="shrink-0 whitespace-nowrap text-xs bg-[#2E68ED] hover:bg-blue-700 text-white font-bold px-3 py-1.5 rounded-lg shadow-sm">
-                                        + 구역 추가
-                                    </button>
-                                </div>
-                                
-                                <div className="space-y-4 max-h-[200px] overflow-y-auto pr-1">
-                                    {templateData.routeFees.map((rf, idx) => (
-                                        <div key={idx} className="flex gap-2 items-end bg-gray-50 p-3 rounded-xl border border-gray-100 relative group">
-                                            <div className="flex-1 flex flex-col gap-1.5">
-                                                <span className="text-[12px] font-bold text-gray-500">구역 {idx + 1}</span>
-                                                <input type="text" placeholder="예: 남양주4 A-01" value={rf.route} onChange={e => handleRouteFeeChange(idx, 'route', e.target.value)} className="w-full bg-white border border-gray-200 rounded-lg px-2.5 py-2 text-[13.5px] font-medium focus:outline-none focus:border-blue-500" />
-                                            </div>
-                                            <div className="flex-1 flex flex-col gap-1.5">
-                                                <span className="text-[12px] font-bold text-gray-500">수수료 단가</span>
-                                                <div className="relative">
-                                                    <input type="number" placeholder="예: 800" value={rf.unitPrice} onChange={e => handleRouteFeeChange(idx, 'unitPrice', e.target.value)} className="w-full bg-white border border-gray-200 rounded-lg px-2.5 py-2 pr-7 text-[13.5px] font-extrabold text-[#2E68ED] text-right focus:outline-none focus:border-blue-500" />
-                                                    <span className="absolute right-2.5 top-1/2 -translate-y-1/2 text-gray-400 font-bold text-[12px]">원</span>
+                            {/* 담당구역 & 단가 동적 추가 영역 (표준 위수탁계약서에만 표시 — 부속합의서는 단가를 별도로 명시하지 않음) */}
+                            {templateData.templateType === 'standard_consignment' && (
+                                <div className="flex flex-col gap-4 border-t pt-5 mt-2">
+                                    <div className="flex flex-wrap justify-between items-center gap-2">
+                                        <label className="text-[14px] font-bold text-gray-700">담당구역 및 위탁 수수료 단가 목록 <span className="text-red-500">*</span></label>
+                                        <button type="button" onClick={handleAddRouteFee} className="shrink-0 whitespace-nowrap text-xs bg-[#2E68ED] hover:bg-blue-700 text-white font-bold px-3 py-1.5 rounded-lg shadow-sm">
+                                            + 구역 추가
+                                        </button>
+                                    </div>
+
+                                    <div className="space-y-4 max-h-[200px] overflow-y-auto pr-1">
+                                        {templateData.routeFees.map((rf, idx) => (
+                                            <div key={idx} className="flex gap-2 items-end bg-gray-50 p-3 rounded-xl border border-gray-100 relative group">
+                                                <div className="flex-1 flex flex-col gap-1.5">
+                                                    <span className="text-[12px] font-bold text-gray-500">구역 {idx + 1}</span>
+                                                    <input type="text" placeholder="예: 남양주4 A-01" value={rf.route} onChange={e => handleRouteFeeChange(idx, 'route', e.target.value)} className="w-full bg-white border border-gray-200 rounded-lg px-2.5 py-2 text-[13.5px] font-medium focus:outline-none focus:border-blue-500" />
                                                 </div>
+                                                <div className="flex-1 flex flex-col gap-1.5">
+                                                    <span className="text-[12px] font-bold text-gray-500">수수료 단가</span>
+                                                    <div className="relative">
+                                                        <input type="number" placeholder="예: 800" value={rf.unitPrice} onChange={e => handleRouteFeeChange(idx, 'unitPrice', e.target.value)} className="w-full bg-white border border-gray-200 rounded-lg px-2.5 py-2 pr-7 text-[13.5px] font-extrabold text-[#2E68ED] text-right focus:outline-none focus:border-blue-500" />
+                                                        <span className="absolute right-2.5 top-1/2 -translate-y-1/2 text-gray-400 font-bold text-[12px]">원</span>
+                                                    </div>
+                                                </div>
+                                                {templateData.routeFees.length > 1 && (
+                                                    <button type="button" onClick={() => handleRemoveRouteFee(idx)} className="shrink-0 bg-red-50 hover:bg-red-100 text-red-500 border border-red-200 p-2.5 rounded-lg text-xs font-bold shadow-sm transition-colors mb-0.5">
+                                                        삭제
+                                                    </button>
+                                                )}
                                             </div>
-                                            {templateData.routeFees.length > 1 && (
-                                                <button type="button" onClick={() => handleRemoveRouteFee(idx)} className="shrink-0 bg-red-50 hover:bg-red-100 text-red-500 border border-red-200 p-2.5 rounded-lg text-xs font-bold shadow-sm transition-colors mb-0.5">
-                                                    삭제
-                                                </button>
-                                            )}
-                                        </div>
-                                    ))}
+                                        ))}
+                                    </div>
                                 </div>
-                            </div>
+                            )}
                         </div>
                         <div className="p-7 pt-2 flex gap-3 bg-[#f8fafc]">
                             <button onClick={() => setShowTemplateModal(false)} className="flex-[1] py-3.5 bg-white border border-gray-200 hover:bg-gray-50 text-gray-700 font-extrabold text-[15px] rounded-xl transition-colors shadow-sm">취소</button>
