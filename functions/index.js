@@ -247,3 +247,58 @@ exports.notifyAdminOnNewSignup = onDocumentCreated('users/{email}', async (event
         body: `${data.name || email}님이 방금 가입했어요.`
     });
 });
+
+// --- 매주 월요일 오전 9시: 만료 임박 서류·계약 요약을 관리자에게 발송 ---
+exports.weeklyComplianceDigest = onSchedule({ schedule: '0 9 * * 1', timeZone: 'Asia/Seoul' }, async () => {
+    const today = new Date(new Date().toLocaleString('en-US', { timeZone: 'Asia/Seoul' }));
+    today.setHours(0, 0, 0, 0);
+
+    // 서류 만료 임박 (30일 이내)
+    const docsSnap = await db.collection('vehicleDocs').get();
+    const expiringDocs = [];
+    docsSnap.docs.forEach((d) => {
+        const data = d.data();
+        if (!data.expiryDate) return;
+        const expiry = new Date(data.expiryDate);
+        if (isNaN(expiry.getTime())) return;
+        const daysLeft = Math.ceil((expiry - today) / (1000 * 60 * 60 * 24));
+        if (daysLeft >= 0 && daysLeft <= 30) {
+            expiringDocs.push(`${data.name} ${data.docType}(D-${daysLeft})`);
+        }
+    });
+
+    // 계약 만료 임박 (90일 이내, 위수탁계약서 기준)
+    const contractsSnap = await db.collection('contracts').get();
+    const expiringContracts = [];
+    contractsSnap.docs.forEach((d) => {
+        const data = d.data();
+        if (data.templateType !== 'standard_consignment' || !data.variables || !data.variables.targetDate) return;
+        const start = new Date(data.variables.targetDate);
+        if (isNaN(start.getTime())) return;
+        const expiry = new Date(start);
+        expiry.setFullYear(expiry.getFullYear() + 1);
+        const daysLeft = Math.ceil((expiry - today) / (1000 * 60 * 60 * 24));
+        if (daysLeft >= 0 && daysLeft <= 90) {
+            expiringContracts.push(`${data.name}(D-${daysLeft})`);
+        }
+    });
+
+    if (expiringDocs.length === 0 && expiringContracts.length === 0) return;
+
+    const bodyParts = [];
+    if (expiringDocs.length > 0) {
+        bodyParts.push(`서류 만료 임박 ${expiringDocs.length}건: ${expiringDocs.slice(0, 5).join(', ')}${expiringDocs.length > 5 ? ' 외' : ''}`);
+    }
+    if (expiringContracts.length > 0) {
+        bodyParts.push(`계약 만료 임박 ${expiringContracts.length}건: ${expiringContracts.slice(0, 5).join(', ')}${expiringContracts.length > 5 ? ' 외' : ''}`);
+    }
+
+    const adminDoc = await db.collection('users').doc(ADMIN_EMAIL).get();
+    const tokens = adminDoc.exists ? (adminDoc.data().fcmTokens || []) : [];
+    if (tokens.length === 0) return;
+
+    await sendToTokenMap({ [ADMIN_EMAIL]: tokens }, {
+        title: '이번 주 만료 임박 항목이 있어요',
+        body: bodyParts.join(' / ')
+    });
+});

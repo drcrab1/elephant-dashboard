@@ -89,6 +89,7 @@ const VehicleDocumentManagement = ({ user, docs, setDocs, contacts = [] }) => {
                 name: user.name,
                 email: user.email,
                 docType: formData.docType,
+                expiryDate: formData.expiryDate || '',
                 file: '' // Will update after upload
             });
 
@@ -101,9 +102,22 @@ const VehicleDocumentManagement = ({ user, docs, setDocs, contacts = [] }) => {
                 await docRef.update({ file: formData.file }); // fallback
             }
 
-            setFormData({ docType: '화물운송자격증', file: null });
+            setFormData({ docType: '화물운송자격증', file: null, expiryDate: '' });
             setIsModalOpen(false);
         } catch (e) { console.error(e); alert('업로드 실패: ' + e.message); }
+    };
+
+    // 서류 만료 상태 뱃지 계산 (만료일 없으면 null)
+    const getExpiryStatus = (doc) => {
+        if (!doc.expiryDate) return null;
+        const today = new Date();
+        today.setHours(0, 0, 0, 0);
+        const expiry = new Date(doc.expiryDate);
+        if (isNaN(expiry.getTime())) return null;
+        const daysLeft = Math.ceil((expiry - today) / (1000 * 60 * 60 * 24));
+        if (daysLeft < 0) return { label: '만료됨', className: 'bg-red-100 text-red-700 border-red-200' };
+        if (daysLeft <= 30) return { label: `D-${daysLeft}`, className: 'bg-amber-100 text-amber-700 border-amber-200' };
+        return { label: `~${doc.expiryDate}`, className: 'bg-gray-100 text-gray-500 border-gray-200' };
     };
 
     const handleDelete = async (docObj) => {
@@ -260,13 +274,18 @@ const VehicleDocumentManagement = ({ user, docs, setDocs, contacts = [] }) => {
                     </div>
                 ) : (
                     <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6 pb-20">
-                        {filteredDocs.map(doc => (
+                        {filteredDocs.map(doc => {
+                            const expiryStatus = getExpiryStatus(doc);
+                            return (
                             <div key={doc.id} onClick={() => setViewingDoc(doc)} className="bg-white rounded-[20px] shadow-[0_2px_12px_rgba(0,0,0,0.03)] border border-gray-100 overflow-hidden cursor-pointer hover:border-blue-400 hover:shadow-lg transition-all group flex flex-col h-[280px]">
                                 <div className="h-[180px] bg-gray-50 flex items-center justify-center overflow-hidden border-b border-gray-100 relative">
                                     {doc.file ? (
                                         <img src={doc.file} alt={doc.docType} className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500" />
                                     ) : (
                                         <div className="text-gray-300"><Icons.FileText /></div>
+                                    )}
+                                    {expiryStatus && (
+                                        <span className={`absolute top-2.5 right-2.5 px-2 py-1 text-[10.5px] font-extrabold rounded-md border shadow-sm ${expiryStatus.className}`}>{expiryStatus.label}</span>
                                     )}
                                     <div className="absolute inset-0 bg-[#0F172A]/40 backdrop-blur-[1px] transition-colors flex flex-col items-center justify-center opacity-0 group-hover:opacity-100 duration-300">
                                         <div className="bg-white text-[#0F172A] px-5 py-2.5 rounded-full text-sm font-extrabold shadow-md flex items-center gap-2">
@@ -279,10 +298,11 @@ const VehicleDocumentManagement = ({ user, docs, setDocs, contacts = [] }) => {
                                         <span className="inline-block px-2.5 py-1 bg-blue-50 text-blue-700 text-[11px] font-extrabold rounded-md mb-2">{doc.docType}</span>
                                         <h4 className="text-[16px] font-extrabold text-[#0F172A] truncate tracking-tight">{doc.name} 님의 {doc.docType}</h4>
                                     </div>
-                                    <p className="text-[12.5px] text-gray-500 font-bold">제출일자: {doc.date}</p>
+                                    <p className="text-[12.5px] text-gray-500 font-bold">제출일자: {doc.date}{doc.expiryDate ? ` · 만료일: ${doc.expiryDate}` : ''}</p>
                                 </div>
                             </div>
-                        ))}
+                            );
+                        })}
                     </div>
                 )}
 
@@ -312,6 +332,12 @@ const VehicleDocumentManagement = ({ user, docs, setDocs, contacts = [] }) => {
                                     <option value="최초안전교육수료증">최초안전교육수료증</option>
                                     <option value="기타증빙">기타 증빙서류 (범용)</option>
                                 </select>
+                            </div>
+
+                            <div>
+                                <label className="block text-[14px] font-bold text-gray-700 mb-2">서류 유효기간 (만료일, 있는 경우)</label>
+                                <input type="date" value={formData.expiryDate || ''} onChange={e => setFormData({ ...formData, expiryDate: e.target.value })} className="w-full bg-white border border-gray-200 rounded-xl px-4 py-3 text-[15px] font-bold focus:outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500 transition-colors shadow-sm text-[#0F172A]" />
+                                <p className="text-[12px] text-gray-400 font-medium mt-1.5">만료일을 입력하면, 만료 30일 전에 관리자에게 자동으로 알림이 가요.</p>
                             </div>
 
                             <div>
@@ -349,7 +375,7 @@ const VehicleDocumentManagement = ({ user, docs, setDocs, contacts = [] }) => {
                         <div className="p-5 border-b flex justify-between items-center bg-[#F8FAFC]">
                             <div className="flex flex-col ml-2">
                                 <h3 className="text-[22px] font-extrabold text-[#0F172A] tracking-tight">{viewingDoc.name} 기사님의 <span className="text-blue-600">{viewingDoc.docType}</span></h3>
-                                <span className="text-[13px] text-gray-500 font-bold mt-1">서류 업로드 일자: {viewingDoc.date} | 보안 계정 식별: {viewingDoc.email}</span>
+                                <span className="text-[13px] text-gray-500 font-bold mt-1">서류 업로드 일자: {viewingDoc.date}{viewingDoc.expiryDate ? ` | 만료일: ${viewingDoc.expiryDate}` : ''} | 보안 계정 식별: {viewingDoc.email}</span>
                             </div>
                             <button onClick={() => setViewingDoc(null)} className="text-gray-400 hover:text-black font-extrabold text-[28px] w-12 h-12 flex items-center justify-center rounded-xl bg-white border border-gray-200 hover:bg-gray-100 transition-colors shadow-sm">&times;</button>
                         </div>

@@ -315,7 +315,45 @@ const StatusCard = ({ title, subtitle, icon, bgClass, textClass, onClick }) => (
     </div>
 );
 
-const DashboardHome = ({ setActivePage }) => {
+const DASHBOARD_ADMIN_EMAIL = 's01025144826@gmail.com';
+const DASHBOARD_REQUIRED_DOCS = ['화물운송자격증', '운송사업허가증', '자동차등록증', '최초안전교육수료증'];
+
+const DashboardHome = ({ setActivePage, user, contracts = [], vehicleDocs = [], contacts = [], safetyRecords = [] }) => {
+    const isAdmin = user && user.email === DASHBOARD_ADMIN_EMAIL;
+
+    const kpis = useMemo(() => {
+        if (!isAdmin) return null;
+
+        // 서류 미제출 인원
+        const drivers = contacts.filter(c => c.role === '배송기사' || c.role === '조장');
+        const missingDocsCount = drivers.filter(driver =>
+            DASHBOARD_REQUIRED_DOCS.some(docType => !vehicleDocs.some(d => d.email === driver.email && d.docType === docType))
+        ).length;
+
+        // 계약 만료 임박 (90일 이내, 위수탁계약서 기준)
+        const now = new Date();
+        const expiringContracts = contracts.filter(c => {
+            if (c.templateType !== 'standard_consignment' || !c.variables?.targetDate) return false;
+            const start = new Date(c.variables.targetDate);
+            if (isNaN(start.getTime())) return false;
+            const expiry = new Date(start);
+            expiry.setFullYear(expiry.getFullYear() + 1);
+            const daysLeft = Math.ceil((expiry - now) / (1000 * 60 * 60 * 24));
+            return daysLeft >= 0 && daysLeft <= 90;
+        }).length;
+
+        // 이번달 사고 건수
+        const monthPrefix = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}`;
+        const accidentsThisMonth = safetyRecords.filter(r => r.formType === 'accident_report' && (r.date || '').startsWith(monthPrefix)).length;
+
+        return {
+            missingDocsCount,
+            expiringContracts,
+            accidentsThisMonth,
+            totalMembers: contacts.length
+        };
+    }, [isAdmin, contacts, vehicleDocs, contracts, safetyRecords]);
+
     const cards = [
         { title: '계약관리', subtitle: '전자서명·단가·조회', icon: <Icons.Contract />, bgClass: 'bg-[#EFF5FF]', textClass: 'text-[#3679EE]' },
         { title: '스케줄관리', subtitle: '배차·근무일정', icon: <Icons.Schedule />, bgClass: 'bg-[#F5F2FF]', textClass: 'text-[#965DE8]' },
@@ -327,10 +365,32 @@ const DashboardHome = ({ setActivePage }) => {
     ];
     return (
         <main className="md:ml-[260px] ml-0 px-4 md:px-10 py-6 md:py-12 flex-1 relative animate-fade-in w-full max-w-[100vw] md:max-w-[calc(100vw-260px)] overflow-x-hidden">
-            <header className="mb-[40px] border-b border-gray-100 pb-6 w-full max-w-[1200px]">
+            <header className="mb-[32px] border-b border-gray-100 pb-6 w-full max-w-[1200px]">
                 <h2 className="text-[26px] font-extrabold text-[#0F172A] mb-2 tracking-tight">대시보드</h2>
                 <p className="text-[15px] text-gray-500 font-medium tracking-tight">코끼리물류 관리 시스템 - 스마트 에디터 활성화됨</p>
             </header>
+
+            {kpis && (
+                <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-8 max-w-[1200px]">
+                    <button onClick={() => setActivePage('차량/서류관리')} className={`text-left rounded-2xl border p-5 shadow-sm transition-transform hover:-translate-y-0.5 ${kpis.missingDocsCount > 0 ? 'bg-amber-50 border-amber-200' : 'bg-white border-gray-100'}`}>
+                        <p className={`text-[13px] font-bold mb-1 ${kpis.missingDocsCount > 0 ? 'text-amber-600' : 'text-gray-400'}`}>서류 미제출 인원</p>
+                        <p className={`text-[26px] font-extrabold ${kpis.missingDocsCount > 0 ? 'text-amber-700' : 'text-[#0F172A]'}`}>{kpis.missingDocsCount}<span className="text-[15px] font-bold ml-1 opacity-60">명</span></p>
+                    </button>
+                    <button onClick={() => setActivePage('계약관리')} className={`text-left rounded-2xl border p-5 shadow-sm transition-transform hover:-translate-y-0.5 ${kpis.expiringContracts > 0 ? 'bg-red-50 border-red-200' : 'bg-white border-gray-100'}`}>
+                        <p className={`text-[13px] font-bold mb-1 ${kpis.expiringContracts > 0 ? 'text-red-600' : 'text-gray-400'}`}>계약 만료 임박 (90일)</p>
+                        <p className={`text-[26px] font-extrabold ${kpis.expiringContracts > 0 ? 'text-red-700' : 'text-[#0F172A]'}`}>{kpis.expiringContracts}<span className="text-[15px] font-bold ml-1 opacity-60">건</span></p>
+                    </button>
+                    <button onClick={() => setActivePage('안전보건관리')} className={`text-left rounded-2xl border p-5 shadow-sm transition-transform hover:-translate-y-0.5 ${kpis.accidentsThisMonth > 0 ? 'bg-red-50 border-red-200' : 'bg-white border-gray-100'}`}>
+                        <p className={`text-[13px] font-bold mb-1 ${kpis.accidentsThisMonth > 0 ? 'text-red-600' : 'text-gray-400'}`}>이번달 사고 건수</p>
+                        <p className={`text-[26px] font-extrabold ${kpis.accidentsThisMonth > 0 ? 'text-red-700' : 'text-[#0F172A]'}`}>{kpis.accidentsThisMonth}<span className="text-[15px] font-bold ml-1 opacity-60">건</span></p>
+                    </button>
+                    <button onClick={() => setActivePage('회원관리')} className="text-left bg-white rounded-2xl border border-gray-100 p-5 shadow-sm transition-transform hover:-translate-y-0.5">
+                        <p className="text-[13px] text-gray-400 font-bold mb-1">전체 등록 인원</p>
+                        <p className="text-[26px] font-extrabold text-[#0F172A]">{kpis.totalMembers}<span className="text-[15px] font-bold ml-1 opacity-60">명</span></p>
+                    </button>
+                </div>
+            )}
+
             <div className="grid grid-cols-1 lg:grid-cols-2 xl:grid-cols-3 gap-x-6 gap-y-6 max-w-[1200px]">
                 {cards.map((card, idx) => <StatusCard key={idx} {...card} icon={React.cloneElement(card.icon, { width: 24, height: 24 })} onClick={() => setActivePage(card.title)} />)}
             </div>

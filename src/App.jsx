@@ -168,7 +168,7 @@ const App = () => {
     // 전체가 리마운트되어 입력 중이던 폼 상태 등이 초기화될 수 있었습니다.
     // 컴포넌트를 새로 만드는 대신 실제 엘리먼트를 바로 계산해서 렌더링하도록 수정했습니다.
     let content = <PageView title={activePage} />;
-    if (activePage === '대시보드') content = <DashboardHome setActivePage={setActivePage} />;
+    if (activePage === '대시보드') content = <DashboardHome setActivePage={setActivePage} user={user} contracts={contracts} vehicleDocs={vehicleDocs} contacts={appContacts} safetyRecords={safetyRecords} />;
     if (activePage === '계약관리') content = <ContractManagement user={user} contracts={contracts} setContracts={setContracts} contacts={appContacts} />;
     if (activePage === '스케줄관리') content = <ScheduleManagement user={user} />;
     if (activePage === '안전보건관리') content = <SafetyManagement user={user} records={safetyRecords} setRecords={setSafetyRecords} />;

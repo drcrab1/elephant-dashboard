@@ -1,6 +1,8 @@
-import React, { useState, useMemo } from 'react';
+import React, { useState, useMemo, useRef } from 'react';
 import { db, ADMIN_EMAIL } from './firebase';
 import { Icons } from './ui-components';
+import { toJpeg } from 'html-to-image';
+import { jsPDF } from 'jspdf';
 
 // --- Work Record Management (업무내역입력/정산) ---
 const WorkRecordManagement = ({ user, records, setRecords }) => {
@@ -54,6 +56,45 @@ const WorkRecordManagement = ({ user, records, setRecords }) => {
     const totalQuantity = currentPeriodRecords.reduce((sum, r) => sum + Number(r.quantity), 0);
     const uniqueWorkDays = new Set(currentPeriodRecords.map(r => r.date)).size;
     const averageDaily = uniqueWorkDays > 0 ? Math.round(totalQuantity / uniqueWorkDays) : 0;
+
+    // 정산서 PDF용 수신자 이름 산출
+    const settlementRecipientName = targetEmailFilter === 'all'
+        ? '전체 직원'
+        : targetEmailFilter === user.email
+            ? user.name
+            : (uniqueUsers.find(u => u.email === targetEmailFilter)?.name || currentPeriodRecords.find(r => r.email === targetEmailFilter)?.name || targetEmailFilter);
+
+    const settlementPrintRef = useRef(null);
+    const [isGeneratingSettlement, setIsGeneratingSettlement] = useState(false);
+
+    const handleDownloadSettlement = async () => {
+        if (currentPeriodRecords.length === 0) return alert('해당 정산 기간에 내역이 없습니다.');
+        setIsGeneratingSettlement(true);
+        try {
+            await new Promise(res => setTimeout(res, 100)); // DOM 렌더 대기
+            const element = settlementPrintRef.current;
+            const dataUrl = await toJpeg(element, { quality: 0.98, backgroundColor: '#ffffff' });
+            const pdf = new jsPDF('p', 'mm', 'a4');
+            const pdfWidth = 210;
+            const imgHeight = (element.offsetHeight * pdfWidth) / element.offsetWidth;
+            let heightLeft = imgHeight;
+            let position = 0;
+            pdf.addImage(dataUrl, 'JPEG', 0, position, pdfWidth, imgHeight);
+            heightLeft -= 295;
+            while (heightLeft >= 0) {
+                position = heightLeft - imgHeight;
+                pdf.addPage();
+                pdf.addImage(dataUrl, 'JPEG', 0, position, pdfWidth, imgHeight);
+                heightLeft -= 295;
+            }
+            pdf.save(`정산서_${settlementRecipientName}_${targetYear}${String(targetMonthStr).padStart(2, '0')}.pdf`);
+        } catch (e) {
+            console.error(e);
+            alert('정산서 생성 실패: ' + e.message);
+        } finally {
+            setIsGeneratingSettlement(false);
+        }
+    };
 
     const changeMonth = (offset) => {
         setBaseMonth(new Date(targetYear, baseMonth.getMonth() + offset, 1));
@@ -168,8 +209,15 @@ const WorkRecordManagement = ({ user, records, setRecords }) => {
                     </div>
                 </div>
 
-                {/* 수량 입력 버튼 컨테이너 */}
-                <div className="flex justify-end mt-2">
+                {/* 수량 입력 / 정산서 다운로드 버튼 컨테이너 */}
+                <div className="flex justify-end gap-3 mt-2">
+                    <button
+                        onClick={handleDownloadSettlement}
+                        disabled={isGeneratingSettlement || currentPeriodRecords.length === 0}
+                        className="flex items-center gap-2 bg-white border border-gray-300 hover:bg-gray-50 text-gray-700 px-6 py-3 rounded-xl font-bold text-[15px] shadow-sm transition-colors disabled:opacity-50"
+                    >
+                        <Icons.Download /> {isGeneratingSettlement ? '생성 중...' : '정산서 PDF 다운로드'}
+                    </button>
                     {/* 관리자가 '전체 직원'을 볼 때는 입력 버튼 숨김 (본인 기록이 아니므로) */}
                     {(!isAdmin || adminSelectedEmail !== 'all') && (
                         <button onClick={() => openModal()} className="flex items-center gap-2 bg-[#2E68ED] hover:bg-blue-700 text-white px-7 py-3 rounded-xl font-bold text-[15px] shadow-sm transition-colors">
@@ -246,6 +294,53 @@ const WorkRecordManagement = ({ user, records, setRecords }) => {
                     </div>
                 </div>
             )}
+
+            {/* 정산서 PDF 캡처용 숨김 템플릿 */}
+            <div style={{ position: 'absolute', top: 0, left: 0, opacity: 0, pointerEvents: 'none', zIndex: -9999 }}>
+                <div ref={settlementPrintRef} style={{ width: '800px', backgroundColor: '#ffffff', padding: '48px', boxSizing: 'border-box', fontFamily: 'sans-serif', color: '#111' }}>
+                    <h1 style={{ textAlign: 'center', fontSize: '22px', fontWeight: 800, marginBottom: '4px' }}>배송 업무 정산서</h1>
+                    <p style={{ textAlign: 'center', fontSize: '12px', color: '#666', marginBottom: '24px' }}>코끼리물류</p>
+                    <table style={{ width: '100%', borderCollapse: 'collapse', marginBottom: '20px', fontSize: '13px' }}>
+                        <tbody>
+                            <tr>
+                                <td style={{ border: '1px solid #ccc', background: '#f5f5f5', fontWeight: 700, padding: '8px', width: '25%' }}>대상</td>
+                                <td style={{ border: '1px solid #ccc', padding: '8px', width: '25%' }}>{settlementRecipientName}</td>
+                                <td style={{ border: '1px solid #ccc', background: '#f5f5f5', fontWeight: 700, padding: '8px', width: '25%' }}>정산기간</td>
+                                <td style={{ border: '1px solid #ccc', padding: '8px', width: '25%' }}>{displayStartStr} ~ {displayEndStr}</td>
+                            </tr>
+                            <tr>
+                                <td style={{ border: '1px solid #ccc', background: '#f5f5f5', fontWeight: 700, padding: '8px' }}>총 배송건수</td>
+                                <td style={{ border: '1px solid #ccc', padding: '8px', fontWeight: 800, color: '#2E68ED' }}>{totalQuantity.toLocaleString()}건</td>
+                                <td style={{ border: '1px solid #ccc', background: '#f5f5f5', fontWeight: 700, padding: '8px' }}>근무일수 / 일평균</td>
+                                <td style={{ border: '1px solid #ccc', padding: '8px' }}>{uniqueWorkDays}일 / {averageDaily.toLocaleString()}건</td>
+                            </tr>
+                        </tbody>
+                    </table>
+                    <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '12.5px' }}>
+                        <thead>
+                            <tr style={{ background: '#0F172A', color: '#fff' }}>
+                                <th style={{ border: '1px solid #ccc', padding: '7px' }}>날짜</th>
+                                <th style={{ border: '1px solid #ccc', padding: '7px' }}>요일</th>
+                                {targetEmailFilter === 'all' && <th style={{ border: '1px solid #ccc', padding: '7px' }}>이름</th>}
+                                <th style={{ border: '1px solid #ccc', padding: '7px' }}>구역</th>
+                                <th style={{ border: '1px solid #ccc', padding: '7px' }}>배송건수</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {[...currentPeriodRecords].sort((a, b) => a.date.localeCompare(b.date)).map((r, idx) => (
+                                <tr key={idx}>
+                                    <td style={{ border: '1px solid #ccc', padding: '6px', textAlign: 'center' }}>{formatRecordDate(r.date)}</td>
+                                    <td style={{ border: '1px solid #ccc', padding: '6px', textAlign: 'center' }}>{getDayName(r.date)}</td>
+                                    {targetEmailFilter === 'all' && <td style={{ border: '1px solid #ccc', padding: '6px', textAlign: 'center' }}>{r.name}</td>}
+                                    <td style={{ border: '1px solid #ccc', padding: '6px', textAlign: 'center' }}>{r.route}</td>
+                                    <td style={{ border: '1px solid #ccc', padding: '6px', textAlign: 'center', fontWeight: 700 }}>{Number(r.quantity).toLocaleString()}</td>
+                                </tr>
+                            ))}
+                        </tbody>
+                    </table>
+                    <p style={{ textAlign: 'center', fontSize: '11px', color: '#999', marginTop: '24px' }}>생성일: {new Date().toISOString().split('T')[0]}</p>
+                </div>
+            </div>
         </main>
     );
 };
