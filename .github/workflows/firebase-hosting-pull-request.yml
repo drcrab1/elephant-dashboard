@@ -14,6 +14,14 @@ jobs:
     steps:
       - uses: actions/checkout@v4
       - run: npm ci && npm run build
+        env:
+          VITE_FIREBASE_API_KEY: AIzaSyASLqpX8LvjUHAAd9j9W_hn3u0_1mtRVtc
+          VITE_FIREBASE_AUTH_DOMAIN: elephant-logistics.firebaseapp.com
+          VITE_FIREBASE_PROJECT_ID: elephant-logistics
+          VITE_FIREBASE_STORAGE_BUCKET: elephant-logistics.firebasestorage.app
+          VITE_FIREBASE_MESSAGING_SENDER_ID: "953117332232"
+          VITE_FIREBASE_APP_ID: "1:953117332232:web:6d8f8bb95a9fa12e9e52bd"
+          VITE_FIREBASE_VAPID_KEY: BC4Ar50Z3u1G6Ap0UQ-vfzvq5keczF2Gvj5XL_zNQ0kre5ieY9djYDigH6S3S28CBUKIBnxHI9ByC2nuy3MSsCY
       - uses: FirebaseExtended/action-hosting-deploy@v0
         with:
           repoToken: ${{ secrets.GITHUB_TOKEN }}
