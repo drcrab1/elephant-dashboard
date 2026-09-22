@@ -162,18 +162,18 @@ const getLocalDateString = (d) => {
 
             {/* 캘린더 네비게이터 카드 */}
             <div className="bg-white rounded-3xl p-6 border border-gray-100 shadow-[0_4px_20px_rgba(0,0,0,0.02)] mb-8 w-full max-w-[1200px] flex flex-col md:flex-row items-center justify-between gap-6">
-                <div className="flex items-center gap-4">
-                    <button onClick={() => changeWeek(-1)} className="w-11 h-11 border border-gray-100 rounded-2xl bg-white hover:bg-gray-50 text-gray-600 flex items-center justify-center shadow-sm hover:scale-105 active:scale-95 transition-all"><Icons.ChevronLeft /></button>
-                    <div className="text-left">
+                <div className="flex items-center gap-2 sm:gap-4 w-full md:w-auto">
+                    <button onClick={() => changeWeek(-1)} className="shrink-0 w-11 h-11 border border-gray-100 rounded-2xl bg-white hover:bg-gray-50 text-gray-600 flex items-center justify-center shadow-sm hover:scale-105 active:scale-95 transition-all"><Icons.ChevronLeft /></button>
+                    <div className="text-left min-w-0">
                         <span className="text-xs text-gray-400 font-bold uppercase tracking-wider block">선택된 일정 기간</span>
-                        <h2 className="text-[20px] md:text-[22px] font-extrabold text-[#0F172A] tracking-tight">
+                        <h2 className="text-[16px] sm:text-[20px] md:text-[22px] font-extrabold text-[#0F172A] tracking-tight">
                             {formatDateLong(startOfWeek)} <span className="text-gray-300 font-normal">~</span> {formatDateLong(endOfWeek)}
                         </h2>
                     </div>
-                    <button onClick={() => changeWeek(1)} className="w-11 h-11 border border-gray-100 rounded-2xl bg-white hover:bg-gray-50 text-gray-600 flex items-center justify-center shadow-sm hover:scale-105 active:scale-95 transition-all"><Icons.ChevronRight /></button>
+                    <button onClick={() => changeWeek(1)} className="shrink-0 w-11 h-11 border border-gray-100 rounded-2xl bg-white hover:bg-gray-50 text-gray-600 flex items-center justify-center shadow-sm hover:scale-105 active:scale-95 transition-all"><Icons.ChevronRight /></button>
                 </div>
 
-                <div className="flex items-center gap-3">
+                <div className="flex flex-wrap items-center gap-3">
                     <button onClick={setThisWeek} className="px-5 py-2.5 rounded-2xl bg-blue-50 text-blue-600 hover:bg-blue-100 text-[14px] font-extrabold tracking-tight active:scale-95 transition-all">
                         이번 주로 이동
                     </button>
@@ -189,9 +189,9 @@ const getLocalDateString = (d) => {
             {/* 관리자 설정 영역 */}
             {isAdmin && (
                 <div className="w-full max-w-[1200px] mb-8 p-6 bg-gradient-to-r from-blue-50/50 to-indigo-50/30 border border-blue-100 rounded-3xl shadow-sm flex flex-col gap-4">
-                    <div className="flex items-center justify-between">
+                    <div className="flex flex-wrap items-center justify-between gap-2">
                         <h3 className="font-extrabold text-[#1E3A8A] flex items-center gap-2.5 text-[16px]"><Icons.Settings /> 구글 시트 배차표 연동 설정</h3>
-                        <button onClick={() => setIsEditingUrl(!isEditingUrl)} className="text-sm font-bold text-blue-600 hover:text-blue-700 transition-colors">{isEditingUrl ? '수정 취소' : '연동 주소 변경'}</button>
+                        <button onClick={() => setIsEditingUrl(!isEditingUrl)} className="shrink-0 whitespace-nowrap text-sm font-bold text-blue-600 hover:text-blue-700 transition-colors">{isEditingUrl ? '수정 취소' : '연동 주소 변경'}</button>
                     </div>
                     {isEditingUrl ? (
                         <div className="flex flex-col sm:flex-row gap-3">

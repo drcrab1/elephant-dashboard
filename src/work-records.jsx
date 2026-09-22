@@ -164,11 +164,13 @@ const WorkRecordManagement = ({ user, records, setRecords }) => {
 
                 {/* 관리자 뷰 - 직원 선택기 */}
                 {isAdmin && (
-                    <div className="bg-white p-4 rounded-2xl border border-gray-200 shadow-sm flex items-center gap-4">
-                        <span className="font-bold text-gray-700 bg-blue-50 px-3 py-1 rounded-lg text-sm">관리자 전용</span>
-                        <span className="text-sm font-medium text-gray-600">조회할 직원을 선택하세요:</span>
+                    <div className="bg-white p-4 rounded-2xl border border-gray-200 shadow-sm flex flex-col sm:flex-row sm:items-center gap-3">
+                        <div className="flex items-center gap-2 flex-wrap">
+                            <span className="font-bold text-gray-700 bg-blue-50 px-3 py-1 rounded-lg text-sm whitespace-nowrap">관리자 전용</span>
+                            <span className="text-sm font-medium text-gray-600 whitespace-nowrap">조회할 직원을 선택하세요:</span>
+                        </div>
                         <select
-                            className="bg-gray-50 border border-gray-200 text-gray-800 text-sm font-bold rounded-lg focus:ring-blue-500 focus:border-blue-500 block p-2.5 outline-none cursor-pointer"
+                            className="bg-gray-50 border border-gray-200 text-gray-800 text-sm font-bold rounded-lg focus:ring-blue-500 focus:border-blue-500 block p-2.5 outline-none cursor-pointer w-full sm:w-auto"
                             value={adminSelectedEmail}
                             onChange={(e) => setAdminSelectedEmail(e.target.value)}
                         >
@@ -233,13 +235,13 @@ const WorkRecordManagement = ({ user, records, setRecords }) => {
                             해당 정산 기간에 등록된 업무 내역이 없습니다.
                         </div>
                     ) : currentPeriodRecords.map(record => (
-                        <div key={record.id} className="bg-white p-5 rounded-2xl border border-gray-100 shadow-[0_2px_8px_rgba(0,0,0,0.02)] flex items-center justify-between group hover:border-blue-200 transition-all">
-                            <div className="flex flex-col gap-3">
-                                <div className="flex items-center gap-2.5">
-                                    <span className="text-gray-400"><Icons.Schedule /></span>
-                                    <span className="text-[16px] font-extrabold text-[#0F172A]">{formatRecordDate(record.date)} ({getDayName(record.date)})</span>
-                                    <span className="block px-2 py-0.5 ml-1 bg-gray-100 text-gray-500 rounded text-[13px] font-bold">{record.route}</span>
-                                    {isAdmin && targetEmailFilter === 'all' && <span className="text-xs bg-blue-50 text-blue-600 px-2 py-0.5 rounded font-bold ml-1">{record.name}</span>}
+                        <div key={record.id} className="bg-white p-5 rounded-2xl border border-gray-100 shadow-[0_2px_8px_rgba(0,0,0,0.02)] flex flex-wrap items-center justify-between gap-3 group hover:border-blue-200 transition-all">
+                            <div className="flex flex-col gap-3 min-w-0">
+                                <div className="flex flex-wrap items-center gap-2.5">
+                                    <span className="text-gray-400 shrink-0"><Icons.Schedule /></span>
+                                    <span className="text-[16px] font-extrabold text-[#0F172A] whitespace-nowrap shrink-0">{formatRecordDate(record.date)} ({getDayName(record.date)})</span>
+                                    <span className="shrink-0 whitespace-nowrap px-2 py-0.5 bg-gray-100 text-gray-500 rounded text-[13px] font-bold">{record.route}</span>
+                                    {isAdmin && targetEmailFilter === 'all' && <span className="shrink-0 whitespace-nowrap text-xs bg-blue-50 text-blue-600 px-2 py-0.5 rounded font-bold">{record.name}</span>}
                                 </div>
 
                                 {/* Actions (Only for owner or admin viewing specific user wait, let's just let owner/admin always see it) */}
@@ -248,7 +250,7 @@ const WorkRecordManagement = ({ user, records, setRecords }) => {
                                     <button onClick={() => handleDelete(record.id)} className="w-[34px] h-[34px] flex items-center justify-center rounded-lg border border-gray-200 hover:bg-red-50 hover:text-red-500 hover:border-red-200 text-gray-400 transition-colors bg-white"><Icons.Trash2 /></button>
                                 </div>
                             </div>
-                            <div className="flex items-baseline gap-1">
+                            <div className="flex items-baseline gap-1 shrink-0">
                                 <span className="text-[24px] font-extrabold text-[#2E68ED]">{Number(record.quantity).toLocaleString()}</span>
                                 <span className="font-bold text-[#2E68ED]">건</span>
                             </div>

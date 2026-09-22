@@ -177,8 +177,8 @@ const ContactManagement = ({ user, contacts, setContacts }) => {
                     </div>
 
                     {/* Tabs and Action */}
-                    <div className="flex items-center gap-4">
-                        <button onClick={() => setIsTreeModalOpen(true)} className="flex items-center gap-1.5 bg-white border border-blue-200 hover:bg-blue-50 text-blue-600 px-5 py-3 rounded-xl font-bold text-[14px] shadow-sm transition-all active:scale-95">
+                    <div className="flex flex-wrap items-center gap-3">
+                        <button onClick={() => setIsTreeModalOpen(true)} className="flex items-center gap-1.5 bg-white border border-blue-200 hover:bg-blue-50 text-blue-600 px-5 py-3 rounded-xl font-bold text-[14px] shadow-sm transition-all active:scale-95 whitespace-nowrap">
                             📊 조직도형 PDF 다운로드
                         </button>
                         <div className="flex gap-1.5 bg-white p-1 rounded-[14px] shadow-sm border border-gray-200">

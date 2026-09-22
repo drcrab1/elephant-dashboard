@@ -184,7 +184,7 @@ const App = () => {
             {/* Mobile Top Bar */}
             <div className="md:hidden fixed top-0 left-0 right-0 h-[60px] bg-white border-b border-gray-100 flex items-center justify-between px-5 z-40 shadow-sm">
                 <div className="flex items-center gap-2" onClick={() => { setActivePage('대시보드'); setIsSidebarOpen(false); }}>
-                    <div className="text-blue-600 scale-75 transform"><Icons.Logo /></div>
+                    <img src="/logo.png" alt="코끼리물류" className="w-8 h-8 rounded-lg object-cover" />
                     <span className="text-[17px] font-extrabold text-[#0F172A] tracking-tight">코끼리물류</span>
                 </div>
                 <button onClick={() => setIsSidebarOpen(true)} className="w-10 h-10 flex items-center justify-center rounded-xl bg-gray-50 text-gray-600">

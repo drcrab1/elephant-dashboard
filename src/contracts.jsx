@@ -335,20 +335,20 @@ const ContractManagement = ({ user, contracts, setContracts, contacts }) => {
 
     return (
         <main className="md:ml-[260px] ml-0 px-4 md:px-10 py-6 md:py-12 flex-1 animate-fade-in relative bg-[#F4F7FB] min-h-[100vh]">
-            <header className="mb-10 w-full flex justify-between items-end border-b pb-6 border-gray-200">
-                <div>
-                    <h2 className="text-[28px] font-extrabold mb-2 text-[#1E293B]">계약관리 (문서 작성 / 조회)</h2>
+            <header className="mb-10 w-full flex flex-col md:flex-row md:justify-between md:items-end gap-4 border-b pb-6 border-gray-200">
+                <div className="min-w-0">
+                    <h2 className="text-[22px] md:text-[28px] font-extrabold mb-2 text-[#1E293B]">계약관리 (문서 작성 / 조회)</h2>
                     <p className="text-gray-500 text-[15px] font-medium">관리자는 스마트 서명 요청을 보낼 수 있고, 기사님은 원격에서 전자서명을 진행할 수 있습니다.</p>
                 </div>
                 {isAdmin && (
-                    <div className="flex gap-3">
-                        <button onClick={() => setShowBuilder(true)} className="flex items-center gap-1.5 bg-white border border-gray-300 hover:bg-gray-50 text-gray-700 px-5 py-2.5 rounded-xl font-bold shadow-sm transition-colors text-[14px]">
+                    <div className="flex flex-wrap gap-3">
+                        <button onClick={() => setShowBuilder(true)} className="flex items-center gap-1.5 whitespace-nowrap bg-white border border-gray-300 hover:bg-gray-50 text-gray-700 px-5 py-2.5 rounded-xl font-bold shadow-sm transition-colors text-[14px]">
                             <Icons.Plus /> 스캔 양식 문서 생성
                         </button>
-                        <button onClick={() => setShowTemplateModal(true)} className="flex items-center gap-1.5 bg-[#2E68ED] hover:bg-blue-700 text-white px-5 py-2.5 rounded-xl font-bold shadow-[0_4px_12px_rgb(46,104,237,0.3)] transition-colors text-[14px]">
+                        <button onClick={() => setShowTemplateModal(true)} className="flex items-center gap-1.5 whitespace-nowrap bg-[#2E68ED] hover:bg-blue-700 text-white px-5 py-2.5 rounded-xl font-bold shadow-[0_4px_12px_rgb(46,104,237,0.3)] transition-colors text-[14px]">
                             <Icons.FileText /> 빠른 계약서(템플릿) 전송
                         </button>
-                        <button onClick={() => { setTemplateData({ ...templateData, templateType: 'standard_supplementary' }); setShowTemplateModal(true); }} className="flex items-center gap-1.5 bg-[#2E68ED] hover:bg-blue-700 text-white px-5 py-2.5 rounded-xl font-bold shadow-[0_4px_12px_rgb(46,104,237,0.3)] transition-colors text-[14px]">
+                        <button onClick={() => { setTemplateData({ ...templateData, templateType: 'standard_supplementary' }); setShowTemplateModal(true); }} className="flex items-center gap-1.5 whitespace-nowrap bg-[#2E68ED] hover:bg-blue-700 text-white px-5 py-2.5 rounded-xl font-bold shadow-[0_4px_12px_rgb(46,104,237,0.3)] transition-colors text-[14px]">
                             <Icons.FileText /> 부속합의서 즉시 등록
                         </button>
                     </div>
@@ -445,9 +445,9 @@ const ContractManagement = ({ user, contracts, setContracts, contacts }) => {
 
                             {/* 담당구역 & 단가 동적 추가 영역 (공통) */}
                             <div className="flex flex-col gap-4 border-t pt-5 mt-2">
-                                <div className="flex justify-between items-center">
+                                <div className="flex flex-wrap justify-between items-center gap-2">
                                     <label className="text-[14px] font-bold text-gray-700">담당구역 및 위탁 수수료 단가 목록 <span className="text-red-500">*</span></label>
-                                    <button type="button" onClick={handleAddRouteFee} className="text-xs bg-[#2E68ED] hover:bg-blue-700 text-white font-bold px-3 py-1.5 rounded-lg shadow-sm">
+                                    <button type="button" onClick={handleAddRouteFee} className="shrink-0 whitespace-nowrap text-xs bg-[#2E68ED] hover:bg-blue-700 text-white font-bold px-3 py-1.5 rounded-lg shadow-sm">
                                         + 구역 추가
                                     </button>
                                 </div>
@@ -499,10 +499,10 @@ const ContractManagement = ({ user, contracts, setContracts, contacts }) => {
                             <PdfTemplate contract={previewContract} preview />
                         </div>
                         <div className="p-6 flex gap-3 bg-[#f8fafc] border-t border-gray-100 shrink-0">
-                            <button onClick={() => setPreviewContract(null)} className="flex-[1] py-3.5 bg-white border border-gray-200 hover:bg-gray-50 text-gray-700 font-extrabold text-[15px] rounded-xl transition-colors shadow-sm">
+                            <button onClick={() => setPreviewContract(null)} className="flex-[1] py-3.5 bg-white border border-gray-200 hover:bg-gray-50 text-gray-700 font-extrabold text-[15px] rounded-xl transition-colors shadow-sm break-keep">
                                 돌아가서 수정
                             </button>
-                            <button onClick={handleSendTemplate} className="flex-[2] py-3.5 bg-[#2E68ED] hover:bg-blue-700 text-white font-extrabold text-[15px] rounded-xl shadow-[0_4px_12px_rgb(46,104,237,0.3)] transition-colors">
+                            <button onClick={handleSendTemplate} className="flex-[2] py-3.5 bg-[#2E68ED] hover:bg-blue-700 text-white font-extrabold text-[15px] rounded-xl shadow-[0_4px_12px_rgb(46,104,237,0.3)] transition-colors break-keep">
                                 이 내용으로 서명 요청 발송하기
                             </button>
                         </div>

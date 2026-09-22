@@ -64,8 +64,8 @@ const ADMIN_EMAIL = 's01025144826@gmail.com';
             return (
                 <div className="min-h-screen bg-[#F8FAFC] flex flex-col justify-center py-12 sm:px-6 lg:px-8 font-sans">
                     <div className="sm:mx-auto sm:w-full sm:max-w-md animate-fade-in relative z-10">
-                        <div className="mx-auto w-16 h-16 flex items-center justify-center bg-white rounded-2xl shadow-sm mb-6 border border-gray-100">
-                            <span className="text-blue-600"><Icons.Logo /></span>
+                        <div className="mx-auto w-16 h-16 flex items-center justify-center bg-white rounded-2xl shadow-sm mb-6 border border-gray-100 overflow-hidden">
+                            <img src="/logo.png" alt="코끼리물류" className="w-full h-full object-cover" />
                         </div>
                         <h2 className="mt-2 text-center text-[28px] font-extrabold text-[#0F172A] tracking-tight">
                             코끼리물류 파트너스

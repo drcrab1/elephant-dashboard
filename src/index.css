@@ -5,6 +5,8 @@
 body {
   font-family: 'Pretendard', sans-serif;
   background-color: #f8fafc;
+  word-break: keep-all;
+  overflow-wrap: break-word;
 }
 
 .animate-fade-in {

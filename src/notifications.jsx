@@ -195,7 +195,7 @@ const NotificationManagement = ({ user }) => {
                 <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-6">
                     <h3 className="font-extrabold text-[16px] text-[#0F172A] mb-1">매일 자동 TBM 알림 시각</h3>
                     <p className="text-[13px] text-gray-500 font-medium mb-4">이 시각이 되면, 오늘 스케줄에 배차된 기사님께만 자동으로 TBM 체크 알림이 갑니다.</p>
-                    <div className="flex items-center gap-3">
+                    <div className="flex flex-wrap items-center gap-3">
                         <select value={tbmHour} onChange={e => setTbmHour(e.target.value)} className="border border-gray-200 rounded-xl px-4 py-2.5 font-bold bg-gray-50 outline-none focus:border-blue-500">
                             {Array.from({ length: 24 }, (_, i) => <option key={i} value={i}>{String(i).padStart(2, '0')}시</option>)}
                         </select>

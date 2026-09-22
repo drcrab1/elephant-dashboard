@@ -1327,8 +1327,8 @@ const FormMusculoskeletal = ({ user, onSubmit, onCancel }) => {
                                         <button key={d.key} onClick={() => toggleDiseaseType(d.key)} className={`p-2.5 border rounded-xl text-[11px] font-bold transition-all ${diseaseType[d.key] ? 'bg-blue-50 border-blue-500 text-blue-700' : 'bg-white border-gray-200 text-gray-500'}`}>{d.label}</button>
                                     ))}
                                 </div>
-                                <div className="flex items-center gap-3">
-                                    <span className="text-xs font-bold text-gray-500">('예'인 경우 현재 상태는?):</span>
+                                <div className="flex flex-wrap items-center gap-2">
+                                    <span className="text-xs font-bold text-gray-500 whitespace-nowrap">('예'인 경우 현재 상태는?):</span>
                                     <div className="flex gap-1.5 p-1 bg-white border rounded-xl w-fit">
                                         <button onClick={() => setDiseaseStatus('완치')} className={`px-3 py-1 text-xs font-bold rounded-lg ${diseaseStatus === '완치' ? 'bg-blue-50 text-blue-700' : 'text-gray-400'}`}>완치</button>
                                         <button onClick={() => setDiseaseStatus('치료나 관찰 중')} className={`px-3 py-1 text-xs font-bold rounded-lg ${diseaseStatus === '치료나 관찰 중' ? 'bg-blue-50 text-blue-700' : 'text-gray-400'}`}>치료나 관찰 중</button>

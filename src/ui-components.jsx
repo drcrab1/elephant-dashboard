@@ -155,15 +155,45 @@ const getProxiedImageUrl = (url) => {
     return url;
 };
 
+const AutoFitPreview = ({ naturalWidth, children }) => {
+    const outerRef = useRef(null);
+    const innerRef = useRef(null);
+    const [scale, setScale] = useState(1);
+    const [scaledHeight, setScaledHeight] = useState(null);
+
+    useEffect(() => {
+        const recompute = () => {
+            if (!outerRef.current || !innerRef.current) return;
+            const containerWidth = outerRef.current.clientWidth;
+            const nextScale = containerWidth > 0 ? Math.min(1, containerWidth / naturalWidth) : 1;
+            setScale(nextScale);
+            setScaledHeight(innerRef.current.scrollHeight * nextScale);
+        };
+        recompute();
+        const ro = new ResizeObserver(recompute);
+        if (outerRef.current) ro.observe(outerRef.current);
+        if (innerRef.current) ro.observe(innerRef.current);
+        return () => ro.disconnect();
+    }, [naturalWidth]);
+
+    return (
+        <div ref={outerRef} style={{ width: '100%', height: scaledHeight || undefined, overflow: 'hidden' }}>
+            <div ref={innerRef} style={{ width: naturalWidth, transform: `scale(${scale})`, transformOrigin: 'top left' }}>
+                {children}
+            </div>
+        </div>
+    );
+};
+
 const PdfTemplate = ({ contract, templateRef, preview = false }) => {
     const repName = (contract && contract.reqAdminName && !contract.reqAdminName.includes('대표님') && contract.reqAdminName !== '김코끼리' && contract.reqAdminName !== '김 코 끼 리') ? contract.reqAdminName : '권오민';
     if (!contract) return null;
     if (contract.templateType === 'custom') {
         const customStyle = preview
-            ? { width: '1000px', margin: '0 auto', backgroundColor: '#ffffff', boxShadow: '0 4px 24px rgba(0,0,0,0.08)' }
+            ? { width: '1000px', backgroundColor: '#ffffff', boxShadow: '0 4px 24px rgba(0,0,0,0.08)' }
             : { width: '1000px', position: 'absolute', top: 0, left: 0, opacity: 0, pointerEvents: 'none', zIndex: -9999, backgroundColor: '#ffffff' };
-        return (
-            <div ref={templateRef} style={customStyle}>
+        const customContent = (
+            <div ref={preview ? undefined : templateRef} style={customStyle}>
                 {contract.bgImage && <img src={contract.bgImage} style={{ width: '100%', display: 'block' }} alt="bg" />}
                 {contract.textFields && contract.textFields.map(f => (
                     <div key={f.id} style={{ position: 'absolute', top: f.y, left: f.x, fontSize: '18px', fontWeight: 'bold', color: 'black', whiteSpace: 'nowrap' }}>
@@ -175,14 +205,15 @@ const PdfTemplate = ({ contract, templateRef, preview = false }) => {
                 )}
             </div>
         );
+        return preview ? <AutoFitPreview naturalWidth={1000}>{customContent}</AutoFitPreview> : customContent;
     }
 
     const standardStyle = preview
-        ? { width: '800px', margin: '0 auto', backgroundColor: '#ffffff', padding: '56px', boxSizing: 'border-box', display: 'flex', flexDirection: 'column', boxShadow: '0 4px 24px rgba(0,0,0,0.08)' }
+        ? { width: '800px', backgroundColor: '#ffffff', padding: '56px', boxSizing: 'border-box', display: 'flex', flexDirection: 'column', boxShadow: '0 4px 24px rgba(0,0,0,0.08)' }
         : { width: '800px', position: 'absolute', top: 0, left: 0, opacity: 0, pointerEvents: 'none', zIndex: -9999, backgroundColor: '#ffffff', padding: '56px', boxSizing: 'border-box', display: 'flex', flexDirection: 'column' };
 
-    return (
-        <div id="pdf-print-area" ref={templateRef} style={standardStyle}>
+    const standardContent = (
+        <div id="pdf-print-area" ref={preview ? undefined : templateRef} style={standardStyle}>
             <div className="border-[2px] border-black p-10 flex flex-col relative text-black font-sans text-[12px] leading-relaxed">
                 <h1 className="text-3xl font-extrabold mt-8 mb-12 text-center tracking-widest">{contract.title}</h1>
 
@@ -303,6 +334,8 @@ const PdfTemplate = ({ contract, templateRef, preview = false }) => {
             </div>
         </div>
     );
+
+    return preview ? <AutoFitPreview naturalWidth={800}>{standardContent}</AutoFitPreview> : standardContent;
 };
 
 const StatusCard = ({ title, subtitle, icon, bgClass, textClass, onClick }) => (
@@ -435,7 +468,7 @@ const Sidebar = ({ activePage, setActivePage, user, onLogout, onWithdraw, isSide
             <aside className={`w-[260px] h-screen bg-white border-r fixed left-0 top-0 z-50 flex flex-col transition-transform duration-300 transform ${isSidebarOpen ? 'translate-x-0' : '-translate-x-full'} md:translate-x-0 shadow-xl md:shadow-none`}>
                 <div className="px-6 py-5 flex items-center justify-between border-b border-transparent">
                     <div className="flex items-center gap-3 cursor-pointer" onClick={() => { setActivePage('대시보드'); setIsSidebarOpen(false); }}>
-                        <div className="text-gray-900"><Icons.Logo /></div>
+                        <img src="/logo.png" alt="코끼리물류" className="w-9 h-9 rounded-lg object-cover" />
                         <h1 className="text-[20px] font-bold text-gray-900 tracking-tight">코끼리물류</h1>
                     </div>
                     <button onClick={() => setIsSidebarOpen(false)} className="md:hidden text-gray-400 hover:text-gray-600">
