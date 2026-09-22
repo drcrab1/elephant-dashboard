@@ -7,7 +7,7 @@ const formatPhoneNumber = (value) => {
     return `${raw.slice(0, 3)}-${raw.slice(3, 7)}-${raw.slice(7, 11)}`;
 };
 import React, { useState, useEffect } from 'react';
-import { db, storage } from './firebase';
+import firebase, { db, storage } from './firebase';
 import { toJpeg } from 'html-to-image';
 import { jsPDF } from 'jspdf';
 
@@ -188,6 +188,22 @@ const PerUserTaskRow = ({ task, user, allLogs, onLogged }) => {
         }
     };
 
+    const handleUndo = async () => {
+        if (!myLog) return;
+        if (!window.confirm('완료 체크를 취소하시겠습니까? 잘못 누르셨을 때만 사용해주세요.')) return;
+        setSaving(true);
+        try {
+            const docId = `${currentPeriod}_${task.id}_${user.email}`;
+            await db.collection('safetyChecklistLogs').doc(docId).delete();
+            // allLogs는 실시간 구독 중이라 별도 처리 없이도 곧 자동 반영됩니다.
+        } catch (e) {
+            console.error(e);
+            alert('취소 실패: ' + e.message);
+        } finally {
+            setSaving(false);
+        }
+    };
+
     return (
         <div className={`rounded-xl p-3 border ${myLog ? 'bg-green-50/60 border-green-100' : isUrgent ? 'bg-red-50/70 border-red-200' : 'bg-white border-gray-100'}`}>
             <div className="flex items-start justify-between gap-2">
@@ -218,13 +234,20 @@ const PerUserTaskRow = ({ task, user, allLogs, onLogged }) => {
                         <p className="text-[10px] text-gray-400 font-bold mt-1.5">{periodLabel} 완료한 다른 사람: {otherNames.join(', ')}</p>
                     )}
                 </div>
-                <button
-                    onClick={handleCheck}
-                    disabled={!!myLog || saving}
-                    className={`shrink-0 px-2.5 py-1.5 rounded-lg text-[11px] font-extrabold shadow-sm transition-colors ${myLog ? 'bg-green-100 text-green-700 cursor-default' : 'bg-[#2E68ED] text-white hover:bg-blue-700'}`}
-                >
-                    {myLog ? '✓ 완료' : (saving ? '저장중...' : '완료 체크')}
-                </button>
+                <div className="shrink-0 flex flex-col items-end gap-1.5">
+                    <button
+                        onClick={handleCheck}
+                        disabled={!!myLog || saving}
+                        className={`px-2.5 py-1.5 rounded-lg text-[11px] font-extrabold shadow-sm transition-colors ${myLog ? 'bg-green-100 text-green-700 cursor-default' : 'bg-[#2E68ED] text-white hover:bg-blue-700'}`}
+                    >
+                        {myLog ? '✓ 완료' : (saving ? '저장중...' : '완료 체크')}
+                    </button>
+                    {myLog && (
+                        <button onClick={handleUndo} disabled={saving} className="text-[10px] font-bold text-gray-400 hover:text-red-500 underline decoration-dotted">
+                            잘못 눌렀어요, 취소
+                        </button>
+                    )}
+                </div>
             </div>
         </div>
     );
@@ -460,6 +483,18 @@ const SafetyRecurringChecklist = ({ user }) => {
         }
     };
 
+    const undoMarkDone = async (taskId) => {
+        if (!window.confirm('완료 체크를 취소하시겠습니까? 잘못 누르셨을 때만 사용해주세요.')) return;
+        const updated = { ...lastDoneMap };
+        delete updated[taskId];
+        setLastDoneMap(updated);
+        try {
+            await db.collection('settings').doc('safetyRecurringChecklist').set({ [taskId]: firebase.firestore.FieldValue.delete() }, { merge: true });
+        } catch (e) {
+            console.error('체크리스트 취소 실패', e);
+        }
+    };
+
     const now = new Date();
     const freqOrder = ['daily', 'weekly', 'monthly', 'yearly'];
 
@@ -506,13 +541,20 @@ const SafetyRecurringChecklist = ({ user }) => {
                                                     <p className="text-[11.5px] text-gray-400 font-medium mt-1 leading-snug">{task.desc}</p>
                                                     <p className="text-[10.5px] text-gray-400 font-bold mt-1.5">{lastDone ? `최근 완료: ${lastDone}` : '완료 기록 없음'}</p>
                                                 </div>
-                                                <button
-                                                    onClick={() => markDone(task.id)}
-                                                    disabled={isDone}
-                                                    className={`shrink-0 px-2.5 py-1.5 rounded-lg text-[11px] font-extrabold shadow-sm transition-colors ${isDone ? 'bg-green-100 text-green-700 cursor-default' : 'bg-[#2E68ED] text-white hover:bg-blue-700'}`}
-                                                >
-                                                    {isDone ? '✓ 완료' : '완료 체크'}
-                                                </button>
+                                                <div className="shrink-0 flex flex-col items-end gap-1.5">
+                                                    <button
+                                                        onClick={() => markDone(task.id)}
+                                                        disabled={isDone}
+                                                        className={`px-2.5 py-1.5 rounded-lg text-[11px] font-extrabold shadow-sm transition-colors ${isDone ? 'bg-green-100 text-green-700 cursor-default' : 'bg-[#2E68ED] text-white hover:bg-blue-700'}`}
+                                                    >
+                                                        {isDone ? '✓ 완료' : '완료 체크'}
+                                                    </button>
+                                                    {isDone && (
+                                                        <button onClick={() => undoMarkDone(task.id)} className="text-[10px] font-bold text-gray-400 hover:text-red-500 underline decoration-dotted">
+                                                            잘못 눌렀어요, 취소
+                                                        </button>
+                                                    )}
+                                                </div>
                                             </div>
                                         </div>
                                     );
