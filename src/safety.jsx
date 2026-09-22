@@ -430,15 +430,19 @@ const SafetyRecurringChecklist = ({ user }) => {
             if (doc.exists) setLastDoneMap(doc.data() || {});
         }).catch(() => {});
 
-        db.collection('safetyChecklistLogs').get().then(snap => {
+        // 다른 사람이 체크하면 새로고침 없이 바로 반영되도록 실시간 구독
+        const unsubLogs = db.collection('safetyChecklistLogs').onSnapshot(snap => {
             setAllLogs(snap.docs.map(d => d.data()));
-        }).catch(e => console.error(e));
+        }, e => console.error(e));
 
+        let unsubUsers = null;
         if (isAdmin) {
-            db.collection('users').get().then(snap => {
+            unsubUsers = db.collection('users').onSnapshot(snap => {
                 setAllUsers(snap.docs.map(d => ({ email: d.id, ...d.data() })));
-            }).catch(e => console.error(e));
+            }, e => console.error(e));
         }
+
+        return () => { unsubLogs(); if (unsubUsers) unsubUsers(); };
     }, [isAdmin]);
 
     const addLog = (entry) => {
