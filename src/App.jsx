@@ -109,7 +109,11 @@ const App = () => {
         const unsubs = [];
 
         unsubs.push(db.collection('contacts').onSnapshot(snap => setAppContacts(snap.docs.map(d => ({ id: d.id, ...d.data() })))));
-        unsubs.push(db.collection('workRecords').onSnapshot(snap => setWorkRecords(snap.docs.map(d => ({ id: d.id, ...d.data() })))));
+        // 업무내역(배송건수)은 서버(Firestore 보안 규칙) 단에서도 본인 것만 조회되도록, 일반 기사님 계정은 본인 이메일로 쿼리 자체를 제한합니다.
+        const workRecordsQuery = user.email === ADMIN_EMAIL
+            ? db.collection('workRecords')
+            : db.collection('workRecords').where('email', '==', user.email);
+        unsubs.push(workRecordsQuery.onSnapshot(snap => setWorkRecords(snap.docs.map(d => ({ id: d.id, ...d.data() })))));
         unsubs.push(db.collection('vehicleDocs').onSnapshot(snap => setVehicleDocs(snap.docs.map(d => ({ id: d.id, ...d.data() })))));
         unsubs.push(db.collection('contracts').onSnapshot(snap => setContracts(snap.docs.map(d => ({ id: d.id, ...d.data() })))));
         unsubs.push(db.collection('safetyRecords').onSnapshot(snap => setSafetyRecords(snap.docs.map(d => ({ id: d.id, ...d.data() })).sort((a, b) => b.id.localeCompare(a.id)))));

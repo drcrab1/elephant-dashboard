@@ -1,0 +1,26 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    function isSignedIn() {
+      return request.auth != null;
+    }
+    function isAdmin() {
+      return isSignedIn() && request.auth.token.email == 's01025144826@gmail.com';
+    }
+    function isOwner(email) {
+      return isSignedIn() && request.auth.token.email == email;
+    }
+
+    // 업무내역(배송건수) — 기사님은 본인 기록만 읽고 쓸 수 있고, 관리자는 전체를 볼 수 있습니다.
+    match /workRecords/{recordId} {
+      allow read: if isAdmin() || isOwner(resource.data.email);
+      allow create: if isSignedIn() && request.resource.data.email == request.auth.token.email;
+      allow update, delete: if isAdmin() || isOwner(resource.data.email);
+    }
+
+    // 그 외 컬렉션은 기존과 동일하게 "로그인한 사용자"까지만 허용 (완전 비공개 전환은 별도 요청 시 진행)
+    match /{collection}/{docId} {
+      allow read, write: if isSignedIn();
+    }
+  }
+}
