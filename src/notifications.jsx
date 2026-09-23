@@ -154,6 +154,16 @@ const NotificationManagement = ({ user }) => {
             const payload = emails ? { title: tpl.title, body: tpl.body, emails } : { title: tpl.title, body: tpl.body };
             const res = await fn(payload);
             alert(`발송 완료: ${res.data?.successCount ?? 0}명에게 전송됨`);
+            try {
+                await db.collection('noticeBoard').add({
+                    title: tpl.title,
+                    body: tpl.body,
+                    sentBy: user.name,
+                    sentAt: new Date().toISOString(),
+                    targetType: emails ? 'selected' : 'all',
+                    recipientCount: res.data?.successCount ?? 0
+                });
+            } catch (logErr) { console.error('공지 이력 저장 실패', logErr); }
             setPickerTemplate(null);
             setSelectedEmails(new Set());
         } catch (e) {
@@ -291,4 +301,62 @@ const NotificationManagement = ({ user }) => {
     );
 };
 
-export { NotificationPermissionPrompt, NotificationManagement };
+// --- 지난 공지사항 게시판 (전체 가입자 열람 가능) ---
+const NoticeBoard = ({ user }) => {
+    const isAdmin = user && user.email === ADMIN_EMAIL;
+    const [notices, setNotices] = useState([]);
+    const [loading, setLoading] = useState(true);
+
+    useEffect(() => {
+        const unsub = db.collection('noticeBoard').orderBy('sentAt', 'desc').limit(100).onSnapshot(snap => {
+            setNotices(snap.docs.map(d => ({ id: d.id, ...d.data() })));
+            setLoading(false);
+        }, () => setLoading(false));
+        return () => unsub();
+    }, []);
+
+    const handleDelete = async (id) => {
+        if (!window.confirm('이 공지를 게시판에서 삭제하시겠습니까? (이미 보낸 알림 자체는 취소되지 않습니다)')) return;
+        try { await db.collection('noticeBoard').doc(id).delete(); } catch (e) { alert('삭제 실패: ' + e.message); }
+    };
+
+    const formatDate = (iso) => {
+        const d = new Date(iso);
+        return `${d.getMonth() + 1}월 ${d.getDate()}일 ${String(d.getHours()).padStart(2, '0')}:${String(d.getMinutes()).padStart(2, '0')}`;
+    };
+
+    return (
+        <main className="md:ml-[260px] ml-0 px-4 md:px-10 py-6 md:py-12 flex-1 relative bg-[#F4F7FB] min-h-[100vh] w-full max-w-[100vw] md:max-w-[calc(100vw-260px)] overflow-x-hidden">
+            <header className="mb-8 w-full max-w-[720px]">
+                <h2 className="text-[28px] font-extrabold mb-2 text-[#1E293B] flex items-center gap-2">📋 공지사항</h2>
+                <p className="text-gray-500 text-[15px] font-medium">그동안 발송된 중요 공지를 다시 확인할 수 있습니다.</p>
+            </header>
+
+            <div className="max-w-[720px] space-y-3">
+                {loading ? (
+                    <div className="py-16 text-center text-gray-400 font-bold">불러오는 중...</div>
+                ) : notices.length === 0 ? (
+                    <div className="py-16 text-center text-gray-400 font-bold bg-white rounded-2xl border border-gray-100">아직 등록된 공지가 없습니다.</div>
+                ) : notices.map(n => (
+                    <div key={n.id} className="bg-white rounded-2xl border border-gray-100 shadow-sm p-5">
+                        <div className="flex items-start justify-between gap-3">
+                            <div className="min-w-0">
+                                <p className="font-extrabold text-[15.5px] text-gray-900">{n.title}</p>
+                                <p className="text-[13.5px] text-gray-600 mt-1.5 leading-relaxed whitespace-pre-line">{n.body}</p>
+                            </div>
+                            {isAdmin && (
+                                <button onClick={() => handleDelete(n.id)} className="shrink-0 text-gray-300 hover:text-red-500 transition-colors"><Icons.X /></button>
+                            )}
+                        </div>
+                        <div className="flex flex-wrap items-center gap-2 mt-3 pt-3 border-t border-gray-50">
+                            <span className="text-[11.5px] text-gray-400 font-bold">{formatDate(n.sentAt)} · {n.sentBy}</span>
+                            <span className="text-[10.5px] text-gray-400 font-bold bg-gray-50 px-2 py-0.5 rounded">{n.targetType === 'selected' ? `선택 발송 · ${n.recipientCount}명` : `전체 발송 · ${n.recipientCount}명`}</span>
+                        </div>
+                    </div>
+                ))}
+            </div>
+        </main>
+    );
+};
+
+export { NotificationPermissionPrompt, NotificationManagement, NoticeBoard };

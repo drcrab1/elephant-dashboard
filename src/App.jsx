@@ -3,6 +3,7 @@ import { auth, db, ADMIN_EMAIL } from './firebase';
 import { PageView, DashboardHome, Sidebar, BottomNav, Icons } from './ui-components';
 import { LoginScreen } from './auth';
 import { NotificationPermissionPrompt } from './notifications';
+const NoticeBoard = lazy(() => import('./notifications').then(m => ({ default: m.NoticeBoard })));
 import {
     INITIAL_CONTRACTS,
     INITIAL_CONTACTS,
@@ -184,6 +185,7 @@ const App = () => {
     if (activePage === '회원관리') content = <MemberManagement user={user} />;
     if (activePage === '알림관리') content = <NotificationManagement user={user} />;
     if (activePage === '배차변환기') content = <DispatchConverter user={user} />;
+    if (activePage === '공지사항') content = <NoticeBoard user={user} />;
 
     return (
         <div className="min-h-screen bg-[#F8FAFC] relative overflow-x-hidden font-sans text-[#1E293B]">
