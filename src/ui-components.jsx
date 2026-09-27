@@ -413,7 +413,7 @@ const PdfTemplate = ({ contract, templateRef, preview = false }) => {
                         </div>
                     </div>
                 )}
-                <p className="text-center text-gray-500 font-bold mb-4 text-xs">{contract.templateType === 'accident_report' ? '조사표 작성 일자' : '계약서 작성 일자'}: {contract.date || '20   년  월  일'} | 전자서명 완료 일자: {contract.status === '서명완료' ? '2026-06-01' : (contract.signedDate || '-')}</p>
+                <p className="text-center text-gray-500 font-bold mb-4 text-xs">{contract.templateType === 'accident_report' ? '조사표 작성 일자' : '계약서 작성 일자'}: {contract.date || '20   년  월  일'} | 전자서명 완료 일자: {contract.signedDate || '-'}</p>
             </div>
         </div>
     );
