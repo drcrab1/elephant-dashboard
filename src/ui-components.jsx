@@ -312,29 +312,108 @@ const PdfTemplate = ({ contract, templateRef, preview = false }) => {
                     </div>
                 )}
 
-                <div className="mt-12 pt-8 border-t-[2px] border-black flex justify-between px-8 pb-4">
-                    <div className="text-sm">
-                        <p className="font-extrabold mb-3 text-base">위탁자</p>
-                        <p className="text-xs">상호: 코끼리물류</p>
-                        <p className="text-xs font-bold">대표자: {repName} (인)</p>
-                        <div className="relative w-16 h-16 -mt-8 ml-36">
-                            <img src="/admin_seal.png" className="w-full h-full object-contain absolute top-0 left-0 mix-blend-multiply opacity-90" alt="seal" />
+                {contract.templateType === 'accident_report' && (
+                    <div className="flex-1 text-[13px] leading-relaxed">
+                        <table className="w-full border-collapse border border-black">
+                            <tbody>
+                                <tr>
+                                    <td className="border border-black bg-gray-50 font-bold px-3 py-2 w-[130px]">사업장명</td>
+                                    <td className="border border-black px-3 py-2">코끼리물류</td>
+                                    <td className="border border-black bg-gray-50 font-bold px-3 py-2 w-[110px]">근로자수</td>
+                                    <td className="border border-black px-3 py-2">{contract.variables?.employeeCount || '-'}명</td>
+                                </tr>
+                                <tr>
+                                    <td className="border border-black bg-gray-50 font-bold px-3 py-2">소재지</td>
+                                    <td className="border border-black px-3 py-2" colSpan={3}>{contract.variables?.businessAddress || '-'}</td>
+                                </tr>
+                                <tr>
+                                    <td className="border border-black bg-gray-50 font-bold px-3 py-2">재해자 성명</td>
+                                    <td className="border border-black px-3 py-2">{contract.name} ({contract.variables?.gender || '-'})</td>
+                                    <td className="border border-black bg-gray-50 font-bold px-3 py-2">입사일</td>
+                                    <td className="border border-black px-3 py-2">{contract.variables?.hireDate || '-'}</td>
+                                </tr>
+                                <tr>
+                                    <td className="border border-black bg-gray-50 font-bold px-3 py-2">발생 일시</td>
+                                    <td className="border border-black px-3 py-2">{contract.variables?.accidentDate || '-'} {contract.variables?.accidentTime || ''}</td>
+                                    <td className="border border-black bg-gray-50 font-bold px-3 py-2">작업유형</td>
+                                    <td className="border border-black px-3 py-2">{contract.variables?.workType || '-'}</td>
+                                </tr>
+                                <tr>
+                                    <td className="border border-black bg-gray-50 font-bold px-3 py-2">발생 장소</td>
+                                    <td className="border border-black px-3 py-2" colSpan={3}>{contract.variables?.accidentLocation || '-'}</td>
+                                </tr>
+                                <tr>
+                                    <td className="border border-black bg-gray-50 font-bold px-3 py-2 align-top">재해발생 당시상황</td>
+                                    <td className="border border-black px-3 py-2 whitespace-pre-wrap align-top" colSpan={3}>{contract.variables?.accidentDetail || '-'}</td>
+                                </tr>
+                                <tr>
+                                    <td className="border border-black bg-gray-50 font-bold px-3 py-2">상해부위/정도</td>
+                                    <td className="border border-black px-3 py-2">{contract.variables?.injuryPart || '-'}</td>
+                                    <td className="border border-black bg-gray-50 font-bold px-3 py-2">휴업예상일수</td>
+                                    <td className="border border-black px-3 py-2">{contract.variables?.restDays ? `${contract.variables.restDays}일` : '-'}</td>
+                                </tr>
+                                <tr>
+                                    <td className="border border-black bg-gray-50 font-bold px-3 py-2 align-top">재해발생 원인</td>
+                                    <td className="border border-black px-3 py-2 whitespace-pre-wrap align-top" colSpan={3}>{contract.variables?.causeAnalysis || '-'}</td>
+                                </tr>
+                                <tr>
+                                    <td className="border border-black bg-gray-50 font-bold px-3 py-2 align-top">재발방지 계획</td>
+                                    <td className="border border-black px-3 py-2 whitespace-pre-wrap align-top" colSpan={3}>{contract.variables?.preventionPlan || '-'}</td>
+                                </tr>
+                            </tbody>
+                        </table>
+                        <p className="mt-8 text-center text-gray-700 font-bold leading-relaxed">위와 같이 재해발생 사실을 조사하였으며, 재해자는 위 내용이 사실과 다름없음을 확인합니다.</p>
+                    </div>
+                )}
+
+                {contract.templateType === 'accident_report' ? (
+                    <div className="mt-12 pt-8 border-t-[2px] border-black flex justify-between px-8 pb-4">
+                        <div className="text-sm">
+                            <p className="font-extrabold mb-3 text-base">작성자(사업주)</p>
+                            <p className="text-xs">상호: 코끼리물류</p>
+                            <p className="text-xs font-bold">대표자: {repName} (인)</p>
+                            <div className="relative w-16 h-16 -mt-8 ml-36">
+                                <img src="/admin_seal.png" className="w-full h-full object-contain absolute top-0 left-0 mix-blend-multiply opacity-90" alt="seal" />
+                            </div>
+                        </div>
+
+                        <div className="text-sm w-[250px]">
+                            <p className="font-extrabold mb-3 text-base text-right pr-6">재해자 확인</p>
+                            <p className="text-xs font-bold flex items-center justify-end gap-2 relative h-8">
+                                성명: {contract.name}
+                                {contract.signatureField && contract.signatureField.dataUrl ? (
+                                    <img src={getProxiedImageUrl(contract.signatureField.dataUrl)} className="absolute right-[-10px] top-[-30px] w-[120px] max-h-[80px] object-contain mix-blend-multiply opacity-90" alt="signature" />
+                                ) : (
+                                    <span className="text-gray-400 font-normal text-[11px] ml-2">(서명)</span>
+                                )}
+                            </p>
                         </div>
                     </div>
+                ) : (
+                    <div className="mt-12 pt-8 border-t-[2px] border-black flex justify-between px-8 pb-4">
+                        <div className="text-sm">
+                            <p className="font-extrabold mb-3 text-base">위탁자</p>
+                            <p className="text-xs">상호: 코끼리물류</p>
+                            <p className="text-xs font-bold">대표자: {repName} (인)</p>
+                            <div className="relative w-16 h-16 -mt-8 ml-36">
+                                <img src="/admin_seal.png" className="w-full h-full object-contain absolute top-0 left-0 mix-blend-multiply opacity-90" alt="seal" />
+                            </div>
+                        </div>
 
-                    <div className="text-sm w-[250px]">
-                        <p className="font-extrabold mb-3 text-base text-right pr-6">수탁자</p>
-                        <p className="text-xs font-bold flex items-center justify-end gap-2 relative h-8">
-                            성명: {contract.name}
-                            {contract.signatureField && contract.signatureField.dataUrl ? (
-                                <img src={getProxiedImageUrl(contract.signatureField.dataUrl)} className="absolute right-[-10px] top-[-30px] w-[120px] max-h-[80px] object-contain mix-blend-multiply opacity-90" alt="signature" />
-                            ) : (
-                                <span className="text-gray-400 font-normal text-[11px] ml-2">(서명)</span>
-                            )}
-                        </p>
+                        <div className="text-sm w-[250px]">
+                            <p className="font-extrabold mb-3 text-base text-right pr-6">수탁자</p>
+                            <p className="text-xs font-bold flex items-center justify-end gap-2 relative h-8">
+                                성명: {contract.name}
+                                {contract.signatureField && contract.signatureField.dataUrl ? (
+                                    <img src={getProxiedImageUrl(contract.signatureField.dataUrl)} className="absolute right-[-10px] top-[-30px] w-[120px] max-h-[80px] object-contain mix-blend-multiply opacity-90" alt="signature" />
+                                ) : (
+                                    <span className="text-gray-400 font-normal text-[11px] ml-2">(서명)</span>
+                                )}
+                            </p>
+                        </div>
                     </div>
-                </div>
-                <p className="text-center text-gray-500 font-bold mb-4 text-xs">계약서 작성 일자: {contract.date || '20   년  월  일'} | 전자서명 완료 일자: {contract.status === '서명완료' ? '2026-06-01' : (contract.signedDate || '-')}</p>
+                )}
+                <p className="text-center text-gray-500 font-bold mb-4 text-xs">{contract.templateType === 'accident_report' ? '조사표 작성 일자' : '계약서 작성 일자'}: {contract.date || '20   년  월  일'} | 전자서명 완료 일자: {contract.status === '서명완료' ? '2026-06-01' : (contract.signedDate || '-')}</p>
             </div>
         </div>
     );
