@@ -147,7 +147,7 @@ const ContractManagement = ({ user, contracts, setContracts, contacts }) => {
         }
     };
 
-    const [templateData, setTemplateData] = useState({
+    const emptyTemplateData = {
         templateType: 'standard_consignment',
         targetEmail: '',
         targetDate: '',
@@ -155,8 +155,23 @@ const ContractManagement = ({ user, contracts, setContracts, contacts }) => {
         routeFees: [{ route: '', unitPrice: '' }],
         docDate: new Date().toISOString().split('T')[0],
         carNumber: '',
-        licenseNumber: ''
-    });
+        licenseNumber: '',
+        // 산업재해조사표 전용 항목
+        accidentDate: '',
+        accidentTime: '',
+        accidentLocation: '',
+        workType: '',
+        accidentDetail: '',
+        causeAnalysis: '',
+        preventionPlan: '',
+        injuryPart: '',
+        restDays: '',
+        businessAddress: '',
+        employeeCount: '',
+        gender: '남',
+        hireDate: ''
+    };
+    const [templateData, setTemplateData] = useState(emptyTemplateData);
 
     const handleAddRouteFee = () => {
         setTemplateData({
@@ -219,20 +234,50 @@ const ContractManagement = ({ user, contracts, setContracts, contacts }) => {
                 return false;
             }
         }
+        if (templateData.templateType === 'accident_report') {
+            if (!templateData.accidentDate) { alert('재해 발생 일자를 입력해주세요.'); return false; }
+            if (!templateData.accidentLocation) { alert('재해 발생 장소를 입력해주세요.'); return false; }
+            if (!templateData.accidentDetail) { alert('재해 발생 당시 상황을 입력해주세요.'); return false; }
+            if (!templateData.causeAnalysis) { alert('재해 발생 원인을 입력해주세요.'); return false; }
+            if (!templateData.preventionPlan) { alert('재발 방지 계획을 입력해주세요.'); return false; }
+        }
         return true;
     };
+
+    const getTemplateTitle = (templateType) => {
+        if (templateType === 'standard_consignment') return '물류표준 위수탁계약서';
+        if (templateType === 'standard_supplementary') return '부속합의서';
+        if (templateType === 'accident_report') return '산업재해조사표';
+        return '맞춤형 양식';
+    };
+
+    const buildAccidentVariables = () => ({
+        accidentDate: templateData.accidentDate,
+        accidentTime: templateData.accidentTime,
+        accidentLocation: templateData.accidentLocation,
+        workType: templateData.workType,
+        accidentDetail: templateData.accidentDetail,
+        causeAnalysis: templateData.causeAnalysis,
+        preventionPlan: templateData.preventionPlan,
+        injuryPart: templateData.injuryPart,
+        restDays: templateData.restDays,
+        businessAddress: templateData.businessAddress,
+        employeeCount: templateData.employeeCount,
+        gender: templateData.gender,
+        hireDate: templateData.hireDate
+    });
 
     const buildPreviewContract = () => {
         const targetContact = contacts?.find(c => c.email === templateData.targetEmail);
         const today = new Date().toISOString().split('T')[0];
         return {
             name: targetContact?.name || templateData.targetEmail.split('@')[0],
-            title: templateData.templateType === 'standard_consignment' ? '물류표준 위수탁계약서' : '부속합의서',
+            title: getTemplateTitle(templateData.templateType),
             reqAdminName: user.name,
             status: '서명대기',
             date: templateData.docDate || today,
             templateType: templateData.templateType,
-            variables: {
+            variables: templateData.templateType === 'accident_report' ? buildAccidentVariables() : {
                 targetDate: templateData.targetDate,
                 targetEndDate: templateData.targetEndDate,
                 routeFees: templateData.routeFees,
@@ -258,14 +303,14 @@ const ContractManagement = ({ user, contracts, setContracts, contacts }) => {
         try {
             const newRecord = {
                 name: targetContact?.name || templateData.targetEmail.split('@')[0],
-                title: templateData.templateType === 'standard_consignment' ? '물류표준 위수탁계약서' : '부속합의서',
+                title: getTemplateTitle(templateData.templateType),
                 ownerEmail: user.email,
                 targetEmail: templateData.targetEmail,
                 reqAdminName: user.name,
                 status: '서명대기',
                 date: templateData.docDate || today,
                 templateType: templateData.templateType,
-                variables: {
+                variables: templateData.templateType === 'accident_report' ? buildAccidentVariables() : {
                     targetDate: templateData.targetDate,
                     targetEndDate: templateData.targetEndDate,
                     routeFees: templateData.routeFees,
@@ -278,16 +323,7 @@ const ContractManagement = ({ user, contracts, setContracts, contacts }) => {
             setShowTemplateModal(false);
             setPreviewContract(null);
             // Reset template inputs
-            setTemplateData({
-                templateType: 'standard_consignment',
-                targetEmail: '',
-                targetDate: '',
-                targetEndDate: '',
-                routeFees: [{ route: '', unitPrice: '' }],
-                docDate: new Date().toISOString().split('T')[0],
-                carNumber: '',
-                licenseNumber: ''
-            });
+            setTemplateData(emptyTemplateData);
             alert('기사님께 스마트 서명 요청이 발송되었습니다.');
         } catch (e) { alert('빌드 실패: ' + e.message); }
     };
@@ -369,6 +405,9 @@ const ContractManagement = ({ user, contracts, setContracts, contacts }) => {
                         <button onClick={() => { setTemplateData({ ...templateData, templateType: 'standard_supplementary' }); setShowTemplateModal(true); }} className="flex items-center gap-1.5 whitespace-nowrap bg-[#2E68ED] hover:bg-blue-700 text-white px-5 py-2.5 rounded-xl font-bold shadow-[0_4px_12px_rgb(46,104,237,0.3)] transition-colors text-[14px]">
                             <Icons.FileText /> 부속합의서 즉시 등록
                         </button>
+                        <button onClick={() => { setTemplateData({ ...templateData, templateType: 'accident_report' }); setShowTemplateModal(true); }} className="flex items-center gap-1.5 whitespace-nowrap bg-red-500 hover:bg-red-600 text-white px-5 py-2.5 rounded-xl font-bold shadow-[0_4px_12px_rgba(239,68,68,0.3)] transition-colors text-[14px]">
+                            <Icons.AlertTriangle /> 산업재해조사표 작성
+                        </button>
                     </div>
                 )}
             </header>
@@ -404,7 +443,7 @@ const ContractManagement = ({ user, contracts, setContracts, contacts }) => {
                         {visibleContracts.length === 0 ? <tr><td colSpan={5} className="py-16 text-center text-gray-400 font-bold">{statusFilter === 'all' ? '생성된 계약 문서가 없습니다.' : `해당하는 계약 문서가 없습니다.`}</td></tr> : visibleContracts.map(c => (
                             <tr key={c.id} className="hover:bg-blue-50/20 transition-colors">
                                 <td className="px-6 py-5 font-bold text-[15px] text-gray-900">{c.name} <span className="text-gray-400 font-normal ml-1">({c.title})</span></td>
-                                <td className="px-6 py-5 text-[14px] font-medium text-gray-600">{c.templateType === 'standard_supplementary' ? '단가 부속합의서' : (c.templateType === 'custom' ? '맞춤 스캔양식' : '위수탁 표준양식')}</td>
+                                <td className="px-6 py-5 text-[14px] font-medium text-gray-600">{c.templateType === 'standard_supplementary' ? '단가 부속합의서' : (c.templateType === 'custom' ? '맞춤 스캔양식' : (c.templateType === 'accident_report' ? '산업재해조사표' : '위수탁 표준양식'))}</td>
                                 <td className="px-6 py-5 text-[14px] font-medium text-gray-500">{c.signedDate || c.date}</td>
                                 <td className="px-6 py-5">
                                     {c.status === '서명대기' ? (
@@ -421,7 +460,7 @@ const ContractManagement = ({ user, contracts, setContracts, contacts }) => {
                                     )}
                                     {(c.status === '서명완료' || isAdmin || c.templateType === 'custom') && (
                                         <button onClick={() => handleDownloadClick(c)} disabled={activePdfContract?.id === c.id && isGeneratingPdf} className="inline-flex gap-1.5 items-center px-4 py-2 bg-gray-50 border border-gray-200 hover:border-gray-300 hover:bg-gray-100 text-gray-700 text-[14px] font-bold rounded-xl shadow-sm transition-colors disabled:opacity-50">
-                                            <Icons.Download /> {isGeneratingPdf && activePdfContract?.id === c.id ? '로딩..' : (c.templateType === 'standard_supplementary' ? '부속합의서 다운로드' : '계약서 다운로드')}
+                                            <Icons.Download /> {isGeneratingPdf && activePdfContract?.id === c.id ? '로딩..' : (c.templateType === 'standard_supplementary' ? '부속합의서 다운로드' : (c.templateType === 'accident_report' ? '조사표 다운로드' : '계약서 다운로드'))}
                                         </button>
                                     )}
                                     {isAdmin && c.status === '서명대기' && (
@@ -449,6 +488,7 @@ const ContractManagement = ({ user, contracts, setContracts, contacts }) => {
                                 <select value={templateData.templateType} onChange={e => setTemplateData({ ...templateData, templateType: e.target.value })} className="w-full bg-white border border-gray-200 rounded-xl px-4 py-3 text-[15px] font-bold focus:outline-none focus:border-blue-500 transition-colors">
                                     <option value="standard_consignment">물류운송 위수탁계약서 (표준)</option>
                                     <option value="standard_supplementary">부속합의서</option>
+                                    <option value="accident_report">산업재해조사표</option>
                                 </select>
                             </div>
                             <div className="flex flex-col gap-2">
@@ -531,6 +571,52 @@ const ContractManagement = ({ user, contracts, setContracts, contacts }) => {
                                                 )}
                                             </div>
                                         ))}
+                                    </div>
+                                </div>
+                            )}
+
+                            {templateData.templateType === 'accident_report' && (
+                                <div className="flex flex-col gap-4 border-t pt-5 mt-2">
+                                    <p className="text-xs text-red-500 font-bold -mt-1">* 산업안전보건법 시행규칙 별지 서식 기준 항목입니다. 재해자(대상자)에게 서명 요청이 발송됩니다.</p>
+                                    <div className="grid grid-cols-2 gap-3">
+                                        <div className="flex flex-col gap-2">
+                                            <label className="text-[13px] font-bold text-gray-700">재해 발생 일자 <span className="text-red-500">*</span></label>
+                                            <input type="date" value={templateData.accidentDate} onChange={e => setTemplateData({ ...templateData, accidentDate: e.target.value })} className="w-full bg-white border border-gray-200 rounded-xl px-3 py-2.5 text-[14px] font-bold focus:outline-none focus:border-blue-500" />
+                                        </div>
+                                        <div className="flex flex-col gap-2">
+                                            <label className="text-[13px] font-bold text-gray-700">재해 발생 시각</label>
+                                            <input type="time" value={templateData.accidentTime} onChange={e => setTemplateData({ ...templateData, accidentTime: e.target.value })} className="w-full bg-white border border-gray-200 rounded-xl px-3 py-2.5 text-[14px] font-bold focus:outline-none focus:border-blue-500" />
+                                        </div>
+                                    </div>
+                                    <div className="flex flex-col gap-2">
+                                        <label className="text-[13px] font-bold text-gray-700">재해 발생 장소 <span className="text-red-500">*</span></label>
+                                        <input type="text" placeholder="예: 남양주4 A-01 배송구역 이면도로" value={templateData.accidentLocation} onChange={e => setTemplateData({ ...templateData, accidentLocation: e.target.value })} className="w-full bg-white border border-gray-200 rounded-xl px-3 py-2.5 text-[14px] font-medium focus:outline-none focus:border-blue-500" />
+                                    </div>
+                                    <div className="flex flex-col gap-2">
+                                        <label className="text-[13px] font-bold text-gray-700">재해 관련 작업유형</label>
+                                        <input type="text" placeholder="예: 택배 배송 중 하차 작업" value={templateData.workType} onChange={e => setTemplateData({ ...templateData, workType: e.target.value })} className="w-full bg-white border border-gray-200 rounded-xl px-3 py-2.5 text-[14px] font-medium focus:outline-none focus:border-blue-500" />
+                                    </div>
+                                    <div className="flex flex-col gap-2">
+                                        <label className="text-[13px] font-bold text-gray-700">재해 발생 당시 상황 <span className="text-red-500">*</span></label>
+                                        <textarea rows={3} placeholder="언제, 어디서, 누가, 어떤 작업을 하던 중, 어떤 사고가 발생했는지 육하원칙으로 작성" value={templateData.accidentDetail} onChange={e => setTemplateData({ ...templateData, accidentDetail: e.target.value })} className="w-full bg-white border border-gray-200 rounded-xl px-3 py-2.5 text-[14px] font-medium focus:outline-none focus:border-blue-500 resize-none" />
+                                    </div>
+                                    <div className="grid grid-cols-2 gap-3">
+                                        <div className="flex flex-col gap-2">
+                                            <label className="text-[13px] font-bold text-gray-700">상해 부위 및 정도(진단명)</label>
+                                            <input type="text" placeholder="예: 좌측 발목 염좌, 2주 진단" value={templateData.injuryPart} onChange={e => setTemplateData({ ...templateData, injuryPart: e.target.value })} className="w-full bg-white border border-gray-200 rounded-xl px-3 py-2.5 text-[14px] font-medium focus:outline-none focus:border-blue-500" />
+                                        </div>
+                                        <div className="flex flex-col gap-2">
+                                            <label className="text-[13px] font-bold text-gray-700">휴업 예상일수</label>
+                                            <input type="number" placeholder="예: 14" value={templateData.restDays} onChange={e => setTemplateData({ ...templateData, restDays: e.target.value })} className="w-full bg-white border border-gray-200 rounded-xl px-3 py-2.5 text-[14px] font-medium focus:outline-none focus:border-blue-500" />
+                                        </div>
+                                    </div>
+                                    <div className="flex flex-col gap-2">
+                                        <label className="text-[13px] font-bold text-gray-700">재해 발생 원인 <span className="text-red-500">*</span></label>
+                                        <textarea rows={3} placeholder="설비/작업방법/관리상 문제 등 원인 분석" value={templateData.causeAnalysis} onChange={e => setTemplateData({ ...templateData, causeAnalysis: e.target.value })} className="w-full bg-white border border-gray-200 rounded-xl px-3 py-2.5 text-[14px] font-medium focus:outline-none focus:border-blue-500 resize-none" />
+                                    </div>
+                                    <div className="flex flex-col gap-2">
+                                        <label className="text-[13px] font-bold text-gray-700">재발 방지 계획 <span className="text-red-500">*</span></label>
+                                        <textarea rows={3} placeholder="동종 재해 재발 방지를 위한 개선 대책" value={templateData.preventionPlan} onChange={e => setTemplateData({ ...templateData, preventionPlan: e.target.value })} className="w-full bg-white border border-gray-200 rounded-xl px-3 py-2.5 text-[14px] font-medium focus:outline-none focus:border-blue-500 resize-none" />
                                     </div>
                                 </div>
                             )}
