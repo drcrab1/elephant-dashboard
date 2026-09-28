@@ -3094,8 +3094,9 @@ const SafetyManagement = ({ user, records, setRecords }) => {
     // 전체 기록이 너무 길어지지 않도록: 종류별 필터 + 검색 + 12건씩 "더 보기"
     const [recTypeFilter, setRecTypeFilter] = useState('all');
     const [recSearch, setRecSearch] = useState('');
+    const [recPerson, setRecPerson] = useState('all');
     const [recVisible, setRecVisible] = useState(12);
-    useEffect(() => { setRecVisible(12); }, [recTypeFilter, recSearch]);
+    useEffect(() => { setRecVisible(12); }, [recTypeFilter, recSearch, recPerson]);
 
     const deleteRecord = async (id) => {
         if (!isAdmin) return;
@@ -3154,6 +3155,7 @@ const SafetyManagement = ({ user, records, setRecords }) => {
     }, {});
     const filteredRecords = visibleRecords.filter(r => {
         if (recTypeFilter !== 'all' && getTypeKorean(r.formType) !== recTypeFilter) return false;
+        if (recPerson !== 'all' && r.name !== recPerson) return false;
         const q = recSearch.trim().toLowerCase();
         if (!q) return true;
         return [r.name, getTypeKorean(r.formType), r.status, r.date].some(v => (v || '').toString().toLowerCase().includes(q));
@@ -4344,7 +4346,19 @@ const SafetyManagement = ({ user, records, setRecords }) => {
                     className="w-full sm:w-[240px] border border-gray-200 rounded-xl px-3.5 py-2 text-[13.5px] font-medium bg-white outline-none focus:border-blue-500"
                 />
             </div>
-            <div className="mb-4">
+            <div className="mb-4 flex flex-wrap gap-2">
+                {isAdmin && (
+                    <select
+                        value={recPerson}
+                        onChange={e => setRecPerson(e.target.value)}
+                        className="w-full sm:w-[220px] border border-gray-200 rounded-xl px-3.5 py-2.5 text-[14px] font-bold bg-white outline-none focus:border-blue-500 cursor-pointer"
+                    >
+                        <option value="all">👤 전체 작성자</option>
+                        {Array.from(new Set(visibleRecords.map(r => r.name).filter(Boolean))).sort((a, b) => a.localeCompare(b)).map(n => (
+                            <option key={n} value={n}>{n}</option>
+                        ))}
+                    </select>
+                )}
                 <select
                     value={recTypeFilter}
                     onChange={e => setRecTypeFilter(e.target.value)}

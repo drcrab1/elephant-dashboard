@@ -7,6 +7,7 @@ import { Icons } from './ui-components';
 
 const VehicleDocumentManagement = ({ user, docs, setDocs, contacts = [] }) => {
     const [searchQuery, setSearchQuery] = useState('');
+    const [docPerson, setDocPerson] = useState('all');
     const [showNameSuggestions, setShowNameSuggestions] = useState(false);
     const [activeTab, setActiveTab] = useState('전체'); // 전체, 화물운송자격증, 운송사업허가증, 자동차등록증
     const [isModalOpen, setIsModalOpen] = useState(false);
@@ -78,9 +79,10 @@ const VehicleDocumentManagement = ({ user, docs, setDocs, contacts = [] }) => {
     // Search & Tab Filter applied to authorizable docs
     const filteredDocs = myDocs.filter(d => {
         const matchTab = activeTab === '전체' || d.docType === activeTab;
+        const matchPerson = docPerson === 'all' || d.email === docPerson;
         const q = searchQuery.toLowerCase();
         const matchSearch = d.name.toLowerCase().includes(q) || d.docType.toLowerCase().includes(q);
-        return matchTab && matchSearch;
+        return matchTab && matchSearch && matchPerson;
     });
 
     const handleFileUpload = (e) => {
@@ -277,6 +279,19 @@ const VehicleDocumentManagement = ({ user, docs, setDocs, contacts = [] }) => {
                             </div>
                         )}
                     </div>
+
+                    {isAdmin && (
+                        <select
+                            value={docPerson}
+                            onChange={e => setDocPerson(e.target.value)}
+                            className="w-full xl:w-[220px] shrink-0 border border-gray-200 rounded-xl px-3.5 py-3 text-[14.5px] font-bold bg-white outline-none focus:border-blue-500 cursor-pointer shadow-[0_2px_8px_rgb(0,0,0,0.03)]"
+                        >
+                            <option value="all">👤 전체 기사님 ({new Set(docs.map(d => d.email)).size}명)</option>
+                            {Array.from(new Map(docs.map(d => [d.email, d.name])).entries()).sort((a, b) => (a[1] || '').localeCompare(b[1] || '')).map(([email, name]) => (
+                                <option key={email} value={email}>{name} ({docs.filter(d => d.email === email).length}건)</option>
+                            ))}
+                        </select>
+                    )}
 
                     {/* Tabs and Action */}
                     <div className="scroll-container flex items-center gap-4 w-full xl:w-auto xl:justify-end">

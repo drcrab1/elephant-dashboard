@@ -132,14 +132,19 @@ const ContractManagement = ({ user, contracts, setContracts, contacts }) => {
     const isAdmin = user && user.email === ADMIN_EMAIL;
     const [statusFilter, setStatusFilter] = useState('all');
     const [contractSearch, setContractSearch] = useState('');
+    const [contractPerson, setContractPerson] = useState('all');
+    const [contractType, setContractType] = useState('all');
     const [contractVisible, setContractVisible] = useState(15);
     const visibleContracts = useMemo(() => {
         const base = isAdmin ? contracts : contracts.filter(c => c.ownerEmail === user.email || c.targetEmail === user.email);
-        const byStatus = statusFilter === 'all' ? base : base.filter(c => c.status === statusFilter);
+        let list = statusFilter === 'all' ? base : base.filter(c => c.status === statusFilter);
+        if (contractPerson !== 'all') list = list.filter(c => c.name === contractPerson);
+        if (contractType !== 'all') list = list.filter(c => c.templateType === contractType);
         const q = contractSearch.trim().toLowerCase();
-        if (!q) return byStatus;
-        return byStatus.filter(c => [c.name, c.title].some(v => (v || '').toLowerCase().includes(q)));
-    }, [user.email, contracts, isAdmin, statusFilter, contractSearch]);
+        if (!q) return list;
+        return list.filter(c => [c.name, c.title].some(v => (v || '').toLowerCase().includes(q)));
+    }, [user.email, contracts, isAdmin, statusFilter, contractSearch, contractPerson, contractType]);
+    const contractPeople = useMemo(() => Array.from(new Set(contracts.map(c => c.name).filter(Boolean))).sort((a, b) => a.localeCompare(b)), [contracts]);
     const pendingCount = useMemo(() => (isAdmin ? contracts : []).filter(c => c.status === '서명대기').length, [contracts, isAdmin]);
 
     const handleDeleteContract = async (c) => {
@@ -430,6 +435,19 @@ const ContractManagement = ({ user, contracts, setContracts, contacts }) => {
                         {t.label}
                     </button>
                 ))}
+                {isAdmin && (
+                    <select value={contractPerson} onChange={e => { setContractPerson(e.target.value); setContractVisible(15); }} className="border border-gray-200 rounded-xl px-3 py-2 text-[13.5px] font-bold bg-white outline-none focus:border-blue-500 cursor-pointer">
+                        <option value="all">👤 전체 기사님</option>
+                        {contractPeople.map(n => <option key={n} value={n}>{n}</option>)}
+                    </select>
+                )}
+                <select value={contractType} onChange={e => { setContractType(e.target.value); setContractVisible(15); }} className="border border-gray-200 rounded-xl px-3 py-2 text-[13.5px] font-bold bg-white outline-none focus:border-blue-500 cursor-pointer">
+                    <option value="all">📄 전체 양식</option>
+                    <option value="standard_consignment">위수탁계약서</option>
+                    <option value="standard_supplementary">부속합의서</option>
+                    <option value="accident_report">산업재해조사표</option>
+                    <option value="custom">맞춤 스캔양식</option>
+                </select>
                 <input
                     type="text"
                     value={contractSearch}
