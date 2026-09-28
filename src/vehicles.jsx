@@ -56,6 +56,13 @@ const VehicleDocumentManagement = ({ user, docs, setDocs, contacts = [] }) => {
         return unsubmitted;
     }, [contacts, docs, activeTab, isAdmin]);
 
+    // 검색창 드롭다운에 함께 띄울 서류 종류 목록 (선택하면 해당 서류 탭으로 이동)
+    const DOC_TYPE_TABS = ['화물운송자격증', '운송사업허가증', '자동차등록증', '최초안전교육수료증'];
+    const typeSuggestions = useMemo(() => {
+        const q = searchQuery.trim().toLowerCase();
+        return q ? DOC_TYPE_TABS.filter(t => t.toLowerCase().includes(q)) : DOC_TYPE_TABS;
+    }, [searchQuery]);
+
     // 검색창 드롭다운에 띄울 사람 이름 목록 (비상연락망 기준, 관리자는 전체/본인은 본인 이름만)
     const nameSuggestions = useMemo(() => {
         const pool = isAdmin ? contacts : contacts.filter(c => c.email === user.email);
@@ -243,8 +250,20 @@ const VehicleDocumentManagement = ({ user, docs, setDocs, contacts = [] }) => {
                                 onBlur={() => setTimeout(() => setShowNameSuggestions(false), 150)}
                             />
                         </div>
-                        {showNameSuggestions && nameSuggestions.length > 0 && (
-                            <div className="absolute left-0 right-0 top-[calc(100%+6px)] bg-white border border-gray-200 rounded-xl shadow-lg z-20 py-1.5 max-h-[240px] overflow-y-auto">
+                        {showNameSuggestions && (nameSuggestions.length > 0 || typeSuggestions.length > 0) && (
+                            <div className="absolute left-0 right-0 top-[calc(100%+6px)] bg-white border border-gray-200 rounded-xl shadow-lg z-20 py-1.5 max-h-[280px] overflow-y-auto">
+                                {typeSuggestions.length > 0 && <p className="px-4 pt-1.5 pb-1 text-[11px] font-extrabold text-gray-400">서류 종류</p>}
+                                {typeSuggestions.map(t => (
+                                    <button
+                                        key={t}
+                                        type="button"
+                                        onMouseDown={(e) => { e.preventDefault(); setActiveTab(t); setSearchQuery(''); setShowNameSuggestions(false); }}
+                                        className="w-full text-left px-4 py-2.5 text-[14px] font-bold text-gray-700 hover:bg-blue-50 hover:text-blue-600 transition-colors"
+                                    >
+                                        📄 {t}
+                                    </button>
+                                ))}
+                                {nameSuggestions.length > 0 && <p className="px-4 pt-2 pb-1 text-[11px] font-extrabold text-gray-400">기사님</p>}
                                 {nameSuggestions.map(name => (
                                     <button
                                         key={name}

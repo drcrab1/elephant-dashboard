@@ -4344,16 +4344,17 @@ const SafetyManagement = ({ user, records, setRecords }) => {
                     className="w-full sm:w-[240px] border border-gray-200 rounded-xl px-3.5 py-2 text-[13.5px] font-medium bg-white outline-none focus:border-blue-500"
                 />
             </div>
-            <div className="mb-4 flex gap-2 overflow-x-auto pb-1">
-                {['all', ...Object.keys(recTypeCounts).sort((a, b) => recTypeCounts[b] - recTypeCounts[a])].map(k => (
-                    <button
-                        key={k}
-                        onClick={() => setRecTypeFilter(k)}
-                        className={`shrink-0 whitespace-nowrap px-3.5 py-1.5 rounded-full text-[12.5px] font-bold border transition-colors ${recTypeFilter === k ? 'bg-[#2E68ED] text-white border-[#2E68ED]' : 'bg-white text-gray-600 border-gray-200 hover:bg-gray-50'}`}
-                    >
-                        {k === 'all' ? `전체 ${visibleRecords.length}` : `${k} ${recTypeCounts[k]}`}
-                    </button>
-                ))}
+            <div className="mb-4">
+                <select
+                    value={recTypeFilter}
+                    onChange={e => setRecTypeFilter(e.target.value)}
+                    className="w-full sm:w-[300px] border border-gray-200 rounded-xl px-3.5 py-2.5 text-[14px] font-bold bg-white outline-none focus:border-blue-500 cursor-pointer"
+                >
+                    <option value="all">📁 전체 문서 ({visibleRecords.length})</option>
+                    {Object.keys(recTypeCounts).sort((x, y) => recTypeCounts[y] - recTypeCounts[x]).map(k => (
+                        <option key={k} value={k}>{k} ({recTypeCounts[k]})</option>
+                    ))}
+                </select>
             </div>
 
             <div className="scroll-container bg-white rounded-[20px] shadow-[0_2px_12px_rgba(0,0,0,0.03)] border border-gray-100">
