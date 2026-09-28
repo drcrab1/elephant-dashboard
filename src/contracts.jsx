@@ -131,11 +131,15 @@ const ContractManagement = ({ user, contracts, setContracts, contacts }) => {
 
     const isAdmin = user && user.email === ADMIN_EMAIL;
     const [statusFilter, setStatusFilter] = useState('all');
+    const [contractSearch, setContractSearch] = useState('');
+    const [contractVisible, setContractVisible] = useState(15);
     const visibleContracts = useMemo(() => {
         const base = isAdmin ? contracts : contracts.filter(c => c.ownerEmail === user.email || c.targetEmail === user.email);
-        if (statusFilter === 'all') return base;
-        return base.filter(c => c.status === statusFilter);
-    }, [user.email, contracts, isAdmin, statusFilter]);
+        const byStatus = statusFilter === 'all' ? base : base.filter(c => c.status === statusFilter);
+        const q = contractSearch.trim().toLowerCase();
+        if (!q) return byStatus;
+        return byStatus.filter(c => [c.name, c.title].some(v => (v || '').toLowerCase().includes(q)));
+    }, [user.email, contracts, isAdmin, statusFilter, contractSearch]);
     const pendingCount = useMemo(() => (isAdmin ? contracts : []).filter(c => c.status === '서명대기').length, [contracts, isAdmin]);
 
     const handleDeleteContract = async (c) => {
@@ -420,12 +424,19 @@ const ContractManagement = ({ user, contracts, setContracts, contacts }) => {
                 ].map(t => (
                     <button
                         key={t.id}
-                        onClick={() => setStatusFilter(t.id)}
+                        onClick={() => { setStatusFilter(t.id); setContractVisible(15); }}
                         className={`px-4 py-2 rounded-xl text-[13.5px] font-bold transition-colors ${statusFilter === t.id ? 'bg-[#2E68ED] text-white shadow-sm' : 'bg-white border border-gray-200 text-gray-600 hover:bg-gray-50'}`}
                     >
                         {t.label}
                     </button>
                 ))}
+                <input
+                    type="text"
+                    value={contractSearch}
+                    onChange={e => { setContractSearch(e.target.value); setContractVisible(15); }}
+                    placeholder="기사님 이름 · 문서명 검색"
+                    className="ml-auto w-full sm:w-[220px] border border-gray-200 rounded-xl px-3.5 py-2 text-[13.5px] font-medium bg-white outline-none focus:border-blue-500"
+                />
             </div>
 
             <div className="scroll-container bg-white rounded-[20px] shadow-[0_2px_12px_rgba(0,0,0,0.03)] border border-gray-100">
@@ -440,7 +451,7 @@ const ContractManagement = ({ user, contracts, setContracts, contacts }) => {
                         </tr>
                     </thead>
                     <tbody className="divide-y divide-gray-100/80">
-                        {visibleContracts.length === 0 ? <tr><td colSpan={5} className="py-16 text-center text-gray-400 font-bold">{statusFilter === 'all' ? '생성된 계약 문서가 없습니다.' : `해당하는 계약 문서가 없습니다.`}</td></tr> : visibleContracts.map(c => (
+                        {visibleContracts.length === 0 ? <tr><td colSpan={5} className="py-16 text-center text-gray-400 font-bold">{statusFilter === 'all' ? '생성된 계약 문서가 없습니다.' : `해당하는 계약 문서가 없습니다.`}</td></tr> : visibleContracts.slice(0, contractVisible).map(c => (
                             <tr key={c.id} className="hover:bg-blue-50/20 transition-colors">
                                 <td className="px-6 py-5 font-bold text-[15px] text-gray-900">{c.name} <span className="text-gray-400 font-normal ml-1">({c.title})</span></td>
                                 <td className="px-6 py-5 text-[14px] font-medium text-gray-600">{c.templateType === 'standard_supplementary' ? '단가 부속합의서' : (c.templateType === 'custom' ? '맞춤 스캔양식' : (c.templateType === 'accident_report' ? '산업재해조사표' : '위수탁 표준양식'))}</td>
@@ -474,162 +485,198 @@ const ContractManagement = ({ user, contracts, setContracts, contacts }) => {
                     </tbody>
                 </table>
             </div>
+            {visibleContracts.length > contractVisible && (
+                <button onClick={() => setContractVisible(v => v + 15)} className="mt-3 w-full py-3 bg-white border border-gray-200 hover:bg-gray-50 rounded-xl text-[13.5px] font-bold text-blue-600 shadow-sm">
+                    더 보기 ({visibleContracts.length - contractVisible}건 남음)
+                </button>
+            )}
 
-            {showTemplateModal && (
-                <div className="fixed inset-0 z-50 bg-[#0F172A]/40 backdrop-blur-sm flex justify-center items-center py-10 px-4">
-                    <div className="bg-white rounded-[24px] w-full max-w-[460px] overflow-hidden shadow-2xl animate-fade-in relative flex flex-col">
-                        <div className="px-7 py-6 border-b border-gray-100 flex justify-between items-center bg-[#f8fafc]">
-                            <h3 className="text-[20px] font-extrabold text-[#0F172A] flex items-center gap-2"><Icons.FileText /> 스마트 계약서 발송</h3>
+            {showTemplateModal && (() => {
+                const ic = 'w-full bg-white border border-gray-200 rounded-xl px-3 py-2.5 text-[14px] font-bold focus:outline-none focus:border-blue-500';
+                const lc = 'text-[13px] font-bold text-gray-700';
+                const isConsign = templateData.templateType === 'standard_consignment';
+                const isAccident = templateData.templateType === 'accident_report';
+                const set = (patch) => setTemplateData({ ...templateData, ...patch });
+                return (
+                <div className="fixed inset-0 z-50 bg-[#0F172A]/40 backdrop-blur-sm flex justify-center items-center p-3 sm:p-6">
+                    <div className={`bg-white rounded-[24px] w-full ${isAccident ? 'max-w-[680px]' : 'max-w-[580px]'} max-h-[94vh] overflow-hidden shadow-2xl animate-fade-in relative flex flex-col`}>
+                        <div className="px-6 py-4 border-b border-gray-100 flex justify-between items-center bg-[#f8fafc] shrink-0">
+                            <h3 className="text-[18px] font-extrabold text-[#0F172A] flex items-center gap-2"><Icons.FileText /> 스마트 계약서 발송</h3>
                             <button onClick={() => setShowTemplateModal(false)} className="text-gray-400 hover:text-black font-extrabold text-[26px] leading-none transition-colors">&times;</button>
                         </div>
-                        <div className="p-7 space-y-5">
-                            <div className="flex flex-col gap-2">
-                                <label className="text-[14px] font-bold text-gray-700">양식 선택 <span className="text-red-500">*</span></label>
-                                <select value={templateData.templateType} onChange={e => setTemplateData({ ...templateData, templateType: e.target.value })} className="w-full bg-white border border-gray-200 rounded-xl px-4 py-3 text-[15px] font-bold focus:outline-none focus:border-blue-500 transition-colors">
-                                    <option value="standard_consignment">물류운송 위수탁계약서 (표준)</option>
-                                    <option value="standard_supplementary">부속합의서</option>
-                                    <option value="accident_report">산업재해조사표</option>
-                                </select>
+
+                        <div className="p-6 space-y-5 overflow-y-auto flex-1">
+                            {/* 기본 정보 */}
+                            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                                <div className="flex flex-col gap-1.5">
+                                    <label className={lc}>양식 선택 <span className="text-red-500">*</span></label>
+                                    <select value={templateData.templateType} onChange={e => set({ templateType: e.target.value })} className={ic}>
+                                        <option value="standard_consignment">물류운송 위수탁계약서 (표준)</option>
+                                        <option value="standard_supplementary">부속합의서</option>
+                                        <option value="accident_report">산업재해조사표</option>
+                                    </select>
+                                </div>
+                                <div className="flex flex-col gap-1.5">
+                                    <label className={lc}>작성일자 <span className="text-red-500">*</span></label>
+                                    <input type="date" value={templateData.docDate} onChange={e => set({ docDate: e.target.value })} className={ic} />
+                                </div>
+                                <div className="flex flex-col gap-1.5 sm:col-span-2">
+                                    <label className={lc}>서명 대상자 (기사님) <span className="text-red-500">*</span></label>
+                                    <select
+                                        value={templateData.targetEmail}
+                                        onChange={e => {
+                                            const email = e.target.value;
+                                            const matched = contacts?.find(c => c.email === email);
+                                            set({ targetEmail: email, carNumber: matched?.carNumber || '', licenseNumber: matched?.licenseNumber || '' });
+                                        }}
+                                        className={ic}
+                                    >
+                                        <option value="">-- 비상연락망에서 기사 선택 --</option>
+                                        {availableDrivers.map(d => (
+                                            <option key={d.id} value={d.email}>{d.name} 기사님 ({d.tag || '미지정'})</option>
+                                        ))}
+                                    </select>
+                                    {isConsign && <p className="text-[11.5px] text-gray-400 font-bold">서류관리에서 자격증·차량번호를 등록해둔 기사님은 아래 번호가 자동으로 채워집니다.</p>}
+                                </div>
                             </div>
-                            <div className="flex flex-col gap-2">
-                                <label className="text-[14px] font-bold text-gray-700">계약서 작성일자 <span className="text-red-500">*</span></label>
-                                <input type="date" value={templateData.docDate} onChange={e => setTemplateData({ ...templateData, docDate: e.target.value })} className="w-full bg-white border border-gray-200 rounded-xl px-4 py-3 text-[15px] font-bold focus:outline-none focus:border-blue-500" />
-                            </div>
-                            <div className="flex flex-col gap-2">
-                                <label className="text-[14px] font-bold text-gray-700">서명 대상자 (기사님) 선택 <span className="text-red-500">*</span></label>
-                                <select
-                                    value={templateData.targetEmail}
-                                    onChange={e => {
-                                        const email = e.target.value;
-                                        const matched = contacts?.find(c => c.email === email);
-                                        setTemplateData({
-                                            ...templateData,
-                                            targetEmail: email,
-                                            carNumber: matched?.carNumber || '',
-                                            licenseNumber: matched?.licenseNumber || ''
-                                        });
-                                    }}
-                                    className="w-full bg-white border border-gray-200 rounded-xl px-4 py-3 text-[15px] font-medium focus:outline-none focus:border-blue-500 transition-colors"
-                                >
-                                    <option value="">-- 비상연락망에서 기사 선택 --</option>
-                                    {availableDrivers.map(d => (
-                                        <option key={d.id} value={d.email}>{d.name} 기사님 ({d.tag || '미지정'})</option>
-                                    ))}
-                                </select>
-                                <p className="text-xs text-gray-400 font-bold">* 이메일 연동이 완료된 기사님만 노출됩니다. 화물운송자격증·자동차등록증 업로드 시 입력한 번호가 자동으로 채워집니다.</p>
-                            </div>
-                            {templateData.templateType === 'standard_consignment' && (
-                                <>
-                                    <div className="flex flex-col gap-2 border-t pt-5 mt-2">
-                                        <label className="text-[14px] font-bold text-gray-700">계약 개시일자 <span className="text-red-500">*</span></label>
-                                        <input type="date" value={templateData.targetDate} onChange={e => setTemplateData({ ...templateData, targetDate: e.target.value })} className="w-full bg-white border border-gray-200 rounded-xl px-4 py-3 text-[15px] font-bold focus:outline-none focus:border-blue-500" />
-                                    </div>
-                                    <div className="flex flex-col gap-2">
-                                        <label className="text-[14px] font-bold text-gray-700">계약 종료일자</label>
-                                        <input type="date" value={templateData.targetEndDate} onChange={e => setTemplateData({ ...templateData, targetEndDate: e.target.value })} className="w-full bg-white border border-gray-200 rounded-xl px-4 py-3 text-[15px] font-bold focus:outline-none focus:border-blue-500" />
-                                        <p className="text-xs text-gray-400 font-bold">* 비워두면 개시일로부터 자동으로 1년 후로 계산됩니다.</p>
-                                    </div>
-                                    <div className="flex flex-col gap-2">
-                                        <label className="text-[14px] font-bold text-gray-700">자동차 등록번호</label>
-                                        <input type="text" placeholder="예: 12가 3456" value={templateData.carNumber || ''} onChange={e => setTemplateData({ ...templateData, carNumber: e.target.value })} className="w-full bg-white border border-gray-200 rounded-xl px-4 py-3 text-[15px] font-bold focus:outline-none focus:border-blue-500" />
-                                    </div>
-                                    <div className="flex flex-col gap-2">
-                                        <label className="text-[14px] font-bold text-gray-700">종사자격증 번호</label>
-                                        <input type="text" placeholder="예: 12-34-567890" value={templateData.licenseNumber || ''} onChange={e => setTemplateData({ ...templateData, licenseNumber: e.target.value })} className="w-full bg-white border border-gray-200 rounded-xl px-4 py-3 text-[15px] font-bold focus:outline-none focus:border-blue-500" />
-                                    </div>
-                                </>
+
+                            {templateData.templateType === 'standard_supplementary' && (
+                                <p className="text-[12.5px] text-gray-500 font-medium bg-gray-50 border border-gray-100 rounded-xl px-4 py-3 leading-relaxed">부속합의서에는 수행률·용차·프레시백·안전점검·건강검진 등 준수사항만 들어가며, 단가는 표준계약서에 기재됩니다. 기사님만 선택하면 바로 미리보기 할 수 있어요.</p>
                             )}
 
-                            {/* 담당구역 & 단가 동적 추가 영역 (표준 위수탁계약서에만 표시 — 부속합의서는 단가를 별도로 명시하지 않음) */}
-                            {templateData.templateType === 'standard_consignment' && (
-                                <div className="flex flex-col gap-4 border-t pt-5 mt-2">
-                                    <div className="flex flex-wrap justify-between items-center gap-2">
-                                        <label className="text-[14px] font-bold text-gray-700">담당구역 및 위탁 수수료 단가 목록 <span className="text-red-500">*</span></label>
-                                        <button type="button" onClick={handleAddRouteFee} className="shrink-0 whitespace-nowrap text-xs bg-[#2E68ED] hover:bg-blue-700 text-white font-bold px-3 py-1.5 rounded-lg shadow-sm">
-                                            + 구역 추가
-                                        </button>
+                            {/* 위수탁계약서 */}
+                            {isConsign && (
+                                <div className="space-y-4 border-t border-gray-100 pt-5">
+                                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                                        <div className="flex flex-col gap-1.5">
+                                            <label className={lc}>계약 개시일자 <span className="text-red-500">*</span></label>
+                                            <input type="date" value={templateData.targetDate} onChange={e => set({ targetDate: e.target.value })} className={ic} />
+                                        </div>
+                                        <div className="flex flex-col gap-1.5">
+                                            <label className={lc}>계약 종료일자 <span className="text-gray-400 font-medium">(비우면 1년 후)</span></label>
+                                            <input type="date" value={templateData.targetEndDate} onChange={e => set({ targetEndDate: e.target.value })} className={ic} />
+                                        </div>
+                                        <div className="flex flex-col gap-1.5">
+                                            <label className={lc}>자동차 등록번호</label>
+                                            <input type="text" placeholder="예: 12가 3456" value={templateData.carNumber || ''} onChange={e => set({ carNumber: e.target.value })} className={ic} />
+                                        </div>
+                                        <div className="flex flex-col gap-1.5">
+                                            <label className={lc}>종사자격증 번호</label>
+                                            <input type="text" placeholder="예: 12-34-567890" value={templateData.licenseNumber || ''} onChange={e => set({ licenseNumber: e.target.value })} className={ic} />
+                                        </div>
                                     </div>
 
-                                    <div className="space-y-4 max-h-[200px] overflow-y-auto pr-1">
-                                        {templateData.routeFees.map((rf, idx) => (
-                                            <div key={idx} className="flex gap-2 items-end bg-gray-50 p-3 rounded-xl border border-gray-100 relative group">
-                                                <div className="flex-1 flex flex-col gap-1.5">
-                                                    <span className="text-[12px] font-bold text-gray-500">구역 {idx + 1}</span>
-                                                    <input type="text" placeholder="예: 남양주4 A-01" value={rf.route} onChange={e => handleRouteFeeChange(idx, 'route', e.target.value)} className="w-full bg-white border border-gray-200 rounded-lg px-2.5 py-2 text-[13.5px] font-medium focus:outline-none focus:border-blue-500" />
-                                                </div>
-                                                <div className="flex-1 flex flex-col gap-1.5">
-                                                    <span className="text-[12px] font-bold text-gray-500">수수료 단가</span>
-                                                    <div className="relative">
-                                                        <input type="number" placeholder="예: 800" value={rf.unitPrice} onChange={e => handleRouteFeeChange(idx, 'unitPrice', e.target.value)} className="w-full bg-white border border-gray-200 rounded-lg px-2.5 py-2 pr-7 text-[13.5px] font-extrabold text-[#2E68ED] text-right focus:outline-none focus:border-blue-500" />
+                                    <div className="space-y-2">
+                                        <div className="flex items-center justify-between gap-2">
+                                            <label className={lc}>담당구역 · 수수료 단가 <span className="text-red-500">*</span></label>
+                                            <button type="button" onClick={handleAddRouteFee} className="shrink-0 whitespace-nowrap text-xs bg-[#2E68ED] hover:bg-blue-700 text-white font-bold px-3 py-1.5 rounded-lg shadow-sm">+ 구역 추가</button>
+                                        </div>
+                                        <div className="space-y-2 max-h-[190px] overflow-y-auto pr-1">
+                                            {templateData.routeFees.map((rf, idx) => (
+                                                <div key={idx} className="flex gap-2 items-center bg-gray-50 p-2.5 rounded-xl border border-gray-100">
+                                                    <span className="shrink-0 w-6 text-center text-[12px] font-extrabold text-gray-400">{idx + 1}</span>
+                                                    <input type="text" placeholder="구역 (예: 남양주4 A-01)" value={rf.route} onChange={e => handleRouteFeeChange(idx, 'route', e.target.value)} className="flex-1 min-w-0 bg-white border border-gray-200 rounded-lg px-2.5 py-2 text-[13.5px] font-medium focus:outline-none focus:border-blue-500" />
+                                                    <div className="relative w-[110px] shrink-0">
+                                                        <input type="number" placeholder="단가" value={rf.unitPrice} onChange={e => handleRouteFeeChange(idx, 'unitPrice', e.target.value)} className="w-full bg-white border border-gray-200 rounded-lg px-2.5 py-2 pr-7 text-[13.5px] font-extrabold text-[#2E68ED] text-right focus:outline-none focus:border-blue-500" />
                                                         <span className="absolute right-2.5 top-1/2 -translate-y-1/2 text-gray-400 font-bold text-[12px]">원</span>
                                                     </div>
+                                                    {templateData.routeFees.length > 1 && (
+                                                        <button type="button" onClick={() => handleRemoveRouteFee(idx)} className="shrink-0 text-red-400 hover:text-red-600 px-1 text-lg leading-none" title="삭제">&times;</button>
+                                                    )}
                                                 </div>
-                                                {templateData.routeFees.length > 1 && (
-                                                    <button type="button" onClick={() => handleRemoveRouteFee(idx)} className="shrink-0 bg-red-50 hover:bg-red-100 text-red-500 border border-red-200 p-2.5 rounded-lg text-xs font-bold shadow-sm transition-colors mb-0.5">
-                                                        삭제
-                                                    </button>
-                                                )}
-                                            </div>
-                                        ))}
+                                            ))}
+                                        </div>
                                     </div>
                                 </div>
                             )}
 
-                            {templateData.templateType === 'accident_report' && (
-                                <div className="flex flex-col gap-4 border-t pt-5 mt-2">
-                                    <p className="text-xs text-red-500 font-bold -mt-1">* 산업안전보건법 시행규칙 별지 서식 기준 항목입니다. 재해자(대상자)에게 서명 요청이 발송됩니다.</p>
-                                    <div className="grid grid-cols-2 gap-3">
-                                        <div className="flex flex-col gap-2">
-                                            <label className="text-[13px] font-bold text-gray-700">재해 발생 일자 <span className="text-red-500">*</span></label>
-                                            <input type="date" value={templateData.accidentDate} onChange={e => setTemplateData({ ...templateData, accidentDate: e.target.value })} className="w-full bg-white border border-gray-200 rounded-xl px-3 py-2.5 text-[14px] font-bold focus:outline-none focus:border-blue-500" />
-                                        </div>
-                                        <div className="flex flex-col gap-2">
-                                            <label className="text-[13px] font-bold text-gray-700">재해 발생 시각</label>
-                                            <input type="time" value={templateData.accidentTime} onChange={e => setTemplateData({ ...templateData, accidentTime: e.target.value })} className="w-full bg-white border border-gray-200 rounded-xl px-3 py-2.5 text-[14px] font-bold focus:outline-none focus:border-blue-500" />
-                                        </div>
-                                    </div>
-                                    <div className="flex flex-col gap-2">
-                                        <label className="text-[13px] font-bold text-gray-700">재해 발생 장소 <span className="text-red-500">*</span></label>
-                                        <input type="text" placeholder="예: 남양주4 A-01 배송구역 이면도로" value={templateData.accidentLocation} onChange={e => setTemplateData({ ...templateData, accidentLocation: e.target.value })} className="w-full bg-white border border-gray-200 rounded-xl px-3 py-2.5 text-[14px] font-medium focus:outline-none focus:border-blue-500" />
-                                    </div>
-                                    <div className="flex flex-col gap-2">
-                                        <label className="text-[13px] font-bold text-gray-700">재해 관련 작업유형</label>
-                                        <input type="text" placeholder="예: 택배 배송 중 하차 작업" value={templateData.workType} onChange={e => setTemplateData({ ...templateData, workType: e.target.value })} className="w-full bg-white border border-gray-200 rounded-xl px-3 py-2.5 text-[14px] font-medium focus:outline-none focus:border-blue-500" />
-                                    </div>
-                                    <div className="flex flex-col gap-2">
-                                        <label className="text-[13px] font-bold text-gray-700">재해 발생 당시 상황 <span className="text-red-500">*</span></label>
-                                        <textarea rows={3} placeholder="언제, 어디서, 누가, 어떤 작업을 하던 중, 어떤 사고가 발생했는지 육하원칙으로 작성" value={templateData.accidentDetail} onChange={e => setTemplateData({ ...templateData, accidentDetail: e.target.value })} className="w-full bg-white border border-gray-200 rounded-xl px-3 py-2.5 text-[14px] font-medium focus:outline-none focus:border-blue-500 resize-none" />
-                                    </div>
-                                    <div className="grid grid-cols-2 gap-3">
-                                        <div className="flex flex-col gap-2">
-                                            <label className="text-[13px] font-bold text-gray-700">상해 부위 및 정도(진단명)</label>
-                                            <input type="text" placeholder="예: 좌측 발목 염좌, 2주 진단" value={templateData.injuryPart} onChange={e => setTemplateData({ ...templateData, injuryPart: e.target.value })} className="w-full bg-white border border-gray-200 rounded-xl px-3 py-2.5 text-[14px] font-medium focus:outline-none focus:border-blue-500" />
-                                        </div>
-                                        <div className="flex flex-col gap-2">
-                                            <label className="text-[13px] font-bold text-gray-700">휴업 예상일수</label>
-                                            <input type="number" placeholder="예: 14" value={templateData.restDays} onChange={e => setTemplateData({ ...templateData, restDays: e.target.value })} className="w-full bg-white border border-gray-200 rounded-xl px-3 py-2.5 text-[14px] font-medium focus:outline-none focus:border-blue-500" />
+                            {/* 산업재해조사표 */}
+                            {isAccident && (
+                                <div className="space-y-4 border-t border-gray-100 pt-5">
+                                    <p className="text-[12px] text-red-500 font-bold">* 산업안전보건법 시행규칙 별지 서식 기준 항목입니다. 재해자(대상자)에게 서명 요청이 발송됩니다.</p>
+
+                                    <div>
+                                        <p className="text-[12px] font-extrabold text-gray-400 mb-2 tracking-wide">재해자 · 사업장</p>
+                                        <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+                                            <div className="flex flex-col gap-1.5">
+                                                <label className={lc}>성별</label>
+                                                <select value={templateData.gender} onChange={e => set({ gender: e.target.value })} className={ic}><option value="남">남</option><option value="여">여</option></select>
+                                            </div>
+                                            <div className="flex flex-col gap-1.5">
+                                                <label className={lc}>입사일</label>
+                                                <input type="date" value={templateData.hireDate} onChange={e => set({ hireDate: e.target.value })} className={ic} />
+                                            </div>
+                                            <div className="flex flex-col gap-1.5">
+                                                <label className={lc}>근로자수</label>
+                                                <input type="number" placeholder={`예: ${(contacts || []).length}`} value={templateData.employeeCount} onChange={e => set({ employeeCount: e.target.value })} className={ic} />
+                                            </div>
+                                            <div className="flex flex-col gap-1.5 col-span-2 sm:col-span-4">
+                                                <label className={lc}>사업장 소재지</label>
+                                                <input type="text" placeholder="예: 경기도 남양주시 ..." value={templateData.businessAddress} onChange={e => set({ businessAddress: e.target.value })} className={ic} />
+                                            </div>
                                         </div>
                                     </div>
-                                    <div className="flex flex-col gap-2">
-                                        <label className="text-[13px] font-bold text-gray-700">재해 발생 원인 <span className="text-red-500">*</span></label>
-                                        <textarea rows={3} placeholder="설비/작업방법/관리상 문제 등 원인 분석" value={templateData.causeAnalysis} onChange={e => setTemplateData({ ...templateData, causeAnalysis: e.target.value })} className="w-full bg-white border border-gray-200 rounded-xl px-3 py-2.5 text-[14px] font-medium focus:outline-none focus:border-blue-500 resize-none" />
+
+                                    <div>
+                                        <p className="text-[12px] font-extrabold text-gray-400 mb-2 tracking-wide">재해 발생 내용</p>
+                                        <div className="grid grid-cols-2 gap-3">
+                                            <div className="flex flex-col gap-1.5">
+                                                <label className={lc}>발생 일자 <span className="text-red-500">*</span></label>
+                                                <input type="date" value={templateData.accidentDate} onChange={e => set({ accidentDate: e.target.value })} className={ic} />
+                                            </div>
+                                            <div className="flex flex-col gap-1.5">
+                                                <label className={lc}>발생 시각</label>
+                                                <input type="time" value={templateData.accidentTime} onChange={e => set({ accidentTime: e.target.value })} className={ic} />
+                                            </div>
+                                            <div className="flex flex-col gap-1.5 col-span-2">
+                                                <label className={lc}>발생 장소 <span className="text-red-500">*</span></label>
+                                                <input type="text" placeholder="예: 남양주4 A-01 배송구역 이면도로" value={templateData.accidentLocation} onChange={e => set({ accidentLocation: e.target.value })} className={ic} />
+                                            </div>
+                                            <div className="flex flex-col gap-1.5">
+                                                <label className={lc}>관련 작업유형</label>
+                                                <input type="text" placeholder="예: 택배 하차 작업" value={templateData.workType} onChange={e => set({ workType: e.target.value })} className={ic} />
+                                            </div>
+                                            <div className="flex flex-col gap-1.5">
+                                                <label className={lc}>휴업 예상일수</label>
+                                                <input type="number" placeholder="예: 14" value={templateData.restDays} onChange={e => set({ restDays: e.target.value })} className={ic} />
+                                            </div>
+                                            <div className="flex flex-col gap-1.5 col-span-2">
+                                                <label className={lc}>상해 부위 및 정도(진단명)</label>
+                                                <input type="text" placeholder="예: 좌측 발목 염좌, 2주 진단" value={templateData.injuryPart} onChange={e => set({ injuryPart: e.target.value })} className={ic} />
+                                            </div>
+                                        </div>
                                     </div>
-                                    <div className="flex flex-col gap-2">
-                                        <label className="text-[13px] font-bold text-gray-700">재발 방지 계획 <span className="text-red-500">*</span></label>
-                                        <textarea rows={3} placeholder="동종 재해 재발 방지를 위한 개선 대책" value={templateData.preventionPlan} onChange={e => setTemplateData({ ...templateData, preventionPlan: e.target.value })} className="w-full bg-white border border-gray-200 rounded-xl px-3 py-2.5 text-[14px] font-medium focus:outline-none focus:border-blue-500 resize-none" />
+
+                                    <div className="space-y-3">
+                                        <div className="flex flex-col gap-1.5">
+                                            <label className={lc}>재해 발생 당시 상황 <span className="text-red-500">*</span></label>
+                                            <textarea rows={2} placeholder="언제, 어디서, 누가, 어떤 작업 중 어떤 사고가 발생했는지 육하원칙으로 작성" value={templateData.accidentDetail} onChange={e => set({ accidentDetail: e.target.value })} className={`${ic} font-medium resize-none`} />
+                                        </div>
+                                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                                            <div className="flex flex-col gap-1.5">
+                                                <label className={lc}>재해 발생 원인 <span className="text-red-500">*</span></label>
+                                                <textarea rows={3} placeholder="설비/작업방법/관리상 문제 등" value={templateData.causeAnalysis} onChange={e => set({ causeAnalysis: e.target.value })} className={`${ic} font-medium resize-none`} />
+                                            </div>
+                                            <div className="flex flex-col gap-1.5">
+                                                <label className={lc}>재발 방지 계획 <span className="text-red-500">*</span></label>
+                                                <textarea rows={3} placeholder="동종 재해 재발 방지 개선 대책" value={templateData.preventionPlan} onChange={e => set({ preventionPlan: e.target.value })} className={`${ic} font-medium resize-none`} />
+                                            </div>
+                                        </div>
                                     </div>
                                 </div>
                             )}
                         </div>
-                        <div className="p-7 pt-2 flex gap-3 bg-[#f8fafc]">
-                            <button onClick={() => setShowTemplateModal(false)} className="flex-[1] py-3.5 bg-white border border-gray-200 hover:bg-gray-50 text-gray-700 font-extrabold text-[15px] rounded-xl transition-colors shadow-sm">취소</button>
-                            <button onClick={handlePreviewTemplate} className="flex-[2] py-3.5 bg-[#2E68ED] hover:bg-blue-700 text-white font-extrabold text-[15px] rounded-xl shadow-[0_4px_12px_rgb(46,104,237,0.3)] transition-colors flex items-center justify-center gap-1.5">
-                                <Icons.Edit2 /> 계약서 미리보기
+
+                        <div className="px-6 py-4 flex gap-3 bg-[#f8fafc] border-t border-gray-100 shrink-0">
+                            <button onClick={() => setShowTemplateModal(false)} className="flex-[1] py-3 bg-white border border-gray-200 hover:bg-gray-50 text-gray-700 font-extrabold text-[15px] rounded-xl transition-colors shadow-sm">취소</button>
+                            <button onClick={handlePreviewTemplate} className="flex-[2] py-3 bg-[#2E68ED] hover:bg-blue-700 text-white font-extrabold text-[15px] rounded-xl shadow-[0_4px_12px_rgb(46,104,237,0.3)] transition-colors flex items-center justify-center gap-1.5">
+                                <Icons.Edit2 /> 미리보기
                             </button>
                         </div>
                     </div>
                 </div>
-            )}
+                );
+            })()}
             {previewContract && (
                 <div className="fixed inset-0 z-[60] bg-[#0F172A]/60 backdrop-blur-sm flex justify-center items-center py-8 px-4">
                     <div className="bg-white rounded-[24px] w-full max-w-[900px] max-h-[92vh] overflow-hidden shadow-2xl animate-fade-in flex flex-col">

@@ -21,6 +21,7 @@ const ScheduleManagement = lazy(() => import('./schedule').then(m => ({ default:
 const SafetyManagement = lazy(() => import('./safety').then(m => ({ default: m.SafetyManagement })));
 const ContactManagement = lazy(() => import('./contacts').then(m => ({ default: m.ContactManagement })));
 const VehicleDocumentManagement = lazy(() => import('./vehicles').then(m => ({ default: m.VehicleDocumentManagement })));
+const VehicleManagement = lazy(() => import('./vehicles').then(m => ({ default: m.VehicleManagement })));
 const WorkRecordManagement = lazy(() => import('./work-records').then(m => ({ default: m.WorkRecordManagement })));
 const RouteManagement = lazy(() => import('./routes').then(m => ({ default: m.RouteManagement })));
 const MemberManagement = lazy(() => import('./members').then(m => ({ default: m.MemberManagement })));
@@ -179,7 +180,8 @@ const App = () => {
     if (activePage === '스케줄관리') content = <ScheduleManagement user={user} />;
     if (activePage === '안전보건관리') content = <SafetyManagement user={user} records={safetyRecords} setRecords={setSafetyRecords} />;
     if (activePage === '비상연락망') content = <ContactManagement user={user} contacts={appContacts} setContacts={setAppContacts} />;
-    if (activePage === '차량/서류관리') content = <VehicleDocumentManagement user={user} docs={vehicleDocs} setDocs={setVehicleDocs} contacts={appContacts} />;
+    if (activePage === '서류관리') content = <VehicleDocumentManagement user={user} docs={vehicleDocs} setDocs={setVehicleDocs} contacts={appContacts} />;
+    if (activePage === '차량관리') content = <VehicleManagement user={user} docs={vehicleDocs} contacts={appContacts} />;
     if (activePage === '업무내역입력') content = <WorkRecordManagement user={user} records={workRecords} setRecords={setWorkRecords} />;
     if (activePage === '노선관리') content = <RouteManagement user={user} appRoutes={routes} setAppRoutes={setRoutes} />;
     if (activePage === '회원관리') content = <MemberManagement user={user} />;

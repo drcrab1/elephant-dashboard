@@ -35,6 +35,7 @@ const Icons = {
     Map: () => <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polygon points="3 6 9 3 15 6 21 3 21 18 15 21 9 18 3 21"></polygon><line x1="9" y1="3" x2="9" y2="18"></line><line x1="15" y1="6" x2="15" y2="21"></line></svg>,
     Bell: () => <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M6 8a6 6 0 0 1 12 0c0 7 3 9 3 9H3s3-2 3-9" /><path d="M10.3 21a1.94 1.94 0 0 0 3.4 0" /></svg>,
     Table: () => <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect width="18" height="18" x="3" y="3" rx="2" /><path d="M3 9h18" /><path d="M3 15h18" /><path d="M9 3v18" /></svg>,
+    Folder: () => <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M20 20a2 2 0 0 0 2-2V8a2 2 0 0 0-2-2h-7.9a2 2 0 0 1-1.69-.9L9.6 3.9A2 2 0 0 0 7.93 3H4a2 2 0 0 0-2 2v13a2 2 0 0 0 2 2Z" /></svg>,
     Megaphone: () => <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="m3 11 18-5v12L3 14v-3z" /><path d="M11.6 16.8a3 3 0 1 1-5.8-1.6" /></svg>
 };
 
@@ -475,7 +476,8 @@ const DashboardHome = ({ setActivePage, user, contracts = [], vehicleDocs = [], 
         { title: '스케줄관리', subtitle: '배차·근무일정', icon: <Icons.Schedule />, bgClass: 'bg-[#F5F2FF]', textClass: 'text-[#965DE8]' },
         { title: '안전보건관리', subtitle: '교육·점검·사고보고', icon: <Icons.Safety />, bgClass: 'bg-[#EAFBF3]', textClass: 'text-[#1BC271]' },
         { title: '비상연락망', subtitle: '연락처·긴급전화', icon: <Icons.Phone />, bgClass: 'bg-[#FFF0EF]', textClass: 'text-[#FB5163]' },
-        { title: '차량/서류관리', subtitle: '차량·정비·보험', icon: <Icons.Truck />, bgClass: 'bg-[#FFF7E8]', textClass: 'text-[#F59929]' },
+        { title: '서류관리', subtitle: '자격증·서류·만료일', icon: <Icons.Folder />, bgClass: 'bg-[#FFF7E8]', textClass: 'text-[#F59929]' },
+        { title: '차량관리', subtitle: '차량현황·유지비', icon: <Icons.Truck />, bgClass: 'bg-[#FEF3EE]', textClass: 'text-[#E8683A]' },
         { title: '업무내역입력', subtitle: '일일보고·배송건수', icon: <Icons.Clipboard />, bgClass: 'bg-[#EBFBFB]', textClass: 'text-[#2DC4D1]' },
         { title: '노선관리', subtitle: '노선(라우트)·꿀팁·지도', icon: <Icons.Map />, bgClass: 'bg-[#F0F5FF]', textClass: 'text-[#4F46E5]' }
     ];
@@ -488,7 +490,7 @@ const DashboardHome = ({ setActivePage, user, contracts = [], vehicleDocs = [], 
 
             {kpis && (
                 <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-8 max-w-[1200px]">
-                    <button onClick={() => setActivePage('차량/서류관리')} className={`text-left rounded-2xl border p-5 shadow-sm transition-transform hover:-translate-y-0.5 ${kpis.missingDocsCount > 0 ? 'bg-amber-50 border-amber-200' : 'bg-white border-gray-100'}`}>
+                    <button onClick={() => setActivePage('서류관리')} className={`text-left rounded-2xl border p-5 shadow-sm transition-transform hover:-translate-y-0.5 ${kpis.missingDocsCount > 0 ? 'bg-amber-50 border-amber-200' : 'bg-white border-gray-100'}`}>
                         <p className={`text-[13px] font-bold mb-1 ${kpis.missingDocsCount > 0 ? 'text-amber-600' : 'text-gray-400'}`}>서류 미제출 인원</p>
                         <p className={`text-[26px] font-extrabold ${kpis.missingDocsCount > 0 ? 'text-amber-700' : 'text-[#0F172A]'}`}>{kpis.missingDocsCount}<span className="text-[15px] font-bold ml-1 opacity-60">명</span></p>
                     </button>
@@ -534,7 +536,8 @@ const Sidebar = ({ activePage, setActivePage, user, onLogout, onWithdraw, isSide
         { id: '스케줄관리', icon: <Icons.Schedule /> },
         { id: '안전보건관리', icon: <Icons.Safety /> },
         { id: '비상연락망', icon: <Icons.Phone /> },
-        { id: '차량/서류관리', icon: <Icons.Truck /> },
+        { id: '서류관리', icon: <Icons.Folder /> },
+        { id: '차량관리', icon: <Icons.Truck /> },
         { id: '업무내역입력', icon: <Icons.Clipboard /> },
         { id: '노선관리', icon: <Icons.Map /> },
         { id: '공지사항', icon: <Icons.Megaphone /> },

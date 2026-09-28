@@ -6,7 +6,6 @@ import { Icons } from './ui-components';
 // Start with empty to show the screenshot's empty state directly, but comment mock for logic representation.
 
 const VehicleDocumentManagement = ({ user, docs, setDocs, contacts = [] }) => {
-    const [activeSection, setActiveSection] = useState('docs'); // docs | costs
     const [searchQuery, setSearchQuery] = useState('');
     const [showNameSuggestions, setShowNameSuggestions] = useState(false);
     const [activeTab, setActiveTab] = useState('전체'); // 전체, 화물운송자격증, 운송사업허가증, 자동차등록증
@@ -179,21 +178,10 @@ const VehicleDocumentManagement = ({ user, docs, setDocs, contacts = [] }) => {
     return (
         <main className="md:ml-[260px] ml-0 px-4 md:px-10 py-6 md:py-[50px] flex-1 animate-fade-in font-sans bg-[#F8FAFC] min-h-screen">
             <header className="mb-6 w-full max-w-[1100px] mx-auto">
-                <h2 className="text-[28px] font-extrabold text-[#1E293B] tracking-tight flex items-center gap-2"><Icons.Truck /> 차량/서류관리</h2>
+                <h2 className="text-[28px] font-extrabold text-[#1E293B] tracking-tight flex items-center gap-2"><Icons.Folder /> 서류관리</h2>
                 <p className="text-[#64748B] mt-1.5 font-medium text-[15px]">화물운송자격증, 운송사업허가증 등 서류를 업로드하고 관리합니다.</p>
             </header>
 
-            <div className="max-w-[1100px] mx-auto mb-6 flex gap-2 bg-white p-1.5 rounded-2xl border border-gray-100 shadow-sm w-fit">
-                {[{ id: 'docs', label: '📄 서류함' }, { id: 'costs', label: '🛢️ 유지비 관리' }].map(t => (
-                    <button key={t.id} onClick={() => setActiveSection(t.id)} className={`px-5 py-2.5 rounded-xl text-[14px] font-bold transition-all ${activeSection === t.id ? 'bg-[#2E68ED] text-white shadow-sm' : 'text-gray-500 hover:bg-gray-100'}`}>
-                        {t.label}
-                    </button>
-                ))}
-            </div>
-
-            {activeSection === 'costs' && <VehicleCostSection user={user} isAdmin={isAdmin} contacts={contacts} />}
-
-            {activeSection === 'docs' && (
             <div className="max-w-[1100px] mx-auto space-y-6 flex flex-col min-h-[70vh]">
 
                 {/* 관리자용 미제출 현황 패널 */}
@@ -336,7 +324,6 @@ const VehicleDocumentManagement = ({ user, docs, setDocs, contacts = [] }) => {
                 )}
 
             </div>
-            )}
 
             {/* 업로드 모달창 */}
             {isModalOpen && (
@@ -446,10 +433,15 @@ const COST_TYPE_COLOR = {
     '보험/기타': 'bg-gray-100 text-gray-600 border-gray-200'
 };
 
-const VehicleCostSection = ({ user, isAdmin, contacts }) => {
+const VehicleManagement = ({ user, docs = [], contacts = [] }) => {
+    const isAdmin = user && user.email === ADMIN_EMAIL;
+    const [tab, setTab] = useState('vehicles'); // vehicles | costs
     const [costs, setCosts] = useState([]);
     const [isModalOpen, setIsModalOpen] = useState(false);
     const [filterEmail, setFilterEmail] = useState('all');
+    const [filterType, setFilterType] = useState('all');
+    const [filterMonth, setFilterMonth] = useState(new Date().toISOString().slice(0, 7));
+    const [visibleCount, setVisibleCount] = useState(15);
     const [form, setForm] = useState({ date: new Date().toISOString().split('T')[0], vehicleNumber: '', costType: '주유비', amount: '', memo: '' });
 
     useEffect(() => {
@@ -459,11 +451,40 @@ const VehicleCostSection = ({ user, isAdmin, contacts }) => {
         return () => unsub();
     }, []);
 
-    const myCosts = isAdmin ? costs : costs.filter(c => c.email === user.email);
-    const visibleCosts = (isAdmin && filterEmail !== 'all') ? myCosts.filter(c => c.email === filterEmail) : myCosts;
-    const totalAmount = visibleCosts.reduce((sum, c) => sum + Number(c.amount || 0), 0);
+    useEffect(() => { setVisibleCount(15); }, [filterEmail, filterType, filterMonth, tab]);
 
-    const uniqueContributors = useMemo(() => {
+    const norm = (s) => (s || '').replace(/\s+/g, '');
+    const myCosts = isAdmin ? costs : costs.filter(c => c.email === user.email);
+
+    // 차량 현황: 비상연락망(자동차 등록번호) + 자동차등록증 서류에서 자동으로 구성
+    const vehicles = useMemo(() => {
+        const people = isAdmin ? contacts.filter(c => c.email && c.email !== ADMIN_EMAIL) : contacts.filter(c => c.email === user.email);
+        return people.map(p => {
+            const regDoc = docs.filter(d => d.email === p.email && d.docType === '자동차등록증').sort((a, b) => (b.date || '').localeCompare(a.date || ''))[0];
+            const number = p.carNumber || (regDoc && regDoc.docNumber) || '';
+            const total = number ? costs.filter(c => norm(c.vehicleNumber) === norm(number)).reduce((s, c) => s + Number(c.amount || 0), 0) : 0;
+            return { email: p.email, name: p.name, team: p.tag || '', number, expiryDate: regDoc && regDoc.expiryDate, hasRegDoc: !!regDoc, total };
+        }).sort((a, b) => (b.number ? 1 : 0) - (a.number ? 1 : 0) || a.name.localeCompare(b.name));
+    }, [contacts, docs, costs, isAdmin, user.email]);
+
+    const getExpiry = (v) => {
+        if (!v.expiryDate) return null;
+        const t = new Date(); t.setHours(0, 0, 0, 0);
+        const days = Math.round((new Date(v.expiryDate + 'T00:00:00') - t) / 86400000);
+        if (isNaN(days)) return null;
+        if (days < 0) return { label: '만료됨', cls: 'bg-red-100 text-red-700 border-red-200' };
+        if (days <= 30) return { label: `D-${days}`, cls: 'bg-amber-100 text-amber-700 border-amber-200' };
+        return { label: `~${v.expiryDate}`, cls: 'bg-gray-100 text-gray-500 border-gray-200' };
+    };
+
+    const filtered = myCosts.filter(c =>
+        (filterEmail === 'all' || c.email === filterEmail) &&
+        (filterType === 'all' || c.costType === filterType) &&
+        (!filterMonth || (c.date || '').startsWith(filterMonth))
+    );
+    const totalAmount = filtered.reduce((sum, c) => sum + Number(c.amount || 0), 0);
+    const byType = COST_TYPES.map(t => ({ t, sum: filtered.filter(c => c.costType === t).reduce((s, c) => s + Number(c.amount || 0), 0) })).filter(x => x.sum > 0);
+    const contributors = useMemo(() => {
         const map = new Map();
         costs.forEach(c => { if (c.email) map.set(c.email, c.name); });
         return Array.from(map.entries()).map(([email, name]) => ({ email, name }));
@@ -473,81 +494,136 @@ const VehicleCostSection = ({ user, isAdmin, contacts }) => {
         if (!form.vehicleNumber.trim() || !form.amount) return alert('차량번호와 금액을 입력해주세요.');
         try {
             await db.collection('vehicleCosts').add({
-                date: form.date,
-                vehicleNumber: form.vehicleNumber.trim(),
-                costType: form.costType,
-                amount: Number(form.amount),
-                memo: form.memo.trim(),
-                email: user.email,
-                name: user.name,
+                date: form.date, vehicleNumber: form.vehicleNumber.trim(), costType: form.costType,
+                amount: Number(form.amount), memo: form.memo.trim(), email: user.email, name: user.name,
                 createdAt: new Date().toISOString()
             });
             setForm({ date: new Date().toISOString().split('T')[0], vehicleNumber: '', costType: '주유비', amount: '', memo: '' });
             setIsModalOpen(false);
         } catch (e) { alert('저장 실패: ' + e.message); }
     };
-
     const handleDelete = async (id) => {
         if (!window.confirm('이 비용 기록을 삭제하시겠습니까?')) return;
         try { await db.collection('vehicleCosts').doc(id).delete(); } catch (e) { alert('삭제 실패: ' + e.message); }
     };
+    const openAddFor = (number) => {
+        setForm(f => ({ ...f, vehicleNumber: number || f.vehicleNumber }));
+        setTab('costs');
+        setIsModalOpen(true);
+    };
 
     return (
-        <div className="max-w-[1100px] mx-auto space-y-6">
-            <div className="flex flex-wrap items-center gap-3 bg-white rounded-2xl border border-gray-100 shadow-sm p-5">
-                <div>
-                    <p className="text-[13px] text-gray-500 font-bold">{isAdmin && filterEmail === 'all' ? '전체 합계' : '합계'}</p>
-                    <p className="text-[26px] font-extrabold text-[#0F172A]">{totalAmount.toLocaleString()}<span className="text-[15px] font-bold text-gray-400 ml-1">원</span></p>
-                </div>
-                {isAdmin && (
-                    <select value={filterEmail} onChange={e => setFilterEmail(e.target.value)} className="ml-2 border border-gray-200 rounded-xl px-3 py-2 text-sm font-bold bg-gray-50 outline-none focus:border-blue-500">
-                        <option value="all">전체 기사님</option>
-                        {uniqueContributors.map(u => <option key={u.email} value={u.email}>{u.name}</option>)}
-                    </select>
-                )}
-                <button onClick={() => setIsModalOpen(true)} className="ml-auto flex items-center gap-1.5 bg-[#2E68ED] hover:bg-blue-700 text-white px-5 py-2.5 rounded-xl font-bold text-sm shadow-sm">
-                    <Icons.Plus /> 비용 기록 추가
-                </button>
+        <main className="md:ml-[260px] ml-0 px-4 md:px-10 py-6 md:py-[50px] flex-1 animate-fade-in font-sans bg-[#F8FAFC] min-h-screen w-full max-w-[100vw] md:max-w-[calc(100vw-260px)] overflow-x-hidden">
+            <header className="mb-6 w-full max-w-[1100px] mx-auto">
+                <h2 className="text-[28px] font-extrabold text-[#1E293B] tracking-tight flex items-center gap-2"><Icons.Truck /> 차량관리</h2>
+                <p className="text-[#64748B] mt-1.5 font-medium text-[15px]">차량 현황을 한눈에 보고, 주유비·수리비 같은 유지비를 기록합니다.</p>
+            </header>
+
+            <div className="max-w-[1100px] mx-auto mb-5 flex gap-2 bg-white p-1.5 rounded-2xl border border-gray-100 shadow-sm w-fit">
+                {[{ id: 'vehicles', label: '🚚 차량 현황' }, { id: 'costs', label: '🛢️ 유지비 기록' }].map(t => (
+                    <button key={t.id} onClick={() => setTab(t.id)} className={`px-5 py-2.5 rounded-xl text-[14px] font-bold transition-all ${tab === t.id ? 'bg-[#2E68ED] text-white shadow-sm' : 'text-gray-500 hover:bg-gray-100'}`}>{t.label}</button>
+                ))}
             </div>
 
-            <div className="bg-white rounded-2xl border border-gray-100 shadow-sm overflow-hidden">
-                {visibleCosts.length === 0 ? (
-                    <div className="py-16 text-center text-gray-400 font-bold">등록된 유지비 기록이 없습니다.</div>
-                ) : (
-                    <div className="divide-y divide-gray-100">
-                        {visibleCosts.map(c => (
-                            <div key={c.id} className="flex flex-wrap items-center justify-between gap-3 px-5 py-4">
-                                <div className="min-w-0">
-                                    <div className="flex flex-wrap items-center gap-2">
-                                        <span className={`px-2 py-0.5 rounded-md text-[11px] font-extrabold border ${COST_TYPE_COLOR[c.costType] || COST_TYPE_COLOR['보험/기타']}`}>{c.costType}</span>
-                                        <span className="text-[14px] font-bold text-gray-800">{c.vehicleNumber}</span>
-                                        {isAdmin && <span className="text-[12px] text-gray-400 font-bold">· {c.name}</span>}
+            {tab === 'vehicles' && (
+                <div className="max-w-[1100px] mx-auto">
+                    <p className="text-[12.5px] text-gray-400 font-medium mb-3">비상연락망에 등록된 차량번호와 업로드된 자동차등록증을 기준으로 자동 정리됩니다.{isAdmin && ` (번호 미등록 ${vehicles.filter(v => !v.number).length}명)`}</p>
+                    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+                        {vehicles.map(v => {
+                            const ex = getExpiry(v);
+                            return (
+                                <div key={v.email} className="bg-white rounded-2xl border border-gray-100 shadow-sm p-5 flex flex-col gap-2">
+                                    <div className="flex items-start justify-between gap-2">
+                                        <div className="min-w-0">
+                                            <p className="text-[17px] font-extrabold text-[#0F172A] truncate">{v.number || <span className="text-gray-300">번호 미등록</span>}</p>
+                                            <p className="text-[13px] text-gray-500 font-bold mt-0.5">{v.name}{v.team ? ` · ${v.team}` : ''}</p>
+                                        </div>
+                                        {ex && <span className={`shrink-0 px-2 py-1 text-[10.5px] font-extrabold rounded-md border ${ex.cls}`}>{ex.label}</span>}
                                     </div>
-                                    <p className="text-[12px] text-gray-400 font-medium mt-1">{c.date}{c.memo ? ` · ${c.memo}` : ''}</p>
+                                    <div className="flex items-center justify-between text-[12.5px] font-bold pt-2 border-t border-gray-50">
+                                        <span className="text-gray-400">누적 유지비</span>
+                                        <span className="text-gray-800">{v.total.toLocaleString()}원</span>
+                                    </div>
+                                    {!v.hasRegDoc && <p className="text-[11px] text-amber-600 font-bold">자동차등록증 미제출</p>}
+                                    <button onClick={() => openAddFor(v.number)} className="mt-1 text-[12px] font-bold text-blue-600 hover:text-blue-800 text-left">+ 유지비 기록하기</button>
                                 </div>
-                                <div className="flex items-center gap-3 shrink-0">
-                                    <span className="text-[17px] font-extrabold text-[#0F172A]">{Number(c.amount).toLocaleString()}원</span>
-                                    {(isAdmin || c.email === user.email) && (
-                                        <button onClick={() => handleDelete(c.id)} className="text-gray-300 hover:text-red-500 transition-colors"><Icons.X /></button>
-                                    )}
-                                </div>
-                            </div>
-                        ))}
+                            );
+                        })}
                     </div>
-                )}
-            </div>
+                </div>
+            )}
+
+            {tab === 'costs' && (
+                <div className="max-w-[1100px] mx-auto space-y-4">
+                    <div className="flex flex-wrap items-end gap-3 bg-white rounded-2xl border border-gray-100 shadow-sm p-5">
+                        <div>
+                            <p className="text-[12.5px] text-gray-500 font-bold">{filterMonth ? `${filterMonth.replace('-', '년 ')}월` : '전체 기간'} 합계</p>
+                            <p className="text-[26px] font-extrabold text-[#0F172A]">{totalAmount.toLocaleString()}<span className="text-[15px] font-bold text-gray-400 ml-1">원</span></p>
+                            {byType.length > 0 && <p className="text-[11.5px] text-gray-400 font-bold mt-0.5">{byType.map(x => `${x.t} ${x.sum.toLocaleString()}`).join(' · ')}</p>}
+                        </div>
+                        <div className="flex flex-wrap items-center gap-2 ml-auto">
+                            <input type="month" value={filterMonth} onChange={e => setFilterMonth(e.target.value)} className="border border-gray-200 rounded-xl px-3 py-2 text-sm font-bold bg-gray-50 outline-none focus:border-blue-500" />
+                            <select value={filterType} onChange={e => setFilterType(e.target.value)} className="border border-gray-200 rounded-xl px-3 py-2 text-sm font-bold bg-gray-50 outline-none focus:border-blue-500">
+                                <option value="all">전체 종류</option>
+                                {COST_TYPES.map(t => <option key={t} value={t}>{t}</option>)}
+                            </select>
+                            {isAdmin && (
+                                <select value={filterEmail} onChange={e => setFilterEmail(e.target.value)} className="border border-gray-200 rounded-xl px-3 py-2 text-sm font-bold bg-gray-50 outline-none focus:border-blue-500">
+                                    <option value="all">전체 기사님</option>
+                                    {contributors.map(u => <option key={u.email} value={u.email}>{u.name}</option>)}
+                                </select>
+                            )}
+                            <button onClick={() => setIsModalOpen(true)} className="flex items-center gap-1.5 bg-[#2E68ED] hover:bg-blue-700 text-white px-5 py-2.5 rounded-xl font-bold text-sm shadow-sm"><Icons.Plus /> 비용 기록 추가</button>
+                        </div>
+                    </div>
+
+                    <div className="bg-white rounded-2xl border border-gray-100 shadow-sm overflow-hidden">
+                        {filtered.length === 0 ? (
+                            <div className="py-16 text-center text-gray-400 font-bold">해당 기간에 등록된 유지비 기록이 없습니다.</div>
+                        ) : (
+                            <div className="divide-y divide-gray-100">
+                                {filtered.slice(0, visibleCount).map(c => (
+                                    <div key={c.id} className="flex flex-wrap items-center justify-between gap-3 px-5 py-4">
+                                        <div className="min-w-0">
+                                            <div className="flex flex-wrap items-center gap-2">
+                                                <span className={`px-2 py-0.5 rounded-md text-[11px] font-extrabold border ${COST_TYPE_COLOR[c.costType] || COST_TYPE_COLOR['보험/기타']}`}>{c.costType}</span>
+                                                <span className="text-[14px] font-bold text-gray-800">{c.vehicleNumber}</span>
+                                                {isAdmin && <span className="text-[12px] text-gray-400 font-bold">· {c.name}</span>}
+                                            </div>
+                                            <p className="text-[12px] text-gray-400 font-medium mt-1">{c.date}{c.memo ? ` · ${c.memo}` : ''}</p>
+                                        </div>
+                                        <div className="flex items-center gap-3 shrink-0">
+                                            <span className="text-[17px] font-extrabold text-[#0F172A]">{Number(c.amount).toLocaleString()}원</span>
+                                            {(isAdmin || c.email === user.email) && <button onClick={() => handleDelete(c.id)} className="text-gray-300 hover:text-red-500 transition-colors"><Icons.X /></button>}
+                                        </div>
+                                    </div>
+                                ))}
+                            </div>
+                        )}
+                        {filtered.length > visibleCount && (
+                            <button onClick={() => setVisibleCount(v => v + 15)} className="w-full py-3.5 text-[13px] font-bold text-blue-600 hover:bg-blue-50 border-t border-gray-100">더 보기 ({filtered.length - visibleCount}건 남음)</button>
+                        )}
+                    </div>
+                </div>
+            )}
 
             {isModalOpen && (
-                <div className="fixed inset-0 z-50 bg-[#0F172A]/60 backdrop-blur-sm flex justify-center items-center py-10 px-4">
-                    <div className="bg-white rounded-[24px] w-full max-w-[420px] overflow-hidden shadow-2xl animate-fade-in flex flex-col">
-                        <div className="px-7 py-6 border-b border-gray-100 flex justify-between items-center bg-[#f8fafc]">
+                <div className="fixed inset-0 z-50 bg-[#0F172A]/60 backdrop-blur-sm flex justify-center items-center p-4">
+                    <div className="bg-white rounded-[24px] w-full max-w-[420px] max-h-[92vh] overflow-hidden shadow-2xl animate-fade-in flex flex-col">
+                        <div className="px-7 py-5 border-b border-gray-100 flex justify-between items-center bg-[#f8fafc] shrink-0">
                             <h3 className="text-[18px] font-extrabold text-[#0F172A]">🛢️ 유지비 기록 추가</h3>
                             <button onClick={() => setIsModalOpen(false)} className="text-gray-400 hover:text-black font-extrabold text-[24px] leading-none">&times;</button>
                         </div>
-                        <div className="p-7 space-y-4">
-                            <div>
-                                <label className="block text-[13px] font-bold text-gray-700 mb-1.5">날짜</label>
-                                <input type="date" value={form.date} onChange={e => setForm({ ...form, date: e.target.value })} className="w-full bg-white border border-gray-200 rounded-xl px-4 py-2.5 text-[14px] font-bold focus:outline-none focus:border-blue-500" />
+                        <div className="p-7 space-y-4 overflow-y-auto">
+                            <div className="grid grid-cols-2 gap-3">
+                                <div>
+                                    <label className="block text-[13px] font-bold text-gray-700 mb-1.5">날짜</label>
+                                    <input type="date" value={form.date} onChange={e => setForm({ ...form, date: e.target.value })} className="w-full bg-white border border-gray-200 rounded-xl px-3 py-2.5 text-[14px] font-bold focus:outline-none focus:border-blue-500" />
+                                </div>
+                                <div>
+                                    <label className="block text-[13px] font-bold text-gray-700 mb-1.5">금액 (원) <span className="text-red-500">*</span></label>
+                                    <input type="number" placeholder="80000" value={form.amount} onChange={e => setForm({ ...form, amount: e.target.value })} className="w-full bg-white border border-gray-200 rounded-xl px-3 py-2.5 text-[14px] font-bold focus:outline-none focus:border-blue-500" />
+                                </div>
                             </div>
                             <div>
                                 <label className="block text-[13px] font-bold text-gray-700 mb-1.5">차량 등록번호 <span className="text-red-500">*</span></label>
@@ -562,23 +638,19 @@ const VehicleCostSection = ({ user, isAdmin, contacts }) => {
                                 </div>
                             </div>
                             <div>
-                                <label className="block text-[13px] font-bold text-gray-700 mb-1.5">금액 (원) <span className="text-red-500">*</span></label>
-                                <input type="number" placeholder="예: 80000" value={form.amount} onChange={e => setForm({ ...form, amount: e.target.value })} className="w-full bg-white border border-gray-200 rounded-xl px-4 py-2.5 text-[14px] font-bold focus:outline-none focus:border-blue-500" />
-                            </div>
-                            <div>
                                 <label className="block text-[13px] font-bold text-gray-700 mb-1.5">메모 (선택)</label>
                                 <input type="text" placeholder="예: 타이어 교체" value={form.memo} onChange={e => setForm({ ...form, memo: e.target.value })} className="w-full bg-white border border-gray-200 rounded-xl px-4 py-2.5 text-[14px] font-medium focus:outline-none focus:border-blue-500" />
                             </div>
                         </div>
-                        <div className="p-7 pt-0 flex gap-3">
+                        <div className="p-5 border-t border-gray-100 flex gap-3 shrink-0">
                             <button onClick={() => setIsModalOpen(false)} className="flex-1 py-3 bg-white border border-gray-200 hover:bg-gray-50 text-gray-700 font-extrabold rounded-xl text-sm">취소</button>
                             <button onClick={handleSave} className="flex-[2] py-3 bg-[#2E68ED] hover:bg-blue-700 text-white font-extrabold rounded-xl text-sm shadow-sm">저장</button>
                         </div>
                     </div>
                 </div>
             )}
-        </div>
+        </main>
     );
 };
 
-export { VehicleDocumentManagement };
+export { VehicleDocumentManagement, VehicleManagement };

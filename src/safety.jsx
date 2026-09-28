@@ -446,6 +446,7 @@ const SafetyRecurringChecklist = ({ user }) => {
     const [lastDoneMap, setLastDoneMap] = useState({});
     const [allLogs, setAllLogs] = useState([]);
     const [historyTaskFilter, setHistoryTaskFilter] = useState('all');
+    const [historyVisible, setHistoryVisible] = useState(10);
     const [allUsers, setAllUsers] = useState([]);
 
     useEffect(() => {
@@ -597,7 +598,7 @@ const SafetyRecurringChecklist = ({ user }) => {
                 <div className="mt-6 pt-6 border-t border-gray-100">
                     <div className="flex items-center justify-between mb-3 flex-wrap gap-2">
                         <h4 className="text-[15px] font-extrabold text-[#0F172A]">지난 체크 기록 (관리자)</h4>
-                        <select value={historyTaskFilter} onChange={e => setHistoryTaskFilter(e.target.value)} className="border border-gray-200 rounded-lg px-3 py-1.5 text-[12.5px] font-bold bg-gray-50 outline-none focus:border-blue-500">
+                        <select value={historyTaskFilter} onChange={e => { setHistoryTaskFilter(e.target.value); setHistoryVisible(10); }} className="border border-gray-200 rounded-lg px-3 py-1.5 text-[12.5px] font-bold bg-gray-50 outline-none focus:border-blue-500">
                             <option value="all">전체 항목</option>
                             {SAFETY_RECURRING_TASKS.filter(t => t.perUser).map(t => (
                                 <option key={t.id} value={t.id}>{t.title}</option>
@@ -620,7 +621,7 @@ const SafetyRecurringChecklist = ({ user }) => {
                                 ) : allLogs
                                     .filter(l => historyTaskFilter === 'all' || l.taskId === historyTaskFilter)
                                     .sort((a, b) => (b.timestamp || '').localeCompare(a.timestamp || ''))
-                                    .slice(0, 100)
+                                    .slice(0, historyVisible)
                                     .map((l, idx) => {
                                         const task = SAFETY_RECURRING_TASKS.find(t => t.id === l.taskId);
                                         return (
@@ -635,6 +636,14 @@ const SafetyRecurringChecklist = ({ user }) => {
                             </tbody>
                         </table>
                     </div>
+                    {(() => {
+                        const total = allLogs.filter(l => historyTaskFilter === 'all' || l.taskId === historyTaskFilter).length;
+                        return total > historyVisible ? (
+                            <button onClick={() => setHistoryVisible(v => v + 10)} className="mt-2 w-full py-2.5 text-[12.5px] font-bold text-blue-600 hover:bg-blue-50 rounded-xl border border-gray-100">
+                                더 보기 ({total - historyVisible}건 남음)
+                            </button>
+                        ) : null;
+                    })()}
                 </div>
             )}
         </div>
@@ -3082,6 +3091,12 @@ const SafetyManagement = ({ user, records, setRecords }) => {
     const isAdmin = user && user.email === 's01025144826@gmail.com';
     const visibleRecords = isAdmin ? records : records.filter(r => r.email === user.email);
 
+    // 전체 기록이 너무 길어지지 않도록: 종류별 필터 + 검색 + 12건씩 "더 보기"
+    const [recTypeFilter, setRecTypeFilter] = useState('all');
+    const [recSearch, setRecSearch] = useState('');
+    const [recVisible, setRecVisible] = useState(12);
+    useEffect(() => { setRecVisible(12); }, [recTypeFilter, recSearch]);
+
     const deleteRecord = async (id) => {
         if (!isAdmin) return;
         if (!window.confirm('정말로 이 기록을 삭제하시겠습니까?')) return;
@@ -3131,6 +3146,18 @@ const SafetyManagement = ({ user, records, setRecords }) => {
             default: return '일일 안전점검';
         }
     };
+
+    const recTypeCounts = visibleRecords.reduce((acc, r) => {
+        const k = getTypeKorean(r.formType);
+        acc[k] = (acc[k] || 0) + 1;
+        return acc;
+    }, {});
+    const filteredRecords = visibleRecords.filter(r => {
+        if (recTypeFilter !== 'all' && getTypeKorean(r.formType) !== recTypeFilter) return false;
+        const q = recSearch.trim().toLowerCase();
+        if (!q) return true;
+        return [r.name, getTypeKorean(r.formType), r.status, r.date].some(v => (v || '').toString().toLowerCase().includes(q));
+    });
 
     // --- RENDER DETAIL MODAL ---
     const renderDetailModal = () => {
@@ -4307,6 +4334,28 @@ const SafetyManagement = ({ user, records, setRecords }) => {
 
             <SafetyRecurringChecklist user={user} />
 
+            <div className="mb-3 flex flex-wrap items-center justify-between gap-3">
+                <h3 className="text-[18px] font-extrabold text-[#0F172A]">제출 문서 기록 <span className="text-[14px] font-bold text-gray-400">({filteredRecords.length}건)</span></h3>
+                <input
+                    type="text"
+                    value={recSearch}
+                    onChange={e => setRecSearch(e.target.value)}
+                    placeholder="이름, 종류, 상태 검색"
+                    className="w-full sm:w-[240px] border border-gray-200 rounded-xl px-3.5 py-2 text-[13.5px] font-medium bg-white outline-none focus:border-blue-500"
+                />
+            </div>
+            <div className="mb-4 flex gap-2 overflow-x-auto pb-1">
+                {['all', ...Object.keys(recTypeCounts).sort((a, b) => recTypeCounts[b] - recTypeCounts[a])].map(k => (
+                    <button
+                        key={k}
+                        onClick={() => setRecTypeFilter(k)}
+                        className={`shrink-0 whitespace-nowrap px-3.5 py-1.5 rounded-full text-[12.5px] font-bold border transition-colors ${recTypeFilter === k ? 'bg-[#2E68ED] text-white border-[#2E68ED]' : 'bg-white text-gray-600 border-gray-200 hover:bg-gray-50'}`}
+                    >
+                        {k === 'all' ? `전체 ${visibleRecords.length}` : `${k} ${recTypeCounts[k]}`}
+                    </button>
+                ))}
+            </div>
+
             <div className="scroll-container bg-white rounded-[20px] shadow-[0_2px_12px_rgba(0,0,0,0.03)] border border-gray-100">
                 <table className="min-w-[700px] w-full divide-y divide-gray-200 text-left">
                     <thead className="bg-[#f8fafc]">
@@ -4319,7 +4368,7 @@ const SafetyManagement = ({ user, records, setRecords }) => {
                         </tr>
                     </thead>
                     <tbody className="divide-y divide-gray-100/80">
-                        {visibleRecords.length === 0 ? <tr><td colSpan="5" className="py-16 text-center text-gray-400 font-bold">제출된 문서가 없습니다.</td></tr> : visibleRecords.map(r => (
+                        {filteredRecords.length === 0 ? <tr><td colSpan="5" className="py-16 text-center text-gray-400 font-bold">{visibleRecords.length === 0 ? '제출된 문서가 없습니다.' : '조건에 맞는 문서가 없습니다.'}</td></tr> : filteredRecords.slice(0, recVisible).map(r => (
                             <tr key={r.id} className={`transition-colors ${r.formType === 'musculo' && (r.status||'').includes('증상있음') ? 'bg-red-50 hover:bg-red-100/80 border-l-4 border-red-500' : 'hover:bg-blue-50/20'}`}>
                                 <td className="px-6 py-4 text-[15px] font-bold text-gray-900">
                                     {r.formType === 'risk_assessment' ? (r.dateRange || r.date) : 
@@ -4348,6 +4397,11 @@ const SafetyManagement = ({ user, records, setRecords }) => {
                     </tbody>
                 </table>
             </div>
+            {filteredRecords.length > recVisible && (
+                <button onClick={() => setRecVisible(v => v + 12)} className="mt-3 w-full py-3 bg-white border border-gray-200 hover:bg-gray-50 rounded-xl text-[13.5px] font-bold text-blue-600 shadow-sm">
+                    더 보기 ({filteredRecords.length - recVisible}건 남음)
+                </button>
+            )}
 
             {renderDetailModal()}
         </main>
