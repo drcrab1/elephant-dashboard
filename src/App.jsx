@@ -27,7 +27,6 @@ const WorkRecordManagement = lazy(() => import('./work-records').then(m => ({ de
 const RouteManagement = lazy(() => import('./routes').then(m => ({ default: m.RouteManagement })));
 const MemberManagement = lazy(() => import('./members').then(m => ({ default: m.MemberManagement })));
 const NotificationManagement = lazy(() => import('./notifications').then(m => ({ default: m.NotificationManagement })));
-const DispatchConverter = lazy(() => import('./dispatch-converter').then(m => ({ default: m.DispatchConverter })));
 const PrivacyPolicyPage = lazy(() => import('./privacy-policy').then(m => ({ default: m.PrivacyPolicyPage })));
 const PrivacyPolicyPublicPage = lazy(() => import('./privacy-policy').then(m => ({ default: m.PrivacyPolicyPublicPage })));
 const PrivacyManagement = lazy(() => import('./privacy').then(m => ({ default: m.PrivacyManagement })));
@@ -319,7 +318,6 @@ const App = () => {
     if (activePage === '노선관리') content = <RouteManagement user={user} appRoutes={routes} setAppRoutes={setRoutes} />;
     if (activePage === '회원관리') content = <MemberManagement user={user} />;
     if (activePage === '알림관리') content = <NotificationManagement user={user} />;
-    if (activePage === '배차변환기') content = <DispatchConverter user={user} />;
     if (activePage === '공지사항') content = <NoticeBoard user={user} />;
     if (activePage === '개인정보 관리') content = <PrivacyManagement user={user} contacts={appContacts} contracts={contracts} setActivePage={setActivePage} />;
     if (activePage === '개인정보 처리방침') content = <PrivacyPolicyPage />;

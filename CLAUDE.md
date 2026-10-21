@@ -25,7 +25,7 @@ React 19 + Vite + Tailwind, Firebase(Auth/Firestore/Storage/Functions/FCM). 사�
 
 ## tools/ (앱과 별개인 단독 HTML 도구)
 - `tools/코끼리물류_정산서변환기_v7.html`: 쿠팡 정산서 → 기사별 개인 정산시트 변환기(빌드 없이 브라우저에서 실행, 개인정보는 저장하지 않음). 단가 변경(전체/기사별 날짜 분리), 보험료 매칭, 설정 JSON 내보내기·불러오기 포함. 2026-10 대화 기록에서 복구해 일부(보험료 탭 화면, 탭 바, 설정 내보내기/불러오기)는 다시 작성했습니다.
-- 배차 변환기는 앱 안(`src/dispatch-converter.jsx`)에 통합되어 있습니다.
+- 배차 변환기는 앱에서 제거했습니다(`xlsx` 파일 읽기 취약점 제거 목적, 2026-10). 예전 코드는 git 기록(`git show 2df2b78:src/dispatch-converter.jsx`)에 있습니다.
 
 ## 꼭 지킬 규칙
 - **Firestore 규칙**: 한 문서에 match가 여러 개 겹치면 하나라도 허용하면 허용(OR)입니다. 포괄 규칙(`match /{collection}/{docId}`)을 다시 만들지 마세요. 새 컬렉션은 반드시 명시 규칙을 추가하고, 규칙에 없으면 거부됩니다.
