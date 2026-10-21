@@ -1,5 +1,5 @@
 import React, { useState, useEffect, Suspense, lazy } from 'react';
-import { auth, db, ADMIN_EMAIL } from './firebase';
+import firebase, { auth, db, ADMIN_EMAIL } from './firebase';
 import { PageView, DashboardHome, Sidebar, BottomNav, Icons } from './ui-components';
 import { LoginScreen } from './auth';
 import { NotificationPermissionPrompt } from './notifications';
@@ -83,6 +83,7 @@ const App = () => {
     const [vehicleDocs, setVehicleDocs] = useState([]);
     const [workRecords, setWorkRecords] = useState([]);
     const [routes, setRoutes] = useState([]);
+    const [profiles, setProfiles] = useState({}); // 기사 개인 번호(차량·자격증): 이메일 → {carNumber, licenseNumber}
 
     // Firebase Authentication 리스너
     useEffect(() => {
@@ -132,6 +133,26 @@ const App = () => {
         return () => unsubscribe();
     }, []);
 
+    // (관리자) 예전에 비상연락망에 같이 저장돼 있던 차량·자격증 번호를 driverProfiles로 옮기고 연락망에서는 지웁니다.
+    useEffect(() => {
+        if (!user || user.email !== ADMIN_EMAIL || appContacts.length === 0) return;
+        const targets = appContacts.filter(c => c.carNumber || c.licenseNumber);
+        if (targets.length === 0) return;
+        const batch = db.batch();
+        targets.forEach(c => {
+            const key = c.email || c.id;
+            const data = { updatedAt: firebase.firestore.FieldValue.serverTimestamp() };
+            if (c.carNumber) data.carNumber = c.carNumber;
+            if (c.licenseNumber) data.licenseNumber = c.licenseNumber;
+            batch.set(db.collection('driverProfiles').doc(key), data, { merge: true });
+            batch.update(db.collection('contacts').doc(c.id), {
+                carNumber: firebase.firestore.FieldValue.delete(),
+                licenseNumber: firebase.firestore.FieldValue.delete(),
+            });
+        });
+        batch.commit().catch(e => console.warn('연락처 번호 이전 실패(다시 시도됩니다)', e.message));
+    }, [appContacts, user]);
+
     // 내 계정 상태(퇴사 처리·서약서 서명 여부)를 실시간으로 반영 — 퇴사 처리 시 즉시 차단되도록
     useEffect(() => {
         if (!user || !user.email) return undefined;
@@ -151,6 +172,12 @@ const App = () => {
         const isAdminUser = user.email === ADMIN_EMAIL;
 
         unsubs.push(db.collection('contacts').onSnapshot(snap => setAppContacts(snap.docs.map(d => ({ id: d.id, ...d.data() })))));
+        // 차량 등록번호·자격증 번호는 비상연락망(전체 공개)이 아니라 본인/대표자만 보는 driverProfiles에 둡니다.
+        if (isAdminUser) {
+            unsubs.push(db.collection('driverProfiles').onSnapshot(snap => setProfiles(Object.fromEntries(snap.docs.map(d => [d.id, d.data()])))));
+        } else {
+            unsubs.push(db.collection('driverProfiles').doc(user.email).onSnapshot(snap => setProfiles(snap.exists ? { [user.email]: snap.data() } : {})));
+        }
         // 업무내역(배송건수)은 서버(Firestore 보안 규칙) 단에서도 본인 것만 조회되도록, 일반 기사님 계정은 본인 이메일로 쿼리 자체를 제한합니다.
         const workRecordsQuery = user.email === ADMIN_EMAIL
             ? db.collection('workRecords')
@@ -282,12 +309,12 @@ const App = () => {
     // 컴포넌트를 새로 만드는 대신 실제 엘리먼트를 바로 계산해서 렌더링하도록 수정했습니다.
     let content = <PageView title={activePage} />;
     if (activePage === '대시보드') content = <DashboardHome setActivePage={setActivePage} user={user} contracts={contracts} vehicleDocs={vehicleDocs} contacts={appContacts} safetyRecords={safetyRecords} />;
-    if (activePage === '계약관리') content = <ContractManagement user={user} contracts={contracts} setContracts={setContracts} contacts={appContacts} />;
+    if (activePage === '계약관리') content = <ContractManagement user={user} contracts={contracts} setContracts={setContracts} contacts={appContacts} profiles={profiles} />;
     if (activePage === '스케줄관리') content = <ScheduleManagement user={user} />;
     if (activePage === '안전보건관리') content = <SafetyManagement user={user} records={safetyRecords} setRecords={setSafetyRecords} />;
     if (activePage === '비상연락망') content = <ContactManagement user={user} contacts={appContacts} setContacts={setAppContacts} />;
     if (activePage === '서류관리') content = <VehicleDocumentManagement user={user} docs={vehicleDocs} setDocs={setVehicleDocs} contacts={appContacts} />;
-    if (activePage === '차량관리') content = <VehicleManagement user={user} docs={vehicleDocs} contacts={appContacts} />;
+    if (activePage === '차량관리') content = <VehicleManagement user={user} docs={vehicleDocs} contacts={appContacts} profiles={profiles} />;
     if (activePage === '업무내역입력') content = <WorkRecordManagement user={user} records={workRecords} setRecords={setWorkRecords} />;
     if (activePage === '노선관리') content = <RouteManagement user={user} appRoutes={routes} setAppRoutes={setRoutes} />;
     if (activePage === '회원관리') content = <MemberManagement user={user} />;

@@ -108,6 +108,16 @@ service cloud.firestore {
       allow delete: if isAdmin() || isOwner(resource.data.email);
     }
 
+    // 기사 개인 번호(차량 등록번호·자격증 번호): 비상연락망과 분리해 본인과 대표자만 열람·수정
+    match /driverProfiles/{profileId} {
+      allow read: if isAdmin() || isOwner(profileId);
+      allow create, update: if isAdmin() || (
+        isOwner(profileId)
+        && request.resource.data.keys().hasOnly(['carNumber', 'licenseNumber', 'updatedAt'])
+      );
+      allow delete: if isAdmin() || isOwner(profileId);
+    }
+
     // 설정: 로그인한 사용자는 열람(스케줄 주소 등), 수정은 대표자만. (안전점검 완료 표시는 현재 화면 구조상 예외)
     match /settings/{settingId} {
       allow read: if isSignedIn();

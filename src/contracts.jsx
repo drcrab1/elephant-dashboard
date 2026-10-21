@@ -191,7 +191,7 @@ const DocumentBuilder = ({ user, onClose, onSaveContract }) => {
 }
 
 // --- Contract Management Page ---
-const ContractManagement = ({ user, contracts, setContracts, contacts }) => {
+const ContractManagement = ({ user, contracts, setContracts, contacts, profiles = {} }) => {
     const [showBuilder, setShowBuilder] = useState(false);
     const [showTemplateModal, setShowTemplateModal] = useState(false);
     const [isGeneratingPdf, setIsGeneratingPdf] = useState(false);
@@ -720,7 +720,8 @@ const ContractManagement = ({ user, contracts, setContracts, contacts }) => {
                                         onChange={e => {
                                             const email = e.target.value;
                                             const matched = contacts?.find(c => c.email === email);
-                                            set({ targetEmail: email, carNumber: matched?.carNumber || '', licenseNumber: matched?.licenseNumber || '' });
+                                            const prof = profiles[email] || {};
+                                            set({ targetEmail: email, carNumber: prof.carNumber || matched?.carNumber || '', licenseNumber: prof.licenseNumber || matched?.licenseNumber || '' });
                                         }}
                                         className={ic}
                                     >

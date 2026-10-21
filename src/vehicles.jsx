@@ -518,7 +518,7 @@ const COST_TYPE_COLOR = {
     '보험/기타': 'bg-gray-100 text-gray-600 border-gray-200'
 };
 
-const VehicleManagement = ({ user, docs = [], contacts = [] }) => {
+const VehicleManagement = ({ user, docs = [], contacts = [], profiles = {} }) => {
     const isAdmin = user && user.email === ADMIN_EMAIL;
     const [tab, setTab] = useState('vehicles'); // vehicles | costs
     const [costs, setCosts] = useState([]);
@@ -550,7 +550,7 @@ const VehicleManagement = ({ user, docs = [], contacts = [] }) => {
         const people = isAdmin ? contacts.filter(c => c.email && c.email !== ADMIN_EMAIL) : contacts.filter(c => c.email === user.email);
         return people.map(p => {
             const regDoc = docs.filter(d => d.email === p.email && d.docType === '자동차등록증').sort((a, b) => (b.date || '').localeCompare(a.date || ''))[0];
-            const number = p.carNumber || (regDoc && regDoc.docNumber) || '';
+            const number = (profiles[p.email] && profiles[p.email].carNumber) || p.carNumber || (regDoc && regDoc.docNumber) || '';
             const total = number ? costs.filter(c => norm(c.vehicleNumber) === norm(number)).reduce((s, c) => s + Number(c.amount || 0), 0) : 0;
             return { email: p.email, name: p.name, team: p.tag || '', number, expiryDate: regDoc && regDoc.expiryDate, hasRegDoc: !!regDoc, total };
         }).sort((a, b) => (b.number ? 1 : 0) - (a.number ? 1 : 0) || a.name.localeCompare(b.name));
