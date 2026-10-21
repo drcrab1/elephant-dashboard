@@ -20,13 +20,10 @@ service firebase.storage {
         && request.resource.contentType == 'application/pdf';
     }
 
-    // 차량·자격 서류 사진: 파일 이름이 Firestore 서류 문서 ID와 같고, 그 문서의 주인(email)만 접근. 대표자는 전체.
-    match /vehicleDocs/{docId} {
-      allow read, delete: if isAdmin()
-        || (isSignedIn() && firestore.get(/databases/(default)/documents/vehicleDocs/$(docId)).data.email == request.auth.token.email);
-      allow create, update: if (isAdmin()
-        || (isSignedIn() && firestore.get(/databases/(default)/documents/vehicleDocs/$(docId)).data.email == request.auth.token.email))
-        && validUpload(10);
+    // 차량·자격 서류 사진: 올린 사람의 이메일 폴더(vehicleDocs/{이메일}/{문서ID})만 접근. 대표자는 전체.
+    match /vehicleDocs/{ownerEmail}/{fileName} {
+      allow read, delete: if isAdmin() || isOwner(ownerEmail);
+      allow create, update: if (isAdmin() || isOwner(ownerEmail)) && validUpload(10);
     }
 
     // 안전교육·사고 보고 첨부: 작성자 이메일 폴더(본인)만 접근. 대표자는 전체.

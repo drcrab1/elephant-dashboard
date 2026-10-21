@@ -105,8 +105,9 @@ const VehicleDocumentManagement = ({ user, docs, setDocs, contacts = [] }) => {
         if (!formData.file) return alert('서류 파일(사진)을 반드시 업로드해 주세요.');
         if (!formData.maskAck) return alert('주민등록번호가 보이지 않도록 가렸는지(또는 해당 없음) 확인 체크를 해주세요.');
         const numberField = DOC_NUMBER_FIELD[formData.docType];
+        let docRef = null;
         try {
-            const docRef = await db.collection('vehicleDocs').add({
+            docRef = await db.collection('vehicleDocs').add({
                 date: new Date().toISOString().split('T')[0],
                 name: user.name,
                 email: user.email,
@@ -118,7 +119,7 @@ const VehicleDocumentManagement = ({ user, docs, setDocs, contacts = [] }) => {
             });
 
             if (formData.file.startsWith('data:image')) {
-                const fileRef = storage.ref(`vehicleDocs/${docRef.id}`);
+                const fileRef = storage.ref(`vehicleDocs/${user.email}/${docRef.id}`);
                 await fileRef.putString(formData.file, 'data_url');
                 const url = await fileRef.getDownloadURL();
                 await docRef.update({ file: url });
@@ -137,7 +138,12 @@ const VehicleDocumentManagement = ({ user, docs, setDocs, contacts = [] }) => {
             logAccess('doc_upload', `${user.name} / ${formData.docType}`, docRef.id);
             setFormData({ docType: '화물운송자격증', file: null, expiryDate: '', docNumber: '', maskAck: false });
             setIsModalOpen(false);
-        } catch (e) { console.error(e); alert('업로드 실패: ' + e.message); }
+        } catch (e) {
+            console.error(e);
+            // 파일 저장에 실패하면 빈 서류 기록이 남지 않도록 방금 만든 기록을 지웁니다.
+            if (docRef) { try { await docRef.delete(); } catch (delErr) { console.warn(delErr); } }
+            alert('업로드 실패: ' + (e.code ? e.code + ' — ' : '') + e.message);
+        }
     };
 
     // 서류 만료 상태 뱃지 계산 (만료일 없으면 null)
@@ -159,7 +165,7 @@ const VehicleDocumentManagement = ({ user, docs, setDocs, contacts = [] }) => {
                 await db.collection('vehicleDocs').doc(docObj.id).delete();
                 logAccess('doc_delete', `${docObj.name} / ${docObj.docType}`, docObj.id);
                 if (docObj.file && docObj.file.includes('firebasestorage')) {
-                    await storage.ref(`vehicleDocs/${docObj.id}`).delete();
+                    await storage.ref(`vehicleDocs/${docObj.email}/${docObj.id}`).delete();
                 }
             } catch (e) { console.error(e); }
             setViewingDoc(null);
