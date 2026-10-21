@@ -27,11 +27,30 @@ const RouteManagement = lazy(() => import('./routes').then(m => ({ default: m.Ro
 const MemberManagement = lazy(() => import('./members').then(m => ({ default: m.MemberManagement })));
 const NotificationManagement = lazy(() => import('./notifications').then(m => ({ default: m.NotificationManagement })));
 const DispatchConverter = lazy(() => import('./dispatch-converter').then(m => ({ default: m.DispatchConverter })));
+const PrivacyManagement = lazy(() => import('./privacy').then(m => ({ default: m.PrivacyManagement })));
+const PrivacyPortal = lazy(() => import('./privacy-portal').then(m => ({ default: m.PrivacyPortal })));
+const PledgeGate = lazy(() => import('./privacy-portal').then(m => ({ default: m.PledgeGate })));
+const AccountBlocked = lazy(() => import('./privacy-portal').then(m => ({ default: m.AccountBlocked })));
+
+// 사용자 문서(users/{email})의 계정 상태·서약 관련 필드를 앱에서 쓰는 형태로 정리
+const pickAccountFlags = (d) => ({
+    isActive: d.isActive !== false,
+    pledgeRequired: !!d.pledgeRequired,
+    joinPledgeSignedAt: d.joinPledgeSignedAt || null,
+    leavePledgeRequired: !!d.leavePledgeRequired,
+    leavePledgeSignedAt: d.leavePledgeSignedAt || null,
+});
+const tsKey = (v) => (v ? (v.seconds != null ? v.seconds : (v.getTime ? Math.floor(v.getTime() / 1000) : 1)) : 0);
+const sameFlags = (a, b) => a.isActive === b.isActive && a.pledgeRequired === b.pledgeRequired && a.leavePledgeRequired === b.leavePledgeRequired
+    && tsKey(a.joinPledgeSignedAt) === tsKey(b.joinPledgeSignedAt) && tsKey(a.leavePledgeSignedAt) === tsKey(b.leavePledgeSignedAt);
+
+// 링크(?menu=...)로 들어왔을 때 열 화면 (카톡으로 공유하는 서약서 링크용)
+const MENU_FROM_LINK = { pledge: '개인정보 서약·교육' };
 
 const App = () => {
     const [user, setUser] = useState(null);
     const [isAuthLoading, setIsAuthLoading] = useState(true);
-    const [activePage, setActivePageState] = useState('대시보드');
+    const [activePage, setActivePageState] = useState(() => MENU_FROM_LINK[new URLSearchParams(window.location.search).get('menu')] || '대시보드');
     const [isSidebarOpen, setIsSidebarOpen] = useState(false);
 
     // 페이지 전환마다 브라우저(폰) 히스토리에 기록을 남겨서,
@@ -66,10 +85,12 @@ const App = () => {
                 const docSnap = await db.collection('users').doc(firebaseUser.email).get();
                 let finalName = firebaseUser.displayName || firebaseUser.email.split('@')[0];
                 let finalPhone = '';
+                let accountFlags = {};
 
                 if (docSnap.exists) {
                     finalName = docSnap.data().name;
                     finalPhone = docSnap.data().phone || '';
+                    accountFlags = pickAccountFlags(docSnap.data());
                 } else if (firebaseUser.email === ADMIN_EMAIL) {
                     finalName = '대표님 (관리자)';
                 }
@@ -96,7 +117,7 @@ const App = () => {
                     console.error('비상연락망 자동 등록 오류: ', e);
                 }
 
-                setUser({ email: firebaseUser.email, name: finalName, phone: finalPhone });
+                setUser({ email: firebaseUser.email, name: finalName, phone: finalPhone, ...accountFlags });
             } else {
                 setUser(null);
             }
@@ -104,6 +125,18 @@ const App = () => {
         });
         return () => unsubscribe();
     }, []);
+
+    // 내 계정 상태(퇴사 처리·서약서 서명 여부)를 실시간으로 반영 — 퇴사 처리 시 즉시 차단되도록
+    useEffect(() => {
+        if (!user || !user.email) return undefined;
+        return db.collection('users').doc(user.email).onSnapshot((snap) => {
+            if (!snap.exists) return;
+            // 서명 직후 서버 시각이 아직 확정되기 전(대기 중)에도 서명 완료로 보이도록 estimate 사용
+            const flags = pickAccountFlags(snap.data({ serverTimestamps: 'estimate' }));
+            setUser((prev) => (prev && prev.email === user.email && !sameFlags(prev, flags) ? { ...prev, ...flags } : prev));
+        });
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [user && user.email]);
 
     // DB Realtime Subscriptions
     useEffect(() => {
@@ -169,6 +202,19 @@ const App = () => {
 
     if (!user) return <LoginScreen onLogin={setUser} />;
 
+    // 퇴사(비활성) 계정 차단 → 신규 기사 입사 서약서 서명 전 차단 → 퇴사 서약서 요청 시 서명 화면
+    if (user.email !== ADMIN_EMAIL) {
+        const gateFallback = <div className="min-h-screen flex items-center justify-center font-bold text-gray-400">불러오는 중...</div>;
+        const doLogout = () => auth.signOut();
+        if (user.isActive === false) return <Suspense fallback={gateFallback}><AccountBlocked onLogout={doLogout} /></Suspense>;
+        if (user.pledgeRequired && !user.joinPledgeSignedAt) {
+            return <Suspense fallback={gateFallback}><PledgeGate user={user} type="join" onLogout={doLogout} onDone={() => setUser((prev) => ({ ...prev, joinPledgeSignedAt: new Date() }))} /></Suspense>;
+        }
+        if (user.leavePledgeRequired && !user.leavePledgeSignedAt) {
+            return <Suspense fallback={gateFallback}><PledgeGate user={user} type="leave" onLogout={doLogout} onDone={() => setUser((prev) => ({ ...prev, leavePledgeSignedAt: new Date() }))} /></Suspense>;
+        }
+    }
+
     // [성능/버그 수정] 기존에는 매 렌더링마다 () => <X/> 형태로 컴포넌트를 새로 "생성"해서
     // <Content/>로 렌더링했습니다. 이러면 React 입장에서는 매번 다른 컴포넌트 타입으로 보여서,
     // Firestore 실시간 구독이 다른 데이터를 갱신할 때마다(activePage와 무관하게) 현재 화면
@@ -188,6 +234,8 @@ const App = () => {
     if (activePage === '알림관리') content = <NotificationManagement user={user} />;
     if (activePage === '배차변환기') content = <DispatchConverter user={user} />;
     if (activePage === '공지사항') content = <NoticeBoard user={user} />;
+    if (activePage === '개인정보 관리') content = <PrivacyManagement user={user} contacts={appContacts} setActivePage={setActivePage} />;
+    if (activePage === '개인정보 서약·교육') content = <PrivacyPortal user={user} setUser={setUser} />;
 
     return (
         <div className="min-h-screen bg-[#F8FAFC] relative overflow-x-hidden font-sans text-[#1E293B]">

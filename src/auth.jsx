@@ -35,7 +35,9 @@ const ADMIN_EMAIL = 's01025144826@gmail.com';
                             name,
                             phone,
                             role: userEmail === ADMIN_EMAIL ? 'admin' : 'driver',
-                            createdAt: new Date().toISOString()
+                            createdAt: new Date().toISOString(),
+                            // 신규 기사: 입사 서약서 서명 전까지 앱 사용 제한 (개인정보 보호 점검 대응)
+                            ...(userEmail === ADMIN_EMAIL ? {} : { pledgeRequired: true, isActive: true })
                         });
                     }
 

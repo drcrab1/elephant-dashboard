@@ -18,6 +18,40 @@ service cloud.firestore {
       allow update, delete: if isAdmin() || isOwner(resource.data.email);
     }
 
+    // ── 개인정보 보호 대응(개인정보 관리) ──
+    // 문서 보관함: 대표자 전용. 버전 문서는 "저장 시각 = 서버 시각"일 때만 생성되고, 이후 수정·삭제할 수 없습니다(날짜 소급 불가).
+    match /privacyDocs/{type} {
+      allow read, write: if isAdmin();
+      match /versions/{versionId} {
+        allow read: if isAdmin();
+        allow create: if isAdmin() && request.resource.data.createdAt == request.time;
+        allow update, delete: if false;
+      }
+    }
+    // 연간 점검 이력: 대표자 전용, 생성 후 수정·삭제 불가
+    match /privacyChecks/{id} {
+      allow read: if isAdmin();
+      allow create: if isAdmin() && request.resource.data.createdAt == request.time;
+      allow update, delete: if false;
+    }
+    // 교육자료: 로그인한 사용자는 열람, 등록/종료는 대표자만
+    match /privacyTrainings/{id} {
+      allow read: if isSignedIn();
+      allow write: if isAdmin();
+    }
+    // 교육 이수 기록: 본인 이수만 기록 가능(서버 시각 고정), 수정·삭제 불가. 대표자는 전체 조회.
+    match /privacyTrainingLogs/{id} {
+      allow read: if isAdmin() || isOwner(resource.data.email);
+      allow create: if isSignedIn() && request.resource.data.email == request.auth.token.email && request.resource.data.completedAt == request.time;
+      allow update, delete: if false;
+    }
+    // 전자 서약서: 본인 서명만 생성(서버 시각 고정), 수정·삭제 불가. 대표자는 전체 조회.
+    match /pledges/{id} {
+      allow read: if isAdmin() || isOwner(resource.data.email);
+      allow create: if isSignedIn() && request.resource.data.email == request.auth.token.email && request.resource.data.signedAt == request.time;
+      allow update, delete: if false;
+    }
+
     // 그 외 컬렉션은 기존과 동일하게 "로그인한 사용자"까지만 허용 (완전 비공개 전환은 별도 요청 시 진행)
     match /{collection}/{docId} {
       allow read, write: if isSignedIn();

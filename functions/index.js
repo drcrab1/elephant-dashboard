@@ -194,6 +194,27 @@ exports.sendImportantNotice = onCall(async (request) => {
     return sendToTokenMap(tokenMap, { title, body });
 });
 
+// --- 관리자가 퇴사 처리/재활성화할 때 호출: 구글(Firebase Auth) 계정을 실제로 비활성화/활성화 ---
+exports.setAccountDisabled = onCall(async (request) => {
+    const caller = request.auth && request.auth.token && request.auth.token.email;
+    if (!caller || caller !== ADMIN_EMAIL) {
+        throw new HttpsError('permission-denied', '관리자만 계정을 비활성화할 수 있습니다.');
+    }
+    const { email, disabled } = request.data || {};
+    if (!email || typeof email !== 'string') throw new HttpsError('invalid-argument', '대상 이메일이 필요합니다.');
+    if (email === ADMIN_EMAIL) throw new HttpsError('invalid-argument', '관리자 계정은 비활성화할 수 없습니다.');
+    let target;
+    try {
+        target = await admin.auth().getUserByEmail(email);
+    } catch (e) {
+        if (e.code === 'auth/user-not-found') return { ok: true, found: false };
+        throw new HttpsError('internal', e.message);
+    }
+    await admin.auth().updateUser(target.uid, { disabled: !!disabled });
+    if (disabled) await admin.auth().revokeRefreshTokens(target.uid);
+    return { ok: true, found: true };
+});
+
 // --- 10분마다 실행: 설정된 시각이 되면, 오늘 배차된 기사님께만 TBM 알림 발송 ---
 exports.dailyTbmReminder = onSchedule({ schedule: 'every 10 minutes', timeZone: 'Asia/Seoul' }, async () => {
     const settingsRef = db.collection('settings').doc('notificationSettings');

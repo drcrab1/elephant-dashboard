@@ -141,22 +141,23 @@ const MemberManagement = ({ user }) => {
             </div>
 
             <div className="scroll-container bg-white rounded-[20px] shadow-[0_2px_12px_rgba(0,0,0,0.03)] border border-gray-100">
-                <table className="min-w-[700px] w-full divide-y divide-gray-200 text-left">
+                <table className="min-w-[800px] w-full divide-y divide-gray-200 text-left">
                     <thead className="bg-[#f8fafc]">
                         <tr>
                             <th className="px-6 py-4 text-[14px] font-bold text-gray-500">이름</th>
                             <th className="px-6 py-4 text-[14px] font-bold text-gray-500">이메일</th>
                             <th className="px-6 py-4 text-[14px] font-bold text-gray-500">전화번호</th>
                             <th className="px-6 py-4 text-[14px] font-bold text-gray-500">역할</th>
+                            <th className="px-6 py-4 text-[14px] font-bold text-gray-500">서약서</th>
                             <th className="px-6 py-4 text-[14px] font-bold text-gray-500">가입일</th>
                             <th className="px-6 py-4 text-[14px] font-bold text-gray-500 text-center">관리</th>
                         </tr>
                     </thead>
                     <tbody className="divide-y divide-gray-100/80">
                         {isLoading ? (
-                            <tr><td colSpan={6} className="py-16 text-center text-gray-400 font-bold">불러오는 중...</td></tr>
+                            <tr><td colSpan={7} className="py-16 text-center text-gray-400 font-bold">불러오는 중...</td></tr>
                         ) : filteredMembers.length === 0 ? (
-                            <tr><td colSpan={6} className="py-16 text-center text-gray-400 font-bold">{searchQuery ? '검색 결과가 없습니다.' : '가입된 회원이 없습니다.'}</td></tr>
+                            <tr><td colSpan={7} className="py-16 text-center text-gray-400 font-bold">{searchQuery ? '검색 결과가 없습니다.' : '가입된 회원이 없습니다.'}</td></tr>
                         ) : filteredMembers.map(m => (
                             <tr key={m.email} className="hover:bg-blue-50/20 transition-colors">
                                 <td className="px-6 py-4 font-bold text-[15px] text-gray-900">
@@ -192,6 +193,15 @@ const MemberManagement = ({ user }) => {
                                         <span className="px-2.5 py-1 text-[12.5px] font-extrabold rounded-lg bg-blue-100 text-blue-700 border border-blue-200">관리자</span>
                                     ) : (
                                         <span className="px-2.5 py-1 text-[12.5px] font-extrabold rounded-lg bg-gray-100 text-gray-600 border border-gray-200">기사님</span>
+                                    )}
+                                </td>
+                                <td className="px-6 py-4">
+                                    {m.email === ADMIN_EMAIL || m.role === 'admin' ? <span className="text-gray-300 text-xs font-bold">-</span> : (
+                                        <div className="flex flex-col gap-1 items-start">
+                                            {m.isActive === false && <span className="px-2 py-0.5 text-[11.5px] font-extrabold rounded-md bg-red-50 text-red-600 border border-red-200">퇴사</span>}
+                                            <span className={`px-2 py-0.5 text-[11.5px] font-extrabold rounded-md border ${m.joinPledgeSignedAt ? 'bg-emerald-50 text-emerald-700 border-emerald-200' : 'bg-amber-50 text-amber-700 border-amber-200'}`}>입사 {m.joinPledgeSignedAt ? '서명완료' : '미서명'}</span>
+                                            {m.leavePledgeRequired && <span className={`px-2 py-0.5 text-[11.5px] font-extrabold rounded-md border ${m.leavePledgeSignedAt ? 'bg-emerald-50 text-emerald-700 border-emerald-200' : 'bg-amber-50 text-amber-700 border-amber-200'}`}>퇴사 {m.leavePledgeSignedAt ? '서명완료' : '서명대기'}</span>}
+                                        </div>
                                     )}
                                 </td>
                                 <td className="px-6 py-4 text-[13.5px] font-medium text-gray-500">{formatDate(m.createdAt)}</td>
