@@ -27,6 +27,8 @@ const RouteManagement = lazy(() => import('./routes').then(m => ({ default: m.Ro
 const MemberManagement = lazy(() => import('./members').then(m => ({ default: m.MemberManagement })));
 const NotificationManagement = lazy(() => import('./notifications').then(m => ({ default: m.NotificationManagement })));
 const DispatchConverter = lazy(() => import('./dispatch-converter').then(m => ({ default: m.DispatchConverter })));
+const PrivacyPolicyPage = lazy(() => import('./privacy-policy').then(m => ({ default: m.PrivacyPolicyPage })));
+const PrivacyPolicyPublicPage = lazy(() => import('./privacy-policy').then(m => ({ default: m.PrivacyPolicyPublicPage })));
 const PrivacyManagement = lazy(() => import('./privacy').then(m => ({ default: m.PrivacyManagement })));
 const PrivacyPortal = lazy(() => import('./privacy-portal').then(m => ({ default: m.PrivacyPortal })));
 const PledgeGate = lazy(() => import('./privacy-portal').then(m => ({ default: m.PledgeGate })));
@@ -149,8 +151,26 @@ const App = () => {
             ? db.collection('workRecords')
             : db.collection('workRecords').where('email', '==', user.email);
         unsubs.push(workRecordsQuery.onSnapshot(snap => setWorkRecords(snap.docs.map(d => ({ id: d.id, ...d.data() })))));
-        unsubs.push(db.collection('vehicleDocs').onSnapshot(snap => setVehicleDocs(snap.docs.map(d => ({ id: d.id, ...d.data() })))));
-        unsubs.push(db.collection('contracts').onSnapshot(snap => setContracts(snap.docs.map(d => ({ id: d.id, ...d.data() })))));
+        // 서류·계약서는 개인정보(서명, 자격증 사본 등)가 들어 있어서 Firestore 보안 규칙 단에서도 본인 것만 읽을 수 있습니다.
+        // (규칙과 같은 조건으로 쿼리해야 읽기가 허용됩니다.) 관리자는 전체를 조회합니다.
+        const isAdminUser = user.email === ADMIN_EMAIL;
+        const docsOf = (snap) => snap.docs.map(d => ({ id: d.id, ...d.data() }));
+        if (isAdminUser) {
+            unsubs.push(db.collection('vehicleDocs').onSnapshot(snap => setVehicleDocs(docsOf(snap))));
+            unsubs.push(db.collection('contracts').onSnapshot(snap => setContracts(docsOf(snap))));
+        } else {
+            unsubs.push(db.collection('vehicleDocs').where('email', '==', user.email).onSnapshot(snap => setVehicleDocs(docsOf(snap))));
+            // 계약서: 본인이 서명 대상(targetEmail)이거나 작성자(ownerEmail)인 문서 두 가지를 합쳐서 보여줍니다.
+            let byTarget = [];
+            let byOwner = [];
+            const mergeContracts = () => {
+                const merged = new Map();
+                [...byTarget, ...byOwner].forEach(c => merged.set(c.id, c));
+                setContracts(Array.from(merged.values()));
+            };
+            unsubs.push(db.collection('contracts').where('targetEmail', '==', user.email).onSnapshot(snap => { byTarget = docsOf(snap); mergeContracts(); }));
+            unsubs.push(db.collection('contracts').where('ownerEmail', '==', user.email).onSnapshot(snap => { byOwner = docsOf(snap); mergeContracts(); }));
+        }
         unsubs.push(db.collection('safetyRecords').onSnapshot(snap => setSafetyRecords(snap.docs.map(d => ({ id: d.id, ...d.data() })).sort((a, b) => b.id.localeCompare(a.id)))));
         unsubs.push(db.collection('routes').onSnapshot(snap => setRoutes(snap.docs.map(d => ({ id: d.id, ...d.data() })))));
 
@@ -196,6 +216,11 @@ const App = () => {
         }
     };
 
+    // 개인정보 처리방침 공개 링크(/?menu=policy)는 로그인 없이도 열립니다. (동의서·로그인 화면에서 안내하는 링크)
+    if (new URLSearchParams(window.location.search).get('menu') === 'policy') {
+        return <Suspense fallback={<div className="min-h-screen flex items-center justify-center font-bold text-gray-400">불러오는 중...</div>}><PrivacyPolicyPublicPage /></Suspense>;
+    }
+
     if (isAuthLoading) {
         return <div className="min-h-screen bg-gray-50 flex items-center justify-center font-bold text-gray-500">인증 정보를 확인 중입니다...</div>;
     }
@@ -235,6 +260,7 @@ const App = () => {
     if (activePage === '배차변환기') content = <DispatchConverter user={user} />;
     if (activePage === '공지사항') content = <NoticeBoard user={user} />;
     if (activePage === '개인정보 관리') content = <PrivacyManagement user={user} contacts={appContacts} setActivePage={setActivePage} />;
+    if (activePage === '개인정보 처리방침') content = <PrivacyPolicyPage />;
     if (activePage === '개인정보 서약·교육') content = <PrivacyPortal user={user} setUser={setUser} />;
 
     return (

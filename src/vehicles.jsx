@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useMemo } from 'react';
-import { db, storage, functions, ADMIN_EMAIL } from './firebase';
+import firebase, { db, storage, functions, ADMIN_EMAIL } from './firebase';
 import { Icons } from './ui-components';
 
 // --- Vehicle / Document Management (차량/서류관리) ---
@@ -13,7 +13,8 @@ const VehicleDocumentManagement = ({ user, docs, setDocs, contacts = [] }) => {
     const [isModalOpen, setIsModalOpen] = useState(false);
     const [viewingDoc, setViewingDoc] = useState(null); // Document detail modal
 
-    const [formData, setFormData] = useState({ docType: '화물운송자격증', file: null, docNumber: '' });
+    const [formData, setFormData] = useState({ docType: '화물운송자격증', file: null, docNumber: '', maskAck: false });
+    const [rrnOnly, setRrnOnly] = useState(false); // 관리자: 주민번호 노출 확인이 필요한 서류만 보기
 
     // 서류 종류별로 함께 입력받는 번호 필드 — 계약서 발송 시 자동 입력에 사용됨
     const DOC_NUMBER_FIELD = {
@@ -75,6 +76,9 @@ const VehicleDocumentManagement = ({ user, docs, setDocs, contacts = [] }) => {
 
     // Authorization Filter: Only own docs or ALL if Admin
     const myDocs = isAdmin ? docs : docs.filter(d => d.email === user.email);
+    // 주민등록번호 가림 확인: 업로드 시 "가렸음"을 체크한 서류, 또는 관리자가 직접 확인한 서류는 통과. 그 외(기존 업로드분)는 관리자 확인 필요.
+    const needsRrnReview = (d) => !d.maskAck && !d.rrnReviewed;
+    const rrnPendingCount = isAdmin ? myDocs.filter(needsRrnReview).length : 0;
 
     // Search & Tab Filter applied to authorizable docs
     const filteredDocs = myDocs.filter(d => {
@@ -82,7 +86,7 @@ const VehicleDocumentManagement = ({ user, docs, setDocs, contacts = [] }) => {
         const matchPerson = docPerson === 'all' || d.email === docPerson;
         const q = searchQuery.toLowerCase();
         const matchSearch = d.name.toLowerCase().includes(q) || d.docType.toLowerCase().includes(q);
-        return matchTab && matchSearch && matchPerson;
+        return matchTab && matchSearch && matchPerson && (!rrnOnly || needsRrnReview(d));
     });
 
     const handleFileUpload = (e) => {
@@ -98,6 +102,7 @@ const VehicleDocumentManagement = ({ user, docs, setDocs, contacts = [] }) => {
 
     const handleSave = async () => {
         if (!formData.file) return alert('서류 파일(사진)을 반드시 업로드해 주세요.');
+        if (!formData.maskAck) return alert('주민등록번호가 보이지 않도록 가렸는지(또는 해당 없음) 확인 체크를 해주세요.');
         const numberField = DOC_NUMBER_FIELD[formData.docType];
         try {
             const docRef = await db.collection('vehicleDocs').add({
@@ -107,6 +112,7 @@ const VehicleDocumentManagement = ({ user, docs, setDocs, contacts = [] }) => {
                 docType: formData.docType,
                 expiryDate: formData.expiryDate || '',
                 docNumber: numberField ? (formData.docNumber || '').trim() : '',
+                maskAck: true,
                 file: '' // Will update after upload
             });
 
@@ -127,7 +133,7 @@ const VehicleDocumentManagement = ({ user, docs, setDocs, contacts = [] }) => {
                 }
             }
 
-            setFormData({ docType: '화물운송자격증', file: null, expiryDate: '', docNumber: '' });
+            setFormData({ docType: '화물운송자격증', file: null, expiryDate: '', docNumber: '', maskAck: false });
             setIsModalOpen(false);
         } catch (e) { console.error(e); alert('업로드 실패: ' + e.message); }
     };
@@ -280,6 +286,15 @@ const VehicleDocumentManagement = ({ user, docs, setDocs, contacts = [] }) => {
                         )}
                     </div>
 
+                    {isAdmin && rrnPendingCount > 0 && (
+                        <button
+                            onClick={() => setRrnOnly(v => !v)}
+                            className={`shrink-0 px-4 py-3 rounded-xl border text-[13.5px] font-extrabold transition-colors ${rrnOnly ? 'bg-amber-500 border-amber-500 text-white' : 'bg-amber-50 border-amber-200 text-amber-700 hover:bg-amber-100'}`}
+                        >
+                            🔒 주민번호 노출 확인 필요 ({rrnPendingCount})
+                        </button>
+                    )}
+
                     {isAdmin && (
                         <select
                             value={docPerson}
@@ -333,6 +348,9 @@ const VehicleDocumentManagement = ({ user, docs, setDocs, contacts = [] }) => {
                                         <img src={doc.file} alt={doc.docType} className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500" />
                                     ) : (
                                         <div className="text-gray-300"><Icons.FileText /></div>
+                                    )}
+                                    {isAdmin && needsRrnReview(doc) && (
+                                        <span className="absolute top-2.5 left-2.5 px-2 py-1 text-[10.5px] font-extrabold rounded-md border shadow-sm bg-amber-50 text-amber-700 border-amber-200">주민번호 확인 필요</span>
                                     )}
                                     {expiryStatus && (
                                         <span className={`absolute top-2.5 right-2.5 px-2 py-1 text-[10.5px] font-extrabold rounded-md border shadow-sm ${expiryStatus.className}`}>{expiryStatus.label}</span>
@@ -399,6 +417,15 @@ const VehicleDocumentManagement = ({ user, docs, setDocs, contacts = [] }) => {
                                 <p className="text-[12px] text-gray-400 font-medium mt-1.5">만료일을 입력하면, 만료 30일 전에 관리자에게 자동으로 알림이 가요.</p>
                             </div>
 
+                            <div className="bg-amber-50 border border-amber-200 rounded-xl p-4 space-y-2.5">
+                                <p className="text-[13px] font-extrabold text-amber-800">🔒 주민등록번호는 가리고 올려주세요</p>
+                                <p className="text-[12.5px] text-amber-800/90 font-medium leading-relaxed">자격증·등록증 사진에 주민등록번호(특히 뒷자리)가 보이면 손으로 가리거나 스티커로 가린 뒤 촬영해 주세요. 이 앱은 주민등록번호를 수집하지 않습니다.</p>
+                                <label className="flex items-start gap-2.5 cursor-pointer pt-1">
+                                    <input type="checkbox" className="mt-0.5 w-5 h-5 accent-amber-600" checked={!!formData.maskAck} onChange={e => setFormData({ ...formData, maskAck: e.target.checked })} />
+                                    <span className="text-[13.5px] font-bold text-gray-800">주민등록번호가 보이지 않도록 가렸습니다. (또는 서류에 주민등록번호가 없습니다)</span>
+                                </label>
+                            </div>
+
                             <div>
                                 <label className="block text-[14px] font-bold text-gray-700 mb-2">서류 사진 촬영본 또는 스캔본 <span className="text-red-500">*</span></label>
                                 <div className="relative">
@@ -442,6 +469,21 @@ const VehicleDocumentManagement = ({ user, docs, setDocs, contacts = [] }) => {
                         <div className="flex-1 overflow-auto p-4 flex justify-center items-center bg-[#E2E8F0]">
                             {viewingDoc.file ? <img src={viewingDoc.file} alt="Full View" className="max-w-full h-auto object-contain shadow-md rounded-xl border border-gray-200 bg-white max-h-full" /> : <div className="text-gray-400 text-2xl font-bold">이미지 데이터가 없습니다.</div>}
                         </div>
+
+                        {isAdmin && needsRrnReview(viewingDoc) && (
+                            <div className="p-4 bg-amber-50 border-t border-amber-200 flex flex-wrap items-center justify-between gap-3">
+                                <span className="text-[13px] font-bold text-amber-800">🔒 주민등록번호가 보이는지 확인해 주세요. 보이면 아래에서 파기하고 기사님께 가려서 다시 올리도록 안내하세요.</span>
+                                <button
+                                    onClick={async () => {
+                                        try {
+                                            await db.collection('vehicleDocs').doc(viewingDoc.id).update({ rrnReviewed: true, rrnReviewedAt: firebase.firestore.FieldValue.serverTimestamp() });
+                                            setViewingDoc(null);
+                                        } catch (e) { alert('저장 실패: ' + e.message); }
+                                    }}
+                                    className="px-4 py-2.5 rounded-xl bg-amber-600 hover:bg-amber-700 text-white text-[13px] font-extrabold whitespace-nowrap"
+                                >주민번호 노출 없음 — 확인 완료</button>
+                            </div>
+                        )}
 
                         {/* 본인이거나 관리자면 하단에 삭제 옵션 제공 */}
                         {(isAdmin || viewingDoc.email === user.email) && (

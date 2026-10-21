@@ -104,6 +104,7 @@ const ADMIN_EMAIL = 's01025144826@gmail.com';
                                         <Icons.Google /> {isLoading ? '구글 연동 중...' : (mode === 'login' ? 'Google 계정으로 로그인' : '정보 입력 후 Google 연동 가입')}
                                     </button>
                                     {mode === 'login' && <p className="text-center text-xs text-gray-400 mt-4 font-bold">크롬 브라우저 사용자 권장</p>}
+                                    <p className="text-center text-xs text-gray-400 mt-3 font-bold"><a href="/?menu=policy" target="_blank" rel="noreferrer" className="underline hover:text-gray-600">개인정보 처리방침</a></p>
                                 </div>
                             </div>
                         </div>

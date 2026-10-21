@@ -40,7 +40,7 @@ const ContractSignView = ({ contract, onClose, onSubmit }) => {
                     <div className="p-5 space-y-5">
                         {consentBlocks.length > 0 && (
                             <div className="space-y-3">
-                                <p className="font-extrabold text-[14px]">동의 여부 선택</p>
+                                <p className="font-extrabold text-[14px]">동의 여부 선택 <a href="/?menu=policy" target="_blank" rel="noreferrer" className="ml-2 text-[12.5px] font-bold text-blue-600 underline">개인정보 처리방침 보기</a></p>
                                 {consentBlocks.map((b) => (
                                     <div key={b.key} className="border border-gray-200 rounded-xl p-3">
                                         <p className="text-[13.5px] font-bold text-gray-800 mb-2">{b.label}</p>

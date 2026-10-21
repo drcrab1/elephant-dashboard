@@ -18,6 +18,28 @@ service cloud.firestore {
       allow update, delete: if isAdmin() || isOwner(resource.data.email);
     }
 
+    // 계약서·동의서: 서명 이미지와 개인정보가 들어 있어 대표자 + 해당 기사님(서명 대상자/작성자)만 읽을 수 있습니다.
+    // 기사님은 본인에게 온 "서명대기" 문서에 서명 관련 항목만 바꿀 수 있고(서명완료로만 변경), 삭제·신규 발송은 대표자만 가능합니다.
+    match /contracts/{contractId} {
+      allow read: if isAdmin() || isOwner(resource.data.targetEmail) || isOwner(resource.data.ownerEmail);
+      allow create: if isAdmin() || (isSignedIn() && request.resource.data.get('ownerEmail', '') == request.auth.token.email);
+      allow update: if isAdmin() || (
+        isOwner(resource.data.get('targetEmail', ''))
+        && resource.data.get('status', '') == '서명대기'
+        && request.resource.data.status == '서명완료'
+        && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['signatureField', 'consents', 'signedAt', 'status', 'templateVersion', 'signedDate'])
+      );
+      allow delete: if isAdmin();
+    }
+
+    // 차량·자격 서류(자격증/등록증 사진): 본인이 올린 것만 읽고 관리할 수 있고, 대표자는 전체를 볼 수 있습니다.
+    match /vehicleDocs/{docId} {
+      allow read: if isAdmin() || isOwner(resource.data.email);
+      allow create: if isAdmin() || (isSignedIn() && request.resource.data.get('email', '') == request.auth.token.email);
+      allow update: if isAdmin() || (isOwner(resource.data.get('email', '')) && request.resource.data.get('email', '') == resource.data.get('email', ''));
+      allow delete: if isAdmin() || isOwner(resource.data.get('email', ''));
+    }
+
     // ── 개인정보 보호 대응(개인정보 관리) ──
     // 문서 보관함: 대표자 전용. 버전 문서는 "저장 시각 = 서버 시각"일 때만 생성되고, 이후 수정·삭제할 수 없습니다(날짜 소급 불가).
     match /privacyDocs/{type} {
