@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { db, ADMIN_EMAIL } from './firebase';
 import { Icons } from './ui-components';
+import { logAccess } from './audit';
 
 // --- Member Management (가입자 전체 조회, 관리자 전용) ---
 const MemberManagement = ({ user }) => {
@@ -76,6 +77,7 @@ const MemberManagement = ({ user }) => {
             await db.collection('users').doc(member.email).set({ name: newName }, { merge: true });
             const contactQuery = await db.collection('contacts').where('email', '==', member.email).get();
             await Promise.all(contactQuery.docs.map(d => db.collection('contacts').doc(d.id).update({ name: newName })));
+            logAccess('member_update', `이름 변경: ${member.email}`, member.email);
             setEditingEmail(null);
             setEditingName('');
         } catch (e) {
@@ -94,6 +96,7 @@ const MemberManagement = ({ user }) => {
             await db.collection('users').doc(member.email).delete();
             const contactQuery = await db.collection('contacts').where('email', '==', member.email).get();
             await Promise.all(contactQuery.docs.map(d => db.collection('contacts').doc(d.id).delete()));
+            logAccess('member_delete', `강제 탈퇴: ${member.email}`, member.email);
             alert(`'${member.name || member.email}'님을 탈퇴 처리했습니다.`);
         } catch (e) {
             alert('탈퇴 처리 실패: ' + e.message);

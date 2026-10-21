@@ -5,6 +5,7 @@ import { toJpeg } from 'html-to-image';
 import { jsPDF } from 'jspdf';
 import * as XLSX from 'xlsx';
 import firebase from './firebase';
+import { logAccess } from './audit';
 
 // ───────────────────────── 공통 유틸 ─────────────────────────
 
@@ -27,7 +28,20 @@ export const fmtDateTime = (v) => {
     return d ? `${d.getFullYear()}.${p2(d.getMonth() + 1)}.${p2(d.getDate())} ${p2(d.getHours())}:${p2(d.getMinutes())}` : '-';
 };
 
-export const exportXlsx = (rows, sheetName, filename) => {
+// 출력·내보내기 시 개인정보 표시 항목을 최소화하기 위한 마스킹 (기본값: 마스킹)
+export const maskPhone = (v) => {
+    const d = String(v || '').replace(/[^0-9]/g, '');
+    if (d.length < 8) return v ? '***' : '';
+    return `${d.slice(0, 3)}-****-${d.slice(-4)}`;
+};
+export const maskEmail = (v) => {
+    const [id, host] = String(v || '').split('@');
+    if (!host) return v || '';
+    return `${id.slice(0, 2)}***@${host}`;
+};
+
+export const exportXlsx = (rows, sheetName, filename, note = '') => {
+    logAccess('export', `${filename}${note ? ' (' + note + ')' : ''}`);
     const ws = XLSX.utils.json_to_sheet(rows.length ? rows : [{}]);
     const wb = XLSX.utils.book_new();
     XLSX.utils.book_append_sheet(wb, ws, sheetName.slice(0, 30));
@@ -435,3 +449,109 @@ Q6. 퇴사하면 비밀유지 의무도 끝난다. → 아니요(X). 퇴사 후�
 
 끝까지 읽으셨다면 아래 "이수 확인" 버튼을 눌러 주세요. 이수 시각이 기록됩니다.`,
 };
+
+// ───────────────────────── 점검 기록 종류 (쿠팡 수탁사 개인정보 처리 실태 점검 대응) ─────────────────────────
+// 모든 점검 기록은 privacyChecks 컬렉션에 kind로 구분해 저장합니다. (kind 없는 기존 기록은 연간 점검)
+export const CHECKLISTS = {
+    annual: {
+        label: '연간 점검', title: '개인정보 보호 연간 점검 체크리스트', cadenceMonths: 12, items: CHECK_ITEMS,
+        intro: '내부관리계획 16개 항목의 이행 여부를 연 1회 이상 점검하고 기록합니다.',
+    },
+    device: {
+        label: '기기 점검', title: '개인정보취급자 업무용 기기 점검표', cadenceMonths: 12, subjectLabel: '점검 대상 기기 (예: 대표 PC, 사무용 노트북, 업무용 휴대폰)',
+        intro: '개인정보를 다루는 PC·휴대폰의 보안 설정을 점검합니다. 점검한 사실 그대로 선택하세요. (조사표 22~30번, 12·13번 근거)',
+        items: [
+            { no: 1, title: '인증수단 적용', criteria: '업무용 PC·기기에 비밀번호·PIN·생체인증 등 인증수단이 적용되어 있다. (조사표 22)' },
+            { no: 2, title: '화면보호기(암호 설정)', criteria: '일정 시간 미사용 시 화면이 잠기고 암호를 입력해야 풀린다. (조사표 23)' },
+            { no: 3, title: '공유폴더 사용 금지', criteria: '공유폴더를 사용하지 않거나, 사용 시 접근 보호조치가 되어 있다. (조사표 24)' },
+            { no: 4, title: '백신 최신 상태·실시간 검사', criteria: '백신이 설치되어 있고 최신 업데이트·실시간 검사가 켜져 있다. (조사표 25)' },
+            { no: 5, title: '운영체제 보안 업데이트', criteria: 'OS 보안패치 자동 업데이트가 켜져 있고 최신 상태다. (조사표 26)' },
+            { no: 6, title: '비인가 접속 통제', criteria: 'P2P·웹하드·출처 불명 메신저 등 비인가 프로그램·유해 사이트 접속을 막거나 사용하지 않는다. (조사표 27)' },
+            { no: 7, title: '보조저장매체 보안 절차', criteria: 'USB 등 보조저장매체 사용 절차가 있고 개인정보 저장 시 보호한다(또는 사용하지 않는다). (조사표 28)' },
+            { no: 8, title: '개인정보 파일 암호화 보관', criteria: '기기·저장매체에 개인정보 파일(계약서, 동의서 사본 등)을 보관하지 않거나 암호화해서 보관한다. (조사표 29)' },
+            { no: 9, title: '전송 시 암호화', criteria: '개인정보 파일을 이메일·메신저로 보낼 때 암호화하거나, 보내지 않는다. (조사표 30)' },
+            { no: 10, title: '서류·저장매체 잠금 보관', criteria: '개인정보가 담긴 서류·보조저장매체를 잠금장치가 있는 곳에 보관한다. (조사표 12)' },
+            { no: 11, title: '출력·복사물 보호조치', criteria: '출력·복사물을 최소화하고 사용 후 파쇄·소각한다. (조사표 13)' },
+        ],
+    },
+    auth: {
+        label: '계정 보안', title: '관리자 계정 인증·보안 점검표', cadenceMonths: 12,
+        intro: '관리자(대표자) 계정의 인증 수단을 점검합니다. 구글 계정의 2단계 인증은 구글 계정 설정(myaccount.google.com/security)에서 직접 확인하세요. (조사표 41·45번 근거)',
+        items: [
+            { no: 1, title: '구글 2단계 인증 사용', criteria: '관리자 구글 계정에 2단계 인증(휴대폰 알림·OTP·보안키)이 켜져 있다.' },
+            { no: 2, title: '계정 복구수단 최신화', criteria: '복구 전화번호·이메일이 최신이다.' },
+            { no: 3, title: '공용 기기 사용 금지', criteria: '관리자 계정을 공용 기기에서 쓰지 않고, 쓴 뒤에는 로그아웃한다.' },
+            { no: 4, title: '구글 보안 점검', criteria: '구글 계정 보안 점검(최근 로그인 기기·권한 앱)을 확인했다.' },
+            { no: 5, title: '1인 1계정', criteria: '공용 계정 없이 사람마다 본인 구글 계정으로 접속한다.' },
+        ],
+    },
+    access_review: {
+        label: '권한 검토', title: '접근권한 적정성 검토 기록', cadenceMonths: 6, snapshot: 'accounts',
+        intro: '관리자·취급자 권한이 업무에 필요한 최소 범위인지 반기마다 검토합니다. 검토 시점의 계정·권한 현황이 자동으로 함께 저장됩니다. (조사표 8·37번 근거)',
+        items: [
+            { no: 1, title: '관리자 권한 최소화', criteria: '관리자 권한은 대표자 1인에게만 있다.' },
+            { no: 2, title: '개인정보취급자 지정 적정', criteria: '취급자로 지정된 인원이 업무상 필요한 최소 인원이다.' },
+            { no: 3, title: '퇴사·미사용 계정 정리', criteria: '퇴사자·미사용 계정이 비활성화되어 있다.' },
+            { no: 4, title: '기사 계정의 열람 범위', criteria: '기사 계정은 본인 정보만 열람할 수 있다. (접근 규칙 적용)' },
+            { no: 5, title: '권한 변경 이력 확인', criteria: '권한 부여·변경·말소 이력이 기록되어 있고 이상이 없다.' },
+        ],
+    },
+    log_review: {
+        label: '접속기록 점검', title: '접속기록 월간 점검 기록', cadenceMonths: 1, snapshot: 'logs',
+        intro: '접속기록을 월 1회 이상 점검합니다. 점검 시점의 최근 30일 접속기록 요약이 자동으로 함께 저장됩니다. (조사표 38·39·40번 근거)',
+        items: [
+            { no: 1, title: '비정상 접속 여부', criteria: '관리자 계정의 새벽 접속, 처음 보는 접속지(IP) 등 이상 징후가 없다.' },
+            { no: 2, title: '대량 조회·다운로드·내보내기 점검', criteria: '계약서 다운로드·엑셀 내보내기 내역이 업무 목적에 맞다.' },
+            { no: 3, title: '퇴사(비활성) 계정 접속 시도', criteria: '퇴사 처리한 계정의 접속 시도가 없다.' },
+            { no: 4, title: '권한 변경·계정 삭제 내역', criteria: '권한 변경·삭제 내역이 모두 지시한 작업과 일치한다.' },
+            { no: 5, title: '이상 징후 조치', criteria: '이상이 있었다면 조치 내용을 메모에 적었다. (없으면 해당없음)' },
+        ],
+    },
+    vuln: {
+        label: '취약점 점검', title: '개인정보처리시스템 취약점 점검 기록', cadenceMonths: 12,
+        intro: '시스템(관리 앱)의 취약점을 연 1회 이상 점검하고 개선조치를 기록합니다. 점검 결과(발견 사항과 조치)는 메모에 구체적으로 적으세요. (조사표 51번 근거)',
+        items: [
+            { no: 1, title: '라이브러리 보안 취약점', criteria: '앱·서버가 쓰는 라이브러리의 알려진 취약점을 점검(npm audit 등)하고 조치했다.' },
+            { no: 2, title: '데이터 접근 규칙', criteria: 'Firestore 접근 규칙이 본인 외 정보 열람을 막는지 점검했다.' },
+            { no: 3, title: '계정·권한 현황', criteria: '퇴사자·미사용 계정, 관리자 수를 점검했다.' },
+            { no: 4, title: '서버 런타임 지원 상태', criteria: 'Cloud Functions 런타임·라이브러리가 지원 종료되지 않았는지 점검했다.' },
+            { no: 5, title: '개인정보 노출 점검', criteria: '서류 사진의 주민등록번호 노출, 공개 링크 등을 점검했다.' },
+            { no: 6, title: '발견 취약점 개선조치', criteria: '발견된 취약점에 대한 개선조치를 이행했다(없으면 해당없음).' },
+        ],
+    },
+};
+export const CHECKLIST_KINDS = ['annual', 'device', 'auth', 'access_review', 'log_review', 'vuln'];
+
+// 접속기록 수행 업무 표시명
+export const ACTION_LABEL = {
+    login: '접속(로그인)', page_view: '화면 열람', doc_view: '서류 열람', doc_upload: '서류 업로드', doc_delete: '서류 삭제',
+    contract_download: '계약서·동의서 다운로드', contract_send: '계약서·동의서 발송', contract_sign: '전자서명', contract_delete: '계약서 삭제',
+    member_update: '회원정보 수정', member_delete: '회원 삭제(탈퇴)', permission_change: '권한 변경', export: '엑셀 내보내기',
+    pledge_sign: '서약서 서명', training_complete: '교육 이수', privacy_record_save: '개인정보 관리 기록 저장', record_delete: '기록 삭제',
+};
+
+// 점검 주기 판단: 마지막 점검일로부터 며칠 남았는지 (음수면 기한 경과)
+export const dueInfo = (lastDate, cadenceMonths) => {
+    const d = toDate(lastDate);
+    if (!d) return { state: 'none', label: '점검 이력 없음' };
+    const due = new Date(d);
+    due.setMonth(due.getMonth() + cadenceMonths);
+    const days = Math.ceil((due - new Date()) / 86400000);
+    if (days < 0) return { state: 'overdue', days, label: `기한 ${-days}일 경과` };
+    return { state: 'ok', days, label: `다음 점검까지 ${days}일` };
+};
+
+// 조사표 31·32번 "해당 시스템에 대한 설명" 초안 (대표 확인 후 사용)
+export const SYSTEM_DESCRIPTION = `[시스템 개요]
+코끼리물류가 자체 운영하는 관리 앱(웹/모바일 PWA, elephant-logistics.web.app)입니다. 대표자(관리자)와 배송기사(수탁자)만 구글 계정으로 로그인해 사용합니다.
+
+[처리하는 개인정보]
+기사 본인의 이름·연락처·이메일(구글 계정), 위·수탁계약서 및 동의서 전자서명, 자격증·자동차등록증 사본, 업무내역(배송 건수), 안전보건 기록, 서약서·교육 이수 기록. (쿠팡 고객(수령인)의 개인정보는 이 앱에 입력·저장하지 않습니다. ※ 사실과 다르면 수정하세요)
+
+[구성 및 보호조치]
+- 인프라: Google Cloud/Firebase (Firestore, Cloud Storage, Cloud Functions). 통신은 HTTPS(TLS), 저장 데이터는 Google Cloud 기본 암호화가 적용됩니다.
+- 인증: 구글 계정 인증(1인 1계정). 관리자 계정은 구글 2단계 인증을 사용합니다. 일정 시간(관리자 20분, 기사 30분) 미사용 시 자동 로그아웃됩니다.
+- 접근권한: 관리자(대표자 1인)와 일반 사용자(기사)로 구분합니다. 데이터 접근 규칙으로 기사는 본인의 계약서·서류·업무내역·안전보건 기록만 열람할 수 있습니다.
+- 접속기록: 접속(로그인)·열람·다운로드·내보내기·권한 변경 내역을 서버에서 계정·일시·접속지(IP)와 함께 기록하며 3년 이상 보관합니다. 사용자는 수정·삭제할 수 없고 월 1회 이상 점검합니다.
+- 권한 관리: 입·퇴사 시 계정 활성/비활성 처리와 개인정보취급자 지정·해제를 기록하고, 반기마다 접근권한 적정성을 검토합니다.
+- 기타: 입사·퇴사 보호 서약서 전자서명, 연 1회 이상 개인정보 보호 교육 이수 관리, 연간 점검·취약점 점검 기록을 보관합니다.`;

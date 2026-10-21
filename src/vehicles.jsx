@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import firebase, { db, storage, functions, ADMIN_EMAIL } from './firebase';
 import { Icons } from './ui-components';
+import { logAccess } from './audit';
 
 // --- Vehicle / Document Management (차량/서류관리) ---
 // Start with empty to show the screenshot's empty state directly, but comment mock for logic representation.
@@ -133,6 +134,7 @@ const VehicleDocumentManagement = ({ user, docs, setDocs, contacts = [] }) => {
                 }
             }
 
+            logAccess('doc_upload', `${user.name} / ${formData.docType}`, docRef.id);
             setFormData({ docType: '화물운송자격증', file: null, expiryDate: '', docNumber: '', maskAck: false });
             setIsModalOpen(false);
         } catch (e) { console.error(e); alert('업로드 실패: ' + e.message); }
@@ -155,6 +157,7 @@ const VehicleDocumentManagement = ({ user, docs, setDocs, contacts = [] }) => {
         if (window.confirm('증빙 서류를 진짜 삭제하시겠습니까?')) {
             try {
                 await db.collection('vehicleDocs').doc(docObj.id).delete();
+                logAccess('doc_delete', `${docObj.name} / ${docObj.docType}`, docObj.id);
                 if (docObj.file && docObj.file.includes('firebasestorage')) {
                     await storage.ref(`vehicleDocs/${docObj.id}`).delete();
                 }
@@ -342,7 +345,7 @@ const VehicleDocumentManagement = ({ user, docs, setDocs, contacts = [] }) => {
                         {filteredDocs.map(doc => {
                             const expiryStatus = getExpiryStatus(doc);
                             return (
-                            <div key={doc.id} onClick={() => setViewingDoc(doc)} className="bg-white rounded-[20px] shadow-[0_2px_12px_rgba(0,0,0,0.03)] border border-gray-100 overflow-hidden cursor-pointer hover:border-blue-400 hover:shadow-lg transition-all group flex flex-col h-[280px]">
+                            <div key={doc.id} onClick={() => { if (isAdmin && doc.email !== user.email) logAccess('doc_view', `${doc.name} / ${doc.docType}`, doc.id); setViewingDoc(doc); }} className="bg-white rounded-[20px] shadow-[0_2px_12px_rgba(0,0,0,0.03)] border border-gray-100 overflow-hidden cursor-pointer hover:border-blue-400 hover:shadow-lg transition-all group flex flex-col h-[280px]">
                                 <div className="h-[180px] bg-gray-50 flex items-center justify-center overflow-hidden border-b border-gray-100 relative">
                                     {doc.file ? (
                                         <img src={doc.file} alt={doc.docType} className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500" />
@@ -521,11 +524,15 @@ const VehicleManagement = ({ user, docs = [], contacts = [] }) => {
     const [form, setForm] = useState({ date: new Date().toISOString().split('T')[0], vehicleNumber: '', costType: '주유비', amount: '', memo: '' });
 
     useEffect(() => {
-        const unsub = db.collection('vehicleCosts').orderBy('date', 'desc').onSnapshot(snap => {
-            setCosts(snap.docs.map(d => ({ id: d.id, ...d.data() })));
+        // 유지비 기록은 본인 것만 읽을 수 있습니다. (관리자는 전체)
+        const costQuery = isAdmin ? db.collection('vehicleCosts').orderBy('date', 'desc') : db.collection('vehicleCosts').where('email', '==', user.email);
+        const unsub = costQuery.onSnapshot(snap => {
+            const list = snap.docs.map(d => ({ id: d.id, ...d.data() }));
+            if (!isAdmin) list.sort((a, b) => (b.date || '').localeCompare(a.date || ''));
+            setCosts(list);
         }, e => console.error(e));
         return () => unsub();
-    }, []);
+    }, [isAdmin, user.email]);
 
     useEffect(() => { setVisibleCount(15); }, [filterEmail, filterType, filterMonth, tab]);
 

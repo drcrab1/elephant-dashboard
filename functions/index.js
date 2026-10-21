@@ -215,6 +215,35 @@ exports.setAccountDisabled = onCall(async (request) => {
     return { ok: true, found: true };
 });
 
+// --- 접속·처리 기록(접속기록) 저장: 계정, 일시, 접속지(IP), 수행 업무 ---
+// 서버(관리자 권한)에서만 기록하고 Firestore 규칙으로 클라이언트의 수정·삭제를 막아 위·변조를 방지합니다.
+// 보관기간: 최소 3년 (접속기록 1~2년, 권한 변경 기록 3년 요건을 모두 충족). 자동 삭제하지 않습니다.
+const AUDIT_ACTIONS = new Set([
+    'login', 'page_view', 'doc_view', 'doc_upload', 'doc_delete',
+    'contract_download', 'contract_send', 'contract_sign', 'contract_delete',
+    'member_update', 'member_delete', 'permission_change', 'export',
+    'pledge_sign', 'training_complete', 'privacy_record_save', 'record_delete',
+]);
+exports.logAccess = onCall(async (request) => {
+    const email = request.auth && request.auth.token && request.auth.token.email;
+    if (!email) throw new HttpsError('unauthenticated', '로그인이 필요합니다.');
+    const { action, detail, target } = request.data || {};
+    if (!AUDIT_ACTIONS.has(action)) throw new HttpsError('invalid-argument', '허용되지 않는 기록 유형입니다.');
+    const headers = (request.rawRequest && request.rawRequest.headers) || {};
+    const ip = String(headers['x-forwarded-for'] || (request.rawRequest && request.rawRequest.ip) || '').split(',')[0].trim();
+    await db.collection('accessLogs').add({
+        email,
+        role: email === ADMIN_EMAIL ? 'admin' : 'driver',
+        action,
+        detail: String(detail || '').slice(0, 200),
+        target: String(target || '').slice(0, 100),
+        ip,
+        userAgent: String(headers['user-agent'] || '').slice(0, 160),
+        createdAt: admin.firestore.FieldValue.serverTimestamp(),
+    });
+    return { ok: true };
+});
+
 // --- 10분마다 실행: 설정된 시각이 되면, 오늘 배차된 기사님께만 TBM 알림 발송 ---
 exports.dailyTbmReminder = onSchedule({ schedule: 'every 10 minutes', timeZone: 'Asia/Seoul' }, async () => {
     const settingsRef = db.collection('settings').doc('notificationSettings');

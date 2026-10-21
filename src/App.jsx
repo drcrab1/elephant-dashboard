@@ -3,6 +3,7 @@ import { auth, db, ADMIN_EMAIL } from './firebase';
 import { PageView, DashboardHome, Sidebar, BottomNav, Icons } from './ui-components';
 import { LoginScreen } from './auth';
 import { NotificationPermissionPrompt } from './notifications';
+import { logAccess } from './audit';
 const NoticeBoard = lazy(() => import('./notifications').then(m => ({ default: m.NoticeBoard })));
 import {
     INITIAL_CONTRACTS,
@@ -45,6 +46,9 @@ const pickAccountFlags = (d) => ({
 const tsKey = (v) => (v ? (v.seconds != null ? v.seconds : (v.getTime ? Math.floor(v.getTime() / 1000) : 1)) : 0);
 const sameFlags = (a, b) => a.isActive === b.isActive && a.pledgeRequired === b.pledgeRequired && a.leavePledgeRequired === b.leavePledgeRequired
     && tsKey(a.joinPledgeSignedAt) === tsKey(b.joinPledgeSignedAt) && tsKey(a.leavePledgeSignedAt) === tsKey(b.leavePledgeSignedAt);
+
+// 개인정보가 많이 들어 있는 관리자 화면 — 열람 시 접속기록을 남깁니다.
+const SENSITIVE_PAGES = ['회원관리', '서류관리', '계약관리', '안전보건관리', '개인정보 관리', '알림관리'];
 
 // 링크(?menu=...)로 들어왔을 때 열 화면 (카톡으로 공유하는 서약서 링크용)
 const MENU_FROM_LINK = { pledge: '개인정보 서약·교육' };
@@ -144,6 +148,7 @@ const App = () => {
     useEffect(() => {
         if (!user) return;
         const unsubs = [];
+        const isAdminUser = user.email === ADMIN_EMAIL;
 
         unsubs.push(db.collection('contacts').onSnapshot(snap => setAppContacts(snap.docs.map(d => ({ id: d.id, ...d.data() })))));
         // 업무내역(배송건수)은 서버(Firestore 보안 규칙) 단에서도 본인 것만 조회되도록, 일반 기사님 계정은 본인 이메일로 쿼리 자체를 제한합니다.
@@ -153,7 +158,6 @@ const App = () => {
         unsubs.push(workRecordsQuery.onSnapshot(snap => setWorkRecords(snap.docs.map(d => ({ id: d.id, ...d.data() })))));
         // 서류·계약서는 개인정보(서명, 자격증 사본 등)가 들어 있어서 Firestore 보안 규칙 단에서도 본인 것만 읽을 수 있습니다.
         // (규칙과 같은 조건으로 쿼리해야 읽기가 허용됩니다.) 관리자는 전체를 조회합니다.
-        const isAdminUser = user.email === ADMIN_EMAIL;
         const docsOf = (snap) => snap.docs.map(d => ({ id: d.id, ...d.data() }));
         if (isAdminUser) {
             unsubs.push(db.collection('vehicleDocs').onSnapshot(snap => setVehicleDocs(docsOf(snap))));
@@ -171,7 +175,9 @@ const App = () => {
             unsubs.push(db.collection('contracts').where('targetEmail', '==', user.email).onSnapshot(snap => { byTarget = docsOf(snap); mergeContracts(); }));
             unsubs.push(db.collection('contracts').where('ownerEmail', '==', user.email).onSnapshot(snap => { byOwner = docsOf(snap); mergeContracts(); }));
         }
-        unsubs.push(db.collection('safetyRecords').onSnapshot(snap => setSafetyRecords(snap.docs.map(d => ({ id: d.id, ...d.data() })).sort((a, b) => b.id.localeCompare(a.id)))));
+        // 안전보건 기록(사고 보고 등)도 본인이 작성한 것만 읽을 수 있습니다. (관리자는 전체)
+        const safetyQuery = isAdminUser ? db.collection('safetyRecords') : db.collection('safetyRecords').where('email', '==', user.email);
+        unsubs.push(safetyQuery.onSnapshot(snap => setSafetyRecords(snap.docs.map(d => ({ id: d.id, ...d.data() })).sort((a, b) => b.id.localeCompare(a.id)))));
         unsubs.push(db.collection('routes').onSnapshot(snap => setRoutes(snap.docs.map(d => ({ id: d.id, ...d.data() })))));
 
         // Seed initial data if DB is completely empty (Admin only)
@@ -190,6 +196,35 @@ const App = () => {
 
         return () => unsubs.forEach(fn => fn());
     }, [user]);
+
+    // 접속기록: 앱 접속(로그인 유지 포함) 시 1회, 관리자가 개인정보가 있는 화면을 열 때마다 서버에 기록합니다.
+    useEffect(() => {
+        if (user && user.email) logAccess('login', user.email === ADMIN_EMAIL ? '관리자 접속' : '기사 접속');
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [user && user.email]);
+
+    useEffect(() => {
+        if (user && user.email === ADMIN_EMAIL && SENSITIVE_PAGES.includes(activePage)) logAccess('page_view', activePage);
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [activePage, user && user.email]);
+
+    // 일정 시간 미사용 시 자동 로그아웃 (관리자 20분, 기사 30분)
+    useEffect(() => {
+        if (!user || !user.email) return undefined;
+        const limitMs = (user.email === ADMIN_EMAIL ? 20 : 30) * 60 * 1000;
+        let last = Date.now();
+        const bump = () => { last = Date.now(); };
+        const events = ['mousemove', 'keydown', 'touchstart', 'click', 'scroll'];
+        events.forEach(e => window.addEventListener(e, bump, { passive: true }));
+        const timer = setInterval(() => {
+            if (Date.now() - last > limitMs) {
+                clearInterval(timer);
+                window.alert('장시간 사용하지 않아 보안을 위해 자동 로그아웃되었습니다. 다시 로그인해 주세요.');
+                auth.signOut();
+            }
+        }, 30000);
+        return () => { events.forEach(e => window.removeEventListener(e, bump)); clearInterval(timer); };
+    }, [user && user.email]);
 
     const handleLogout = () => {
         if (window.confirm('디바이스에서 로그아웃 하시겠습니까?')) auth.signOut();
@@ -259,7 +294,7 @@ const App = () => {
     if (activePage === '알림관리') content = <NotificationManagement user={user} />;
     if (activePage === '배차변환기') content = <DispatchConverter user={user} />;
     if (activePage === '공지사항') content = <NoticeBoard user={user} />;
-    if (activePage === '개인정보 관리') content = <PrivacyManagement user={user} contacts={appContacts} setActivePage={setActivePage} />;
+    if (activePage === '개인정보 관리') content = <PrivacyManagement user={user} contacts={appContacts} contracts={contracts} setActivePage={setActivePage} />;
     if (activePage === '개인정보 처리방침') content = <PrivacyPolicyPage />;
     if (activePage === '개인정보 서약·교육') content = <PrivacyPortal user={user} setUser={setUser} />;
 

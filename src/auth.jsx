@@ -30,7 +30,8 @@ const ADMIN_EMAIL = 's01025144826@gmail.com';
                     const result = await auth.signInWithPopup(provider);
                     const userEmail = result.user.email;
 
-                    if (mode === 'signup') {
+                    const existingUser = await db.collection('users').doc(userEmail).get();
+                    if (mode === 'signup' && !existingUser.exists) {
                         await db.collection('users').doc(userEmail).set({
                             name,
                             phone,

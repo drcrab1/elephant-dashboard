@@ -1,10 +1,14 @@
-import React, { useState, useEffect, useMemo } from 'react';
+import React, { useState, useEffect } from 'react';
 import { db, storage, functions, ADMIN_EMAIL } from './firebase';
 import {
-    serverTs, toDate, fmtDate, fmtDateTime, exportXlsx, downloadBlob, reactToPdfBlob,
-    PrivacyModal, SignaturePad, Paper, COMPANY,
-    DOC_TYPES, DOC_TEMPLATES, CHECK_ITEMS, CHECK_STATUS, PLEDGE_TYPES, PLEDGE_TEXT, DEFAULT_TRAINING,
+    serverTs, toDate, fmtDate, fmtDateTime, exportXlsx, downloadBlob, reactToPdfBlob, maskPhone, maskEmail,
+    PrivacyModal, Paper, COMPANY,
+    DOC_TYPES, DOC_TEMPLATES, PLEDGE_TYPES, PLEDGE_TEXT, DEFAULT_TRAINING,
 } from './privacy-shared';
+import { logAccess } from './audit';
+import { ChecklistTab } from './privacy-records';
+import { AccessLogTab, IncidentDestructionTab } from './privacy-logs';
+import { ComplianceTab } from './privacy-compliance';
 
 const card = 'bg-white rounded-2xl border border-gray-100 shadow-sm';
 const btn = 'px-3.5 py-2 rounded-xl text-[13px] font-bold transition-colors disabled:opacity-50';
@@ -107,6 +111,7 @@ const DocsTab = ({ user, contacts, setActivePage }) => {
             if (editing.sections.some((s) => s.type === 'contacts')) data.contactsSnapshot = snapshotContacts(contacts);
             await ref.collection('versions').add(data);
             await ref.set({ title: DOC_TYPES[openType].label, latestVersion: next, updatedAt: serverTs() }, { merge: true });
+            logAccess('privacy_record_save', `${DOC_TYPES[openType].label} v${next} 저장`);
             setEditing(null);
         } catch (e) {
             alert('저장 실패: ' + e.message);
@@ -237,191 +242,6 @@ const DocsTab = ({ user, contacts, setActivePage }) => {
     );
 };
 
-// ───────────────────────── 탭 2: 연간 점검 ─────────────────────────
-
-const CheckPaper = ({ rec }) => (
-    <Paper>
-        <h1 style={{ fontSize: 22, fontWeight: 800, textAlign: 'center', marginBottom: 6 }}>개인정보 보호 연간 점검 체크리스트</h1>
-        <div style={{ textAlign: 'center', color: '#555', fontSize: 13, marginBottom: 20 }}>{COMPANY} · {rec.year}년 점검 · 점검일 {fmtDate(rec.createdAt)}</div>
-        <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 12.5 }}>
-            <thead>
-                <tr>{['No', '점검 항목', '이행 여부', '메모'].map((h) => <th key={h} style={{ border: '1px solid #aaa', padding: '5px 6px', background: '#f3f4f6' }}>{h}</th>)}</tr>
-            </thead>
-            <tbody>
-                {rec.items.map((it) => (
-                    <tr key={it.no}>
-                        <td style={{ border: '1px solid #ccc', padding: '5px 6px', textAlign: 'center' }}>{it.no}</td>
-                        <td style={{ border: '1px solid #ccc', padding: '5px 6px' }}>{it.title}</td>
-                        <td style={{ border: '1px solid #ccc', padding: '5px 6px', textAlign: 'center', whiteSpace: 'nowrap' }}>{it.status}</td>
-                        <td style={{ border: '1px solid #ccc', padding: '5px 6px', whiteSpace: 'pre-wrap' }}>{it.memo || ''}</td>
-                    </tr>
-                ))}
-            </tbody>
-        </table>
-        <div style={{ marginTop: 28 }}>
-            <div>점검일: {fmtDateTime(rec.createdAt)}</div>
-            <div>점검자: {rec.inspector?.name}</div>
-            <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginTop: 6 }}>
-                <span>서명:</span>
-                {rec.signature && <img src={rec.signature} alt="점검자 서명" style={{ height: 64, objectFit: 'contain' }} />}
-            </div>
-        </div>
-    </Paper>
-);
-
-const emptyItems = () => CHECK_ITEMS.map((c) => ({ no: c.no, title: c.title, status: '', memo: '' }));
-
-const CheckTab = ({ user }) => {
-    const [records, setRecords] = useState([]);
-    const [year, setYear] = useState(String(new Date().getFullYear()));
-    const [form, setForm] = useState(null); // {items, inspector, signature}
-    const [saving, setSaving] = useState(false);
-    const [viewing, setViewing] = useState(null);
-    const [busyPdf, setBusyPdf] = useState(false);
-
-    useEffect(() => db.collection('privacyChecks').orderBy('createdAt', 'desc').onSnapshot((snap) => {
-        setRecords(snap.docs.map((d) => ({ id: d.id, ...d.data() })));
-    }), []);
-
-    const years = useMemo(() => {
-        const set = new Set(records.map((r) => String(r.year)));
-        set.add(String(new Date().getFullYear()));
-        return Array.from(set).sort().reverse();
-    }, [records]);
-    const shown = records.filter((r) => String(r.year) === year);
-
-    const submit = async () => {
-        if (form.items.some((i) => !i.status)) return alert('16개 항목의 이행 여부를 모두 선택해주세요.');
-        if (!form.inspector.trim()) return alert('점검자 이름을 입력해주세요.');
-        if (!form.signature) return alert('점검자 서명을 입력해주세요.');
-        if (!window.confirm('점검 결과를 확정 저장할까요?\n저장하면 수정·삭제할 수 없고, 점검일은 오늘(실제 날짜)로 자동 기록됩니다.')) return;
-        setSaving(true);
-        try {
-            await db.collection('privacyChecks').add({
-                year: new Date().getFullYear(),
-                items: form.items,
-                inspector: { name: form.inspector.trim(), email: user.email },
-                signature: form.signature,
-                createdAt: serverTs(),
-            });
-            setYear(String(new Date().getFullYear()));
-            setForm(null);
-        } catch (e) {
-            alert('저장 실패: ' + e.message);
-        } finally {
-            setSaving(false);
-        }
-    };
-
-    const pdf = async (rec) => {
-        setBusyPdf(true);
-        try {
-            downloadBlob(await reactToPdfBlob(<CheckPaper rec={rec} />), `개인정보_연간점검_${rec.year}_${fmtDate(rec.createdAt).replace(/\./g, '')}.pdf`);
-        } catch (e) {
-            alert('PDF 생성 실패: ' + e.message);
-        } finally {
-            setBusyPdf(false);
-        }
-    };
-
-    const summary = (rec) => {
-        const c = { 이행: 0, '부분 이행': 0, 미이행: 0, 해당없음: 0 };
-        rec.items.forEach((i) => { c[i.status] = (c[i.status] || 0) + 1; });
-        return c;
-    };
-
-    if (form) {
-        return (
-            <div className="space-y-4">
-                <div className="flex flex-wrap items-center justify-between gap-2">
-                    <h3 className="font-extrabold text-[18px]">{new Date().getFullYear()}년 연간 점검 작성</h3>
-                    <div className="flex gap-2">
-                        <button className={btnGhost} onClick={() => setForm(null)}>취소</button>
-                        <button className={btnPrimary} disabled={saving} onClick={submit}>{saving ? '저장 중...' : '점검 확정·저장'}</button>
-                    </div>
-                </div>
-                <p className="text-[12.5px] text-gray-500 font-medium">점검일은 저장하는 날짜(실제 날짜)로 자동 기록되며 직접 입력하거나 바꿀 수 없습니다.</p>
-                {form.items.map((it, i) => (
-                    <div key={it.no} className={`${card} p-4`}>
-                        <p className="font-extrabold text-[15px]">{it.no}. {it.title}</p>
-                        <p className="text-[12.5px] text-gray-500 font-medium mb-2.5">{CHECK_ITEMS[i].criteria}</p>
-                        <div className="flex flex-wrap gap-2 mb-2">
-                            {CHECK_STATUS.map((st) => (
-                                <button
-                                    key={st}
-                                    onClick={() => setForm((f) => { const arr = f.items.slice(); arr[i] = { ...arr[i], status: st }; return { ...f, items: arr }; })}
-                                    className={`px-3.5 py-1.5 rounded-xl border text-[13px] font-bold ${it.status === st ? 'bg-[#2E68ED] border-[#2E68ED] text-white' : 'bg-white border-gray-200 text-gray-600 hover:bg-gray-50'}`}
-                                >{st}</button>
-                            ))}
-                        </div>
-                        <input className={inputCls} placeholder="메모 (조치 내용, 특이사항)" value={it.memo} onChange={(e) => { const memo = e.target.value; setForm((f) => { const arr = f.items.slice(); arr[i] = { ...arr[i], memo }; return { ...f, items: arr }; }); }} />
-                    </div>
-                ))}
-                <div className={`${card} p-4 space-y-3`}>
-                    <div>
-                        <p className="font-extrabold text-[14px] mb-1.5">점검자</p>
-                        <input className={inputCls} value={form.inspector} onChange={(e) => setForm({ ...form, inspector: e.target.value })} />
-                    </div>
-                    <div>
-                        <p className="font-extrabold text-[14px] mb-1.5">점검자 서명</p>
-                        <SignaturePad onChange={(sig) => setForm((f) => ({ ...f, signature: sig }))} />
-                    </div>
-                </div>
-            </div>
-        );
-    }
-
-    return (
-        <div className="space-y-4">
-            <div className="flex flex-wrap items-center justify-between gap-2">
-                <div className="flex items-center gap-2">
-                    <span className="text-[14px] font-bold text-gray-500">연도</span>
-                    <select className="border border-gray-200 rounded-xl px-3 py-2 text-[14px] font-bold bg-white" value={year} onChange={(e) => setYear(e.target.value)}>
-                        {years.map((y) => <option key={y} value={y}>{y}년</option>)}
-                    </select>
-                </div>
-                <button className={btnPrimary} onClick={() => setForm({ items: emptyItems(), inspector: user.name || '', signature: null })}>+ 새 점검 시작</button>
-            </div>
-            {shown.length === 0 ? (
-                <div className={`${card} p-10 text-center text-gray-400 font-bold`}>{year}년 점검 이력이 없습니다.</div>
-            ) : (
-                <div className={`${card} overflow-hidden`}>
-                    <table className="w-full text-left">
-                        <thead className="bg-gray-50 text-[13px] text-gray-500">
-                            <tr><th className="px-4 py-3">점검일시</th><th className="px-4 py-3">점검자</th><th className="px-4 py-3">결과</th><th className="px-4 py-3 text-right">관리</th></tr>
-                        </thead>
-                        <tbody className="divide-y divide-gray-50 text-[14px]">
-                            {shown.map((r) => {
-                                const s = summary(r);
-                                return (
-                                    <tr key={r.id}>
-                                        <td className="px-4 py-3 font-bold">{fmtDateTime(r.createdAt)}</td>
-                                        <td className="px-4 py-3">{r.inspector?.name}</td>
-                                        <td className="px-4 py-3 space-x-1">
-                                            <Badge tone="green">이행 {s['이행']}</Badge>
-                                            {s['부분 이행'] > 0 && <Badge tone="amber">부분 {s['부분 이행']}</Badge>}
-                                            {s['미이행'] > 0 && <Badge tone="red">미이행 {s['미이행']}</Badge>}
-                                        </td>
-                                        <td className="px-4 py-3 text-right whitespace-nowrap space-x-1.5">
-                                            <button className={btnGhost} onClick={() => setViewing(r)}>보기</button>
-                                            <button className={btnGhost} disabled={busyPdf} onClick={() => pdf(r)}>PDF</button>
-                                        </td>
-                                    </tr>
-                                );
-                            })}
-                        </tbody>
-                    </table>
-                </div>
-            )}
-            {viewing && (
-                <PrivacyModal title={`${viewing.year}년 점검 결과`} wide onClose={() => setViewing(null)}>
-                    <div className="overflow-x-auto border border-gray-100 rounded-xl"><CheckPaper rec={viewing} /></div>
-                </PrivacyModal>
-            )}
-        </div>
-    );
-};
-
 // ───────────────────────── 탭 3: 취급자 명단 ─────────────────────────
 
 const HandlersTab = ({ members }) => {
@@ -442,8 +262,10 @@ const HandlersTab = ({ members }) => {
             if (m.isHandler) {
                 if (!window.confirm(`'${m.name}'님의 개인정보취급자 지정을 해제할까요?\n해제일이 기록됩니다.`)) return;
                 await db.collection('users').doc(m.email).set({ isHandler: false, handlerReleasedAt: serverTs() }, { merge: true });
+                logAccess('permission_change', `개인정보취급자 해제: ${m.name || m.email}`, m.email);
             } else {
                 await db.collection('users').doc(m.email).set({ isHandler: true, handlerAssignedAt: serverTs(), handlerReleasedAt: null }, { merge: true });
+                logAccess('permission_change', `개인정보취급자 지정: ${m.name || m.email}`, m.email);
             }
         } catch (e) {
             alert('처리 실패: ' + e.message);
@@ -461,6 +283,7 @@ const HandlersTab = ({ members }) => {
             const patch = { isActive: false, status: '퇴사', resignedAt: serverTs() };
             if (m.isHandler) { patch.isHandler = false; patch.handlerReleasedAt = serverTs(); }
             await db.collection('users').doc(m.email).set(patch, { merge: true });
+            logAccess('permission_change', `퇴사 처리(계정 비활성화·접근권한 말소): ${m.name || m.email}`, m.email);
             try {
                 await functions.httpsCallable('setAccountDisabled')({ email: m.email, disabled: true });
             } catch (fe) {
@@ -478,6 +301,7 @@ const HandlersTab = ({ members }) => {
         setBusy(m.email);
         try {
             await db.collection('users').doc(m.email).set({ isActive: true, status: '재직', reactivatedAt: serverTs() }, { merge: true });
+            logAccess('permission_change', `계정 재활성화: ${m.name || m.email}`, m.email);
             try { await functions.httpsCallable('setAccountDisabled')({ email: m.email, disabled: false }); } catch (fe) { console.warn(fe); }
         } catch (e) {
             alert('처리 실패: ' + e.message);
@@ -486,11 +310,12 @@ const HandlersTab = ({ members }) => {
         }
     };
 
-    const exportList = () => {
+    const exportList = (masked = true) => {
+        if (!masked && !window.confirm('이메일·연락처를 가리지 않고 내보냅니다. 업무상 꼭 필요한 경우에만 진행하세요. (이 내보내기도 접속기록에 남습니다)')) return;
         exportXlsx(people.map((m) => ({
             이름: m.name || '',
-            이메일: m.email,
-            연락처: m.phone || '',
+            이메일: masked ? maskEmail(m.email) : m.email,
+            연락처: masked ? maskPhone(m.phone) : (m.phone || ''),
             취급자여부: m.isHandler ? '지정' : '미지정',
             취급자지정일: fmtDate(m.handlerAssignedAt),
             취급자해제일: fmtDate(m.handlerReleasedAt),
@@ -498,7 +323,7 @@ const HandlersTab = ({ members }) => {
             퇴사처리일: fmtDate(m.resignedAt),
             입사서약: m.joinPledgeSignedAt ? fmtDateTime(m.joinPledgeSignedAt) : '미서명',
             퇴사서약: m.leavePledgeSignedAt ? fmtDateTime(m.leavePledgeSignedAt) : '미서명',
-        })), '개인정보취급자명단', `개인정보취급자명단_${fmtDate(new Date()).replace(/\./g, '')}.xlsx`);
+        })), '개인정보취급자명단', `개인정보취급자명단_${fmtDate(new Date()).replace(/\./g, '')}.xlsx`, masked ? '마스킹' : '원본');
     };
 
     return (
@@ -509,7 +334,10 @@ const HandlersTab = ({ members }) => {
                         <button key={f} onClick={() => setFilter(f)} className={`px-3.5 py-1.5 rounded-full border text-[13px] font-bold ${filter === f ? 'bg-[#0F172A] text-white border-[#0F172A]' : 'bg-white text-gray-600 border-gray-200'}`}>{f}</button>
                     ))}
                 </div>
-                <button className={btnGhost} onClick={exportList}>📥 엑셀로 내보내기</button>
+                <div className="flex gap-2">
+                    <button className={btnGhost} onClick={() => exportList(true)}>📥 엑셀(연락처 가림)</button>
+                    <button className={btnGhost} onClick={() => exportList(false)}>📥 엑셀(원본)</button>
+                </div>
             </div>
             <div className={`${card} p-4 bg-blue-50/40 border-blue-100 text-[13px] text-gray-600 font-medium`}>
                 개인정보 보호책임자: <b>대표자(관리자 계정)</b> · 기사 {people.length}명 중 취급자 {people.filter((m) => m.isHandler).length}명 지정
@@ -636,7 +464,8 @@ const TrainingTab = ({ user, members }) => {
     useEffect(() => db.collection('privacyTrainings').orderBy('createdAt', 'desc').onSnapshot((s) => setTrainings(s.docs.map((d) => ({ id: d.id, ...d.data() })))), []);
     useEffect(() => db.collection('privacyTrainingLogs').onSnapshot((s) => setLogs(s.docs.map((d) => ({ id: d.id, ...d.data() })))), []);
 
-    const people = members.filter((m) => m.email !== ADMIN_EMAIL && m.role !== 'admin' && m.isActive !== false);
+    // 교육 대상: 개인정보 보호책임자(대표자 본인) + 재직 중인 기사 전원
+    const people = [{ email: ADMIN_EMAIL, name: `${user.name || '대표자'} (보호책임자)` }, ...members.filter((m) => m.email !== ADMIN_EMAIL && m.role !== 'admin' && m.isActive !== false)];
 
     const save = async () => {
         if (!form.title.trim()) return alert('교육 제목을 입력해주세요.');
@@ -674,9 +503,9 @@ const TrainingTab = ({ user, members }) => {
 
     const exportTraining = (t) => {
         exportXlsx(statusRows(t).map(({ m, log }) => ({
-            교육명: t.title, 이름: m.name || '', 이메일: m.email, 연락처: m.phone || '',
+            교육명: t.title, 이름: m.name || '', 이메일: maskEmail(m.email), 연락처: maskPhone(m.phone),
             이수여부: log ? '이수' : '미이수', 이수일시: log ? fmtDateTime(log.completedAt) : '',
-        })), '교육이수현황', `교육이수_${t.title.slice(0, 20)}_${fmtDate(new Date()).replace(/\./g, '')}.xlsx`);
+        })), '교육이수현황', `교육이수_${t.title.slice(0, 20)}_${fmtDate(new Date()).replace(/\./g, '')}.xlsx`, '마스킹');
     };
 
     if (form) {
@@ -752,20 +581,42 @@ const TrainingTab = ({ user, members }) => {
 
 // ───────────────────────── 메인 ─────────────────────────
 
-const TABS = [['docs', '📘 문서 보관함'], ['check', '✅ 연간 점검'], ['handlers', '👥 취급자 명단'], ['pledge', '✍️ 전자 서약서'], ['training', '🎓 교육 이수']];
+const TABS = [
+    ['compliance', '🧭 실태점검 대응'], ['docs', '📘 문서 보관함'], ['checks', '✅ 점검 기록'], ['handlers', '👥 취급자·계정'],
+    ['pledge', '✍️ 전자 서약서'], ['training', '🎓 교육 이수'], ['accesslog', '🔎 접속기록'], ['incidents', '🚨 사고·파기'],
+];
 
-const PrivacyManagement = ({ user, contacts = [], setActivePage }) => {
+const PrivacyManagement = ({ user, contacts = [], contracts = [], setActivePage }) => {
     const isAdmin = user && user.email === ADMIN_EMAIL;
-    const [tab, setTab] = useState('docs');
+    const [tab, setTab] = useState('compliance');
+    const [checkKind, setCheckKind] = useState('annual');
     const [members, setMembers] = useState([]);
     const [pledges, setPledges] = useState([]);
+    const [metas, setMetas] = useState({});
+    const [checks, setChecks] = useState([]);
+    const [trainings, setTrainings] = useState([]);
+    const [trainingLogs, setTrainingLogs] = useState([]);
 
     useEffect(() => {
         if (!isAdmin) return undefined;
-        const u1 = db.collection('users').onSnapshot((s) => setMembers(s.docs.map((d) => ({ email: d.id, ...d.data() }))));
-        const u2 = db.collection('pledges').onSnapshot((s) => setPledges(s.docs.map((d) => ({ id: d.id, ...d.data() }))));
-        return () => { u1(); u2(); };
+        const col = (name, setter, mapper) => db.collection(name).onSnapshot((s) => setter(mapper(s)), (e) => console.error(name, e));
+        const list = (s) => s.docs.map((d) => ({ id: d.id, ...d.data() }));
+        const unsubs = [
+            col('users', setMembers, (s) => s.docs.map((d) => ({ email: d.id, ...d.data() }))),
+            col('pledges', setPledges, list),
+            col('privacyDocs', setMetas, (s) => Object.fromEntries(s.docs.map((d) => [d.id, d.data()]))),
+            db.collection('privacyChecks').orderBy('createdAt', 'desc').onSnapshot((s) => setChecks(list(s)), (e) => console.error(e)),
+            col('privacyTrainings', setTrainings, list),
+            col('privacyTrainingLogs', setTrainingLogs, list),
+        ];
+        return () => unsubs.forEach((u) => u());
     }, [isAdmin]);
+
+    const goTo = (nextTab, kind) => {
+        if (kind) setCheckKind(kind);
+        setTab(nextTab);
+        window.scrollTo({ top: 0, behavior: 'smooth' });
+    };
 
     if (!isAdmin) {
         return (
@@ -779,7 +630,7 @@ const PrivacyManagement = ({ user, contacts = [], setActivePage }) => {
         <main className="md:ml-[260px] ml-0 px-4 md:px-10 py-6 md:py-12 flex-1 relative bg-[#F4F7FB] min-h-[100vh] w-full max-w-[100vw] md:max-w-[calc(100vw-260px)] overflow-x-hidden">
             <header className="mb-6 border-b pb-5 border-gray-200">
                 <h2 className="text-[28px] font-extrabold mb-1.5 text-[#1E293B]">🔒 개인정보 관리</h2>
-                <p className="text-gray-500 text-[15px] font-medium">쿠팡 위탁사 개인정보 보호 점검 대응 · 대표자 전용</p>
+                <p className="text-gray-500 text-[15px] font-medium">쿠팡 수탁사 개인정보 처리 실태 점검 대응 · 대표자 전용</p>
             </header>
             <div className="flex gap-1.5 overflow-x-auto pb-2 mb-5">
                 {TABS.map(([k, l]) => (
@@ -787,11 +638,14 @@ const PrivacyManagement = ({ user, contacts = [], setActivePage }) => {
                 ))}
             </div>
             <div className="max-w-[1100px]">
+                {tab === 'compliance' && <ComplianceTab user={user} members={members} metas={metas} checks={checks} pledges={pledges} trainings={trainings} trainingLogs={trainingLogs} contracts={contracts} goTo={goTo} />}
                 {tab === 'docs' && <DocsTab user={user} contacts={contacts} setActivePage={setActivePage} />}
-                {tab === 'check' && <CheckTab user={user} />}
+                {tab === 'checks' && <ChecklistTab user={user} members={members} checks={checks} initialKind={checkKind} />}
                 {tab === 'handlers' && <HandlersTab members={members} />}
                 {tab === 'pledge' && <PledgeTab members={members} pledges={pledges} />}
                 {tab === 'training' && <TrainingTab user={user} members={members} />}
+                {tab === 'accesslog' && <AccessLogTab />}
+                {tab === 'incidents' && <IncidentDestructionTab user={user} checks={checks} />}
             </div>
         </main>
     );

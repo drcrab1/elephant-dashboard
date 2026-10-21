@@ -4,6 +4,7 @@ import { toJpeg } from 'html-to-image';
 import firebase, { auth, db, storage } from './firebase';
 import { Icons, DraggableNode, SignaturePadModal, PdfTemplate } from './ui-components';
 import { SignaturePad } from './signature-pad';
+import { logAccess } from './audit';
 import { CONSENT_FORMS, isConsentType, consentKeysOf } from './consent-forms';
 
 // 기기 시간대(한국) 기준 오늘 날짜 YYYY-MM-DD (UTC로 바꾸면 새벽 시간대에 하루 전 날짜가 찍히는 문제 방지)
@@ -222,6 +223,7 @@ const ContractManagement = ({ user, contracts, setContracts, contacts }) => {
         if (!window.confirm(`"${c.name} (${c.title})" 서명 요청을 삭제하시겠습니까?\n삭제하면 기사님은 더 이상 서명할 수 없습니다.`)) return;
         try {
             await db.collection('contracts').doc(c.id).delete();
+            logAccess('contract_delete', `${c.name} / ${c.title}`, c.id);
         } catch (e) {
             alert('삭제 실패: ' + e.message);
         }
@@ -424,6 +426,7 @@ const ContractManagement = ({ user, contracts, setContracts, contacts }) => {
             setPreviewContract(null);
             setConsentTargets(new Set());
             setTemplateData(emptyTemplateData);
+            logAccess('contract_send', `${getTemplateTitle(type)} ${sent}명 발송`);
             alert(`${sent}명에게 동의서 서명 요청을 발송했습니다.` + (skipped.length ? `\n\n이미 받은(또는 서명 대기 중인) 분은 건너뛰었습니다: ${skipped.join(', ')}` : ''));
         } catch (e) { alert('발송 실패: ' + e.message); }
     };
@@ -457,6 +460,7 @@ const ContractManagement = ({ user, contracts, setContracts, contacts }) => {
                 signatureField: null
             };
             await db.collection('contracts').doc(newDocId).set(newRecord);
+            logAccess('contract_send', `${newRecord.title} / ${newRecord.name}`, newDocId);
             setShowTemplateModal(false);
             setPreviewContract(null);
             // Reset template inputs
@@ -476,6 +480,7 @@ const ContractManagement = ({ user, contracts, setContracts, contacts }) => {
                 templateVersion: signingContract.templateVersion || 'v2',
                 signedDate: localDateStr()
             });
+            logAccess('contract_sign', `${signingContract.name} / ${signingContract.title}`, signingContract.id);
             setSigningContract(null);
             alert('서명이 성공적으로 접수되어 최종 PDF 계약서가 자동 생성되었습니다.');
         } catch (e) { alert('서명 실패: ' + e.message); }
@@ -483,6 +488,7 @@ const ContractManagement = ({ user, contracts, setContracts, contacts }) => {
 
     const handleDownloadClick = (contract) => {
         if (!isAdmin && contract.ownerEmail !== user.email && contract.targetEmail !== user.email) return alert('보안 접근 거부');
+        logAccess('contract_download', `${contract.name} / ${contract.title}`, contract.id);
         setIsGeneratingPdf(true);
         setActivePdfContract(contract);
     };

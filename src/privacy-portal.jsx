@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { db, storage } from './firebase';
+import { logAccess } from './audit';
 import {
     serverTs, fmtDateTime, reactToPdfBlob, SignaturePad, PledgePaper,
     PLEDGE_TYPES, PLEDGE_TEXT, COMPANY,
@@ -39,6 +40,7 @@ const PledgeSigner = ({ user, type, onDone }) => {
                 type === 'join' ? { joinPledgeSignedAt: serverTs() } : { leavePledgeSignedAt: serverTs() },
                 { merge: true }
             );
+            logAccess('pledge_sign', `${PLEDGE_TYPES[type].label} 서명`);
             onDone && onDone(type);
         } catch (e) {
             console.error(e);
@@ -145,6 +147,7 @@ const TrainingViewer = ({ user, training, onClose, onDone }) => {
                 viewSeconds: Math.round((Date.now() - startedAt.current) / 1000),
                 completedAt: serverTs(),
             });
+            logAccess('training_complete', training.title, training.id);
             onDone();
         } catch (e) {
             alert('이수 확인 저장에 실패했습니다: ' + e.message);
