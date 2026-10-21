@@ -286,6 +286,7 @@ const ContractManagement = ({ user, contracts, setContracts, contacts }) => {
             status: '서명대기',
             date: templateData.docDate || today,
             templateType: templateData.templateType,
+            templateVersion: 'v2',
             variables: templateData.templateType === 'accident_report' ? buildAccidentVariables() : {
                 targetDate: templateData.targetDate,
                 targetEndDate: templateData.targetEndDate,
@@ -319,6 +320,7 @@ const ContractManagement = ({ user, contracts, setContracts, contacts }) => {
                 status: '서명대기',
                 date: templateData.docDate || today,
                 templateType: templateData.templateType,
+                templateVersion: 'v2',
                 variables: templateData.templateType === 'accident_report' ? buildAccidentVariables() : {
                     targetDate: templateData.targetDate,
                     targetEndDate: templateData.targetEndDate,
@@ -342,6 +344,8 @@ const ContractManagement = ({ user, contracts, setContracts, contacts }) => {
             await db.collection('contracts').doc(signingContract.id).update({
                 signatureField: { dataUrl: dataUrl, x: 0, y: 0 },
                 status: '서명완료',
+                // 서명자가 본 문구 버전을 고정 (이후 계약서 문구가 개정돼도 서명본은 서명 당시 문구로 표시)
+                templateVersion: signingContract.templateVersion || 'v2',
                 signedDate: new Date().toISOString().split('T')[0]
             });
             setSigningContract(null);

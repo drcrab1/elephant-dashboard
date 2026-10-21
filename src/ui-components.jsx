@@ -151,6 +151,60 @@ const CONTRACT_ARTICLES = [
     { title: "제16조 (계약의 효력)", content: "① “위탁자”와 “수탁자”는 이 계약을 체결하기 전에 충분한 협의를 거쳤고, 계약 내용을 모두 숙지하였으며, 이 계약을 증명하기 위하여 “위탁자”와 “수탁자”는 쌍방이 기명날인한 계약서 원본 2부를 작성하여 각 1부씩 보관한다. ② 이 계약서의 내용은 “위탁자”와 “수탁자”사이의 서면 합의에 의해서만 변경되거나 수정될 수 있으며, 그 변경 및 수정은 “위탁자”와 “수탁자”가 해당 서면에 서명함과 동시에 그 효력을 발생한다." }
 ];
 
+// ── 위수탁계약서 v2 (2026-10 개정) ──
+// 쿠팡 CLS 공문(생활물류서비스산업발전법 시행령 필수 기재사항)에 맞춰 보완한 문구입니다.
+// 이미 서명 완료된 기존 계약서는 templateVersion이 없으므로 위 CONTRACT_ARTICLES(v1) 그대로 표시되고,
+// 새로 발송하는 계약서(templateVersion: 'v2')와 아직 서명 전인 계약서만 아래 v2 문구로 표시됩니다.
+const CARRIER_NAME = '쿠팡로지스틱스서비스(주)';
+const CONTRACT_ARTICLES_V2 = CONTRACT_ARTICLES.map((art) => {
+    if (art.title.includes('제4조')) {
+        return {
+            ...art,
+            content: "① “위탁자”와 “수탁자” 간 계약의 주요내용은 다음과 같다.\n\n● 계약기간: {startDate}부터 {endDate}까지 ({contractMonths}개월)\n{routeBlock}\n● 집화수수료: 해당 없음 (집화 업무는 위탁하지 않는다)\n● 지급일: 매월 {paymentDay}일\n● 기타 차량내역: 자동차 등록번호 {carNumber}\n● 종사자격: 종사자격증 번호 {licenseNumber}\n\n② “수탁자”는 집화, 배송 외에 분류작업을 수행하지 않는다. (분류작업 미수행) ③ 전항에 따라 분류작업을 위탁하지 않으므로 분류수수료는 해당 없음으로 한다. ④ 향후 “위탁자”와 “수탁자”가 서면 합의로 분류작업을 위탁하는 경우, 분류수수료는 시간당 최저임금에 상당하는 금액 이상으로 하며, 「택배기사 과로방지 대책 사회적 합의기구 합의문(2차, ’21. 6. 22)」에 따른 분류인력 투입비용 이상으로 한다."
+        };
+    }
+    if (art.title.includes('제6조')) {
+        return { ...art, content: art.content.split('ㅇㅇ택배사').join(CARRIER_NAME) };
+    }
+    if (art.title.includes('제9조')) {
+        const from = art.content.indexOf('② 제1항에도 불구하고');
+        const to = art.content.indexOf('③ “수탁자”의 작업시간이');
+        const sec2 = "② 제1항에도 불구하고, “수탁자”의 업무는 야간 배송 업무로서 업무 종료 시각은 익일 07시로 한다. 다만, 설·추석 등 명절 기간에 " + CARRIER_NAME + "가 업무 종료 시각의 연장을 허용한 경우에는 “수탁자”는 그 허용된 시간만큼 연장하여 업무를 수행할 수 있다. ";
+        return { ...art, content: (art.content.slice(0, from) + sec2 + art.content.slice(to)).replace('조정할 수. ④', '조정할 수 있다. ④') };
+    }
+    if (art.title.includes('제11조')) {
+        return { ...art, content: art.content.replace('즉시 계약을 해지할 수. ⑦', '즉시 계약을 해지할 수 있다. ⑦') };
+    }
+    return art;
+});
+
+// 계약기간 문구 계산 (v2 제4조용)
+const getContractPeriod = (contract) => {
+    const v = (contract && contract.variables) || {};
+    const blank = '20   년  월  일';
+    const start = v.targetDate || blank;
+    let end = blank;
+    if (v.targetEndDate) end = v.targetEndDate;
+    else if (v.targetDate) {
+        const d = new Date(v.targetDate);
+        d.setFullYear(d.getFullYear() + 1);
+        d.setDate(d.getDate() - 1);
+        end = d.toISOString().split('T')[0];
+    }
+    let months = '12';
+    if (v.targetDate && v.targetEndDate) {
+        const a = new Date(v.targetDate);
+        const b = new Date(v.targetEndDate);
+        let m = (b.getFullYear() - a.getFullYear()) * 12 + (b.getMonth() - a.getMonth());
+        if (b.getDate() >= a.getDate() - 1) m += 1;
+        months = String(Math.max(m, 1));
+    }
+    return { start, end, months };
+};
+
+// 아직 서명 전이거나 v2로 발송된 계약서만 v2 문구를 사용 (서명 완료된 기존 계약서는 당시 문구 유지)
+const usesContractV2 = (contract) => contract.templateVersion === 'v2' || (!contract.templateVersion && contract.status !== '서명완료');
+
 const getProxiedImageUrl = (url) => {
     if (!url) return '';
     if (url.startsWith('http') && url.includes('firebasestorage.googleapis.com')) {
@@ -233,9 +287,27 @@ const PdfTemplate = ({ contract, templateRef, preview = false }) => {
                             쿠팡 로지스틱스 서비스 코끼리물류(이하 “위탁자”라 함)와 택배종사자 <span className="font-bold underline px-2">{contract.name}</span> (이하 “수탁자”라 함)은 택배 운송 업무에 관하여 다음과 같이 위‧수탁계약을 체결한다.
                         </div>
                         <div className="space-y-4">
-                            {CONTRACT_ARTICLES.map((art, idx) => {
+                            {(usesContractV2(contract) ? CONTRACT_ARTICLES_V2 : CONTRACT_ARTICLES).map((art, idx) => {
                                 let content = art.content;
-                                if (art.title.includes('제4조')) {
+                                if (usesContractV2(contract) && art.title.includes('제4조')) {
+                                    const period = getContractPeriod(contract);
+                                    const fees = contract.variables?.routeFees || [
+                                        { route: contract.variables?.route || '미지정', unitPrice: contract.variables?.unitPrice || '미지정' }
+                                    ];
+                                    const routeBlock = fees.map((rf, rIdx) => {
+                                        const no = fees.length > 1 ? ' (' + (rIdx + 1) + ')' : '';
+                                        const price = rf.unitPrice && rf.unitPrice !== '미지정' ? Number(rf.unitPrice).toLocaleString() + '원' : '미지정';
+                                        return `● 담당구역${no}: ${rf.route || '미지정'}\n● 배송수수료${no}: 1건당 ${price}`;
+                                    }).join('\n\n');
+                                    content = content
+                                        .replace('{startDate}', period.start)
+                                        .replace('{endDate}', period.end)
+                                        .replace('{contractMonths}', period.months)
+                                        .replace('{routeBlock}', routeBlock)
+                                        .replace('{paymentDay}', '15')
+                                        .replace('{carNumber}', contract.variables?.carNumber || '____________________')
+                                        .replace('{licenseNumber}', contract.variables?.licenseNumber || '____________________');
+                                } else if (art.title.includes('제4조')) {
                                     content = content
                                         .replace('{startDate}', contract.variables?.targetDate || '20   년  월  일')
                                         .replace('{endDate}', (() => {
