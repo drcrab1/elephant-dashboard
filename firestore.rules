@@ -100,11 +100,11 @@ service cloud.firestore {
       allow delete: if isAdmin() || isOwner(userEmail);
     }
 
-    // 비상연락망: 비상시 연락을 위해 로그인한 사용자는 열람 가능. 등록·수정은 대표자, 기사 본인은 본인 항목의 연락처/차량·자격 번호만 수정.
+    // 비상연락망: 비상시 연락을 위해 로그인한 사용자는 열람 가능. 등록·수정은 대표자, 기사 본인은 본인 항목의 연락처만 수정.
     match /contacts/{contactId} {
       allow read: if isSignedIn();
       allow create: if isAdmin() || (isSignedIn() && request.resource.data.email == request.auth.token.email && request.resource.data.role == '배송기사');
-      allow update: if isAdmin() || (isOwner(resource.data.email) && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['phone', 'carNumber', 'licenseNumber']));
+      allow update: if isAdmin() || (isOwner(resource.data.email) && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['phone']));
       allow delete: if isAdmin() || isOwner(resource.data.email);
     }
 

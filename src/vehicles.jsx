@@ -129,10 +129,11 @@ const VehicleDocumentManagement = ({ user, docs, setDocs, contacts = [] }) => {
 
             // 계약서 발송 시 자동으로 채워지도록, 입력한 번호를 본인 연락처 프로필에도 동기화
             if (numberField && formData.docNumber && formData.docNumber.trim()) {
-                const myContact = contacts.find(c => c.email === user.email);
-                if (myContact) {
-                    await db.collection('contacts').doc(myContact.id).update({ [numberField.contactField]: formData.docNumber.trim() });
-                }
+                // 비상연락망(전체 공개)이 아니라 본인·대표자만 보는 driverProfiles에 저장
+                await db.collection('driverProfiles').doc(user.email).set({
+                    [numberField.contactField]: formData.docNumber.trim(),
+                    updatedAt: firebase.firestore.FieldValue.serverTimestamp()
+                }, { merge: true });
             }
 
             logAccess('doc_upload', `${user.name} / ${formData.docType}`, docRef.id);
