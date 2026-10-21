@@ -3,7 +3,7 @@ import { db, ADMIN_EMAIL } from './firebase';
 import { logAccess } from './audit';
 import {
     serverTs, toDate, fmtDate, fmtDateTime, downloadBlob, reactToPdfBlob, maskEmail,
-    PrivacyModal, SignaturePad, Paper, COMPANY, CHECK_STATUS, CHECKLISTS, CHECKLIST_KINDS, ACTION_LABEL, dueInfo,
+    PrivacyModal, SignaturePad, Paper, COMPANY, CHECK_STATUS, CHECKLISTS, CHECKLIST_KINDS, ACTION_LABEL, dueInfo, packSnapshot, rowCells,
 } from './privacy-shared';
 
 export const kindOf = (rec) => rec.kind || 'annual';
@@ -56,7 +56,7 @@ export const RecordPaper = ({ rec }) => {
                         </thead>
                         <tbody>
                             {rec.snapshot.rows.map((r, i) => (
-                                <tr key={i}>{r.map((c, j) => <td key={j} style={{ border: '1px solid #ccc', padding: '4px 6px' }}>{c}</td>)}</tr>
+                                <tr key={i}>{rowCells(r).map((c, j) => <td key={j} style={{ border: '1px solid #ccc', padding: '4px 6px' }}>{c}</td>)}</tr>
                             ))}
                         </tbody>
                     </table>
@@ -151,7 +151,7 @@ export const ChecklistTab = ({ user, members, checks, initialKind = 'annual' }) 
                 year: new Date().getFullYear(),
                 items: form.items,
                 subject: form.subject.trim(),
-                snapshot: form.snapshot || null,
+                snapshot: packSnapshot(form.snapshot),
                 inspector: { name: form.inspector.trim(), email: user.email },
                 signature: form.signature,
                 createdAt: serverTs(),

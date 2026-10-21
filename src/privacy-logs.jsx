@@ -3,7 +3,7 @@ import { db } from './firebase';
 import { logAccess } from './audit';
 import {
     serverTs, toDate, fmtDate, fmtDateTime, exportXlsx, downloadBlob, reactToPdfBlob, maskEmail,
-    PrivacyModal, SignaturePad, Paper, COMPANY, ACTION_LABEL,
+    PrivacyModal, SignaturePad, Paper, COMPANY, ACTION_LABEL, packSnapshot, rowCells,
 } from './privacy-shared';
 
 const card = 'bg-white rounded-2xl border border-gray-100 shadow-sm';
@@ -234,7 +234,7 @@ const CertPaper = ({ rec }) => (
         </div>
         <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 12.5 }}>
             <thead><tr>{['파기일시', '파기 대상', '사유', '방법', '건수'].map((h) => <th key={h} style={{ border: '1px solid #aaa', padding: '5px 6px', background: '#f3f4f6' }}>{h}</th>)}</tr></thead>
-            <tbody>{rec.snapshot.rows.map((r, i) => <tr key={i}>{r.map((c, j) => <td key={j} style={{ border: '1px solid #ccc', padding: '5px 6px' }}>{c}</td>)}</tr>)}</tbody>
+            <tbody>{rec.snapshot.rows.map((r, i) => <tr key={i}>{rowCells(r).map((c, j) => <td key={j} style={{ border: '1px solid #ccc', padding: '5px 6px' }}>{c}</td>)}</tr>)}</tbody>
         </table>
         <div style={{ marginTop: 22 }}>위 내용이 사실임을 확인합니다.</div>
         <div style={{ marginTop: 26 }}>
@@ -276,7 +276,7 @@ const DestructionSection = ({ user, checks }) => {
             const rows = logs.filter((l) => certForm.selected.has(l.id)).map((l) => [fmtDateTime(l.createdAt), `${l.category}: ${l.subject}`, l.reason, l.method, l.count || '-']);
             await db.collection('privacyChecks').add({
                 kind: 'destruction_cert', year: new Date().getFullYear(), items: [], recipient: certForm.recipient.trim(),
-                snapshot: { title: '파기 내역', head: ['파기일시', '파기 대상', '사유', '방법', '건수'], rows },
+                snapshot: packSnapshot({ title: '파기 내역', head: ['파기일시', '파기 대상', '사유', '방법', '건수'], rows }),
                 inspector: { name: user.name, email: user.email }, signature: certForm.signature, createdAt: serverTs(),
             });
             logAccess('privacy_record_save', '파기확약서 발행');

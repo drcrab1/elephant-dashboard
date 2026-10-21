@@ -531,7 +531,11 @@ export const ACTION_LABEL = {
 };
 
 // 점검 주기 판단: 마지막 점검일로부터 며칠 남았는지 (음수면 기한 경과)
-export const dueInfo = (lastDate, cadenceMonths) => {
+// Firestore는 배열 안의 배열을 저장할 수 없어서, 표의 행은 {cells: [...]}로 감싸 저장하고 읽을 때 풉니다.
+export const packSnapshot = (s) => (s ? { ...s, rows: s.rows.map((cells) => ({ cells })) } : null);
+export const rowCells = (r) => (Array.isArray(r) ? r : (r.cells || []));
+
+export const dueInfo =(lastDate, cadenceMonths) => {
     const d = toDate(lastDate);
     if (!d) return { state: 'none', label: '점검 이력 없음' };
     const due = new Date(d);
