@@ -383,13 +383,13 @@ const VehicleDocumentManagement = ({ user, docs, setDocs, contacts = [] }) => {
             {/* 업로드 모달창 */}
             {isModalOpen && (
                 <div className="fixed inset-0 z-50 bg-[#0F172A]/60 backdrop-blur-sm flex justify-center items-center py-10 px-4">
-                    <div className="bg-white rounded-[24px] w-full max-w-[460px] overflow-hidden shadow-2xl animate-fade-in relative flex flex-col">
-                        <div className="px-8 py-6 border-b border-gray-100 flex justify-between items-center bg-[#f8fafc]">
+                    <div className="bg-white rounded-[24px] w-full max-w-[460px] max-h-[92vh] overflow-hidden shadow-2xl animate-fade-in relative flex flex-col">
+                        <div className="px-8 py-5 border-b border-gray-100 flex justify-between items-center bg-[#f8fafc] shrink-0">
                             <h3 className="text-[20px] font-extrabold text-[#0F172A] flex items-center gap-2 tracking-tight"><Icons.Plus /> 신규 서류 업로드</h3>
                             <button onClick={() => setIsModalOpen(false)} className="text-gray-400 hover:text-black font-extrabold text-[26px] leading-none transition-colors">&times;</button>
                         </div>
 
-                        <div className="p-8 space-y-6">
+                        <div className="p-6 md:p-8 space-y-6 overflow-y-auto flex-1">
                             <div>
                                 <label className="block text-[14px] font-bold text-gray-700 mb-2">서류 제출 신원 (자동 기입)</label>
                                 <input type="text" value={`${user.name} (${user.email})`} disabled className="w-full bg-gray-100 border border-gray-200 rounded-xl px-4 py-3 text-[14px] font-bold text-gray-500 cursor-not-allowed shadow-inner" />
@@ -449,7 +449,7 @@ const VehicleDocumentManagement = ({ user, docs, setDocs, contacts = [] }) => {
                             </div>
                         </div>
 
-                        <div className="p-8 pt-0 flex gap-3 bg-white">
+                        <div className="p-6 md:p-8 pt-4 flex gap-3 bg-white border-t border-gray-100 shrink-0">
                             <button onClick={() => setIsModalOpen(false)} className="flex-[1] py-3.5 bg-white border border-gray-200 hover:bg-gray-50 text-gray-700 font-extrabold text-[15px] rounded-xl transition-colors shadow-sm">취소</button>
                             <button onClick={handleSave} className="flex-[2] py-3.5 bg-[#2E68ED] hover:bg-blue-700 text-white font-extrabold text-[15px] rounded-xl shadow-[0_4px_12px_rgb(46,104,237,0.3)] transition-colors">보안 서버에 안전하게 업로드</button>
                         </div>
