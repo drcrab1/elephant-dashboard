@@ -664,7 +664,7 @@ const Sidebar = ({ activePage, setActivePage, user, onLogout, onWithdraw, isSide
         { id: '공지사항', icon: <Icons.Megaphone /> },
         { id: '개인정보 서약·교육', icon: <Icons.Lock /> },
         { id: '개인정보 처리방침', icon: <Icons.Clipboard /> },
-        ...(isAdmin ? [{ id: '개인정보 관리', icon: <Icons.Lock /> }, { id: '회원관리', icon: <Icons.Users /> }, { id: '알림관리', icon: <Icons.Bell /> }] : [])
+        ...(isAdmin ? [{ id: '개인정보 관리', icon: <Icons.Lock /> }, { id: '회원관리', icon: <Icons.Users /> }, { id: '알림관리', icon: <Icons.Bell /> }, { id: '배차변환기', icon: <Icons.Table /> }] : [])
     ];
     return (
         <>
