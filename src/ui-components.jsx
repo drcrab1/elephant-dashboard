@@ -164,13 +164,13 @@ const CONTRACT_ARTICLES_V2 = CONTRACT_ARTICLES.map((art) => {
         };
     }
     if (art.title.includes('제6조')) {
-        return { ...art, content: art.content.split('ㅇㅇ택배사').join(CARRIER_NAME) };
+        return { ...art, content: art.content.split('ㅇㅇ택배사').join(CARRIER_NAME).replace(/대여할 수\s+있습니다\./, '대여할 수 있다.') };
     }
     if (art.title.includes('제9조')) {
         const from = art.content.indexOf('② 제1항에도 불구하고');
         const to = art.content.indexOf('③ “수탁자”의 작업시간이');
         const sec2 = "② 제1항에도 불구하고, “수탁자”의 업무는 야간 배송 업무로서 업무 종료 시각은 익일 07시로 한다. 다만, 설·추석 등 명절 기간에 " + CARRIER_NAME + "가 업무 종료 시각의 연장을 허용한 경우에는 “수탁자”는 그 허용된 시간만큼 연장하여 업무를 수행할 수 있다. ";
-        return { ...art, content: (art.content.slice(0, from) + sec2 + art.content.slice(to)).replace('조정할 수. ④', '조정할 수 있다. ④') };
+        return { ...art, content: (art.content.slice(0, from) + sec2 + art.content.slice(to)).replace('조정할 수. ④', '조정할 수 있다. ④').replace(/서면으로 계약을 변경하여야 한다\.\s*$/, '서면으로 계약을 변경하여야 한다. 다만, 배송 물량 일시 급증 등 긴박한 상황에 따른 일시 조정의 경우에는 당사자간 서면 동의에 따라 이를 생략할 수 있다.') };
     }
     if (art.title.includes('제11조')) {
         return { ...art, content: art.content.replace('즉시 계약을 해지할 수. ⑦', '즉시 계약을 해지할 수 있다. ⑦') };
@@ -284,7 +284,7 @@ const PdfTemplate = ({ contract, templateRef, preview = false }) => {
                 {contract.templateType === 'standard_consignment' && (
                     <div className="flex-1 space-y-6 text-justify">
                         <div className="mb-4 text-justify text-[13px]">
-                            쿠팡 로지스틱스 서비스 코끼리물류(이하 “위탁자”라 함)와 택배종사자 <span className="font-bold underline px-2">{contract.name}</span> (이하 “수탁자”라 함)은 택배 운송 업무에 관하여 다음과 같이 위‧수탁계약을 체결한다.
+                            {usesContractV2(contract) ? CARRIER_NAME + ' 코끼리물류 영업점' : '쿠팡 로지스틱스 서비스 코끼리물류'}(이하 “위탁자”라 함)와 택배종사자 <span className="font-bold underline px-2">{contract.name}</span> (이하 “수탁자”라 함)은 택배 운송 업무에 관하여 다음과 같이 위‧수탁계약을 체결한다.
                         </div>
                         <div className="space-y-4">
                             {(usesContractV2(contract) ? CONTRACT_ARTICLES_V2 : CONTRACT_ARTICLES).map((art, idx) => {
@@ -382,7 +382,10 @@ const PdfTemplate = ({ contract, templateRef, preview = false }) => {
                             <p>⑦ "수탁자"는 계약기간 중 본 계약에 따른 배송업무와 동일한 시간대에 타 택배(운송)사업자의 배송업무를 겸하여 수행하지 아니한다.</p>
                         </div>
 
-                        <p className="mt-12 text-center text-gray-700 font-bold leading-relaxed">위 명시된 단가 및 준수사항은 상호 합의 하에 즉시 효력이 발생하며,<br />양 당사자는 본 합의서의 내용에 전적으로 동의한다.</p>
+                        {usesContractV2(contract) && (
+                            <p className="mt-6 text-[14px] font-bold">⑧ 본 합의서는 「위·수탁계약서」 제15조에 따라 위·수탁계약의 내용에 배치되거나 위반되지 않는 범위 내에서만 그 효력을 가진다.</p>
+                        )}
+                        <p className="mt-12 text-center text-gray-700 font-bold leading-relaxed">위 명시된 {usesContractV2(contract) ? '' : '단가 및 '}준수사항은 상호 합의 하에 즉시 효력이 발생하며,<br />양 당사자는 본 합의서의 내용에 전적으로 동의한다.</p>
                     </div>
                 )}
 
