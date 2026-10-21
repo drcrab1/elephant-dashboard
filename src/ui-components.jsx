@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useRef, useCallback, useMemo } from 'react';
+import { CONSENT_FORMS, isConsentType } from './consent-forms';
 
 // ui-components.js
 const Icons = {
@@ -169,7 +170,7 @@ const CONTRACT_ARTICLES_V2 = CONTRACT_ARTICLES.map((art) => {
     if (art.title.includes('제9조')) {
         const from = art.content.indexOf('② 제1항에도 불구하고');
         const to = art.content.indexOf('③ “수탁자”의 작업시간이');
-        const sec2 = "② 제1항에도 불구하고, “수탁자”의 업무는 야간 배송 업무로서 업무 종료 시각은 익일 07시로 한다. 다만, 설·추석 등 명절 기간에 " + CARRIER_NAME + "가 업무 종료 시각의 연장을 허용한 경우에는 “수탁자”는 그 허용된 시간만큼 연장하여 업무를 수행할 수 있다. ";
+        const sec2 = "② 제1항에도 불구하고, “수탁자”의 업무는 야간 배송 업무로서 업무 종료 시각은 익일 07시로 하며, 설·추석 등이 속한 2주 이내의 기간에는 불가피한 예외를 인정할 수 있다. 이 경우 “수탁자”는 " + CARRIER_NAME + "가 허용한 연장 시각까지 업무를 수행할 수 있으며, 그 허용된 시각을 초과하여 작업하여서는 아니 된다. ";
         return { ...art, content: (art.content.slice(0, from) + sec2 + art.content.slice(to)).replace('조정할 수. ④', '조정할 수 있다. ④').replace(/서면으로 계약을 변경하여야 한다\.\s*$/, '서면으로 계약을 변경하여야 한다. 다만, 배송 물량 일시 급증 등 긴박한 상황에 따른 일시 조정의 경우에는 당사자간 서면 동의에 따라 이를 생략할 수 있다.') };
     }
     if (art.title.includes('제11조')) {
@@ -366,6 +367,37 @@ const PdfTemplate = ({ contract, templateRef, preview = false }) => {
                     </div>
                 )}
 
+                {isConsentType(contract.templateType) && (
+                    <div className="flex-1 text-[13px] leading-relaxed space-y-3 text-justify">
+                        {CONSENT_FORMS[contract.templateType].blocks.map((b, i) => {
+                            if (b.t === 'h') return <h4 key={i} className="font-extrabold text-[14px] pt-2">{b.text}</h4>;
+                            if (b.t === 'p') return <p key={i}>{b.text}</p>;
+                            if (b.t === 'ul') return <ul key={i} className="space-y-1">{b.items.map((it, j) => <li key={j} className="pl-4 -indent-4">◦ {it}</li>)}</ul>;
+                            if (b.t === 'table') return (
+                                <table key={i} className="w-full border-collapse border border-black text-[12px]">
+                                    <thead><tr>{b.head.map((h, j) => <th key={j} className="border border-black bg-gray-100 px-2 py-1.5 font-bold text-left">{h}</th>)}</tr></thead>
+                                    <tbody>{b.rows.map((r, ri) => (
+                                        <tr key={ri}>{r.map((c, ci) => {
+                                            const cell = typeof c === 'string' ? { text: c } : c;
+                                            return <td key={ci} rowSpan={cell.rs || 1} className="border border-black px-2 py-1.5 align-middle text-left">{cell.text}</td>;
+                                        })}</tr>
+                                    ))}</tbody>
+                                </table>
+                            );
+                            if (b.t === 'consent') {
+                                const v = contract.consents && contract.consents[b.key];
+                                return (
+                                    <div key={i} className="border border-black px-4 py-3 text-center font-bold">
+                                        <p>{b.label}</p>
+                                        <p className="mt-1">(동의함 {v === 'agree' ? '■' : '□'} &nbsp; 동의하지 않음 {v === 'disagree' ? '■' : '□'})</p>
+                                    </div>
+                                );
+                            }
+                            return null;
+                        })}
+                    </div>
+                )}
+
                 {contract.templateType === 'standard_supplementary' && (
                     <div className="flex-1 text-[17px] leading-relaxed space-y-6">
                         <p className="font-bold">합의 대상자: {contract.name} 기사님</p>
@@ -443,7 +475,20 @@ const PdfTemplate = ({ contract, templateRef, preview = false }) => {
                     </div>
                 )}
 
-                {contract.templateType === 'accident_report' ? (
+                {isConsentType(contract.templateType) ? (
+                    <div className="mt-10 pt-6 border-t-[2px] border-black px-4 pb-4 text-[13px] font-bold space-y-3">
+                        <p className="text-center">{contract.signedDate ? contract.signedDate.replace(/-/g, '. ') : '서명 시 실제 서명일이 자동 기재됩니다'}</p>
+                        <p className="flex items-center justify-end gap-3 relative h-10">
+                            소속: 코끼리물류 &nbsp; 성명: {contract.name}
+                            {contract.signatureField && contract.signatureField.dataUrl ? (
+                                <img src={getProxiedImageUrl(contract.signatureField.dataUrl)} className="w-[110px] max-h-[56px] object-contain mix-blend-multiply opacity-90" alt="signature" />
+                            ) : (
+                                <span className="text-gray-400 font-normal text-[11px]">(서명)</span>
+                            )}
+                        </p>
+                        <p className="text-center pt-2">코끼리물류 대표 귀하</p>
+                    </div>
+                ) : contract.templateType === 'accident_report' ? (
                     <div className="mt-12 pt-8 border-t-[2px] border-black flex justify-between px-8 pb-4">
                         <div className="text-sm">
                             <p className="font-extrabold mb-3 text-base">작성자(사업주)</p>
@@ -490,7 +535,7 @@ const PdfTemplate = ({ contract, templateRef, preview = false }) => {
                         </div>
                     </div>
                 )}
-                <p className="text-center text-gray-500 font-bold mb-4 text-xs">{contract.templateType === 'accident_report' ? '조사표 작성 일자' : '계약서 작성 일자'}: {contract.date || '20   년  월  일'} | 전자서명 완료 일자: {contract.signedDate || '-'}</p>
+                {!isConsentType(contract.templateType) && <p className="text-center text-gray-500 font-bold mb-4 text-xs">{contract.templateType === 'accident_report' ? '조사표 작성 일자' : '계약서 작성 일자'}: {contract.date || '20   년  월  일'} | 전자서명 완료 일자: {contract.signedDate || '-'}</p>}
             </div>
         </div>
     );

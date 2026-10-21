@@ -1,8 +1,77 @@
 import React, { useState, useMemo, useRef } from 'react';
 import { jsPDF } from 'jspdf';
 import { toJpeg } from 'html-to-image';
-import { auth, db, storage } from './firebase';
+import firebase, { auth, db, storage } from './firebase';
 import { Icons, DraggableNode, SignaturePadModal, PdfTemplate } from './ui-components';
+import { SignaturePad } from './signature-pad';
+import { CONSENT_FORMS, isConsentType, consentKeysOf } from './consent-forms';
+
+// 기기 시간대(한국) 기준 오늘 날짜 YYYY-MM-DD (UTC로 바꾸면 새벽 시간대에 하루 전 날짜가 찍히는 문제 방지)
+const localDateStr = (d = new Date()) => `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+
+// 기사님이 계약서/동의서 내용을 직접 확인하고 (동의서는 항목별 동의 여부 선택) 서명하는 화면
+const ContractSignView = ({ contract, onClose, onSubmit }) => {
+    const [signature, setSignature] = useState(null);
+    const [ack, setAck] = useState(false);
+    const [answers, setAnswers] = useState({});
+    const [busy, setBusy] = useState(false);
+    const consentBlocks = isConsentType(contract.templateType) ? consentKeysOf(contract.templateType) : [];
+
+    const submit = async () => {
+        if (consentBlocks.some((b) => !answers[b.key])) return alert('모든 동의 항목에서 "동의함" 또는 "동의하지 않음"을 선택해주세요.');
+        if (!ack) return alert('문서 내용을 모두 확인했다는 체크를 해주세요.');
+        if (!signature) return alert('서명을 입력해주세요.');
+        if (consentBlocks.some((b) => answers[b.key] === 'disagree') && !window.confirm('"동의하지 않음"을 선택한 항목이 있습니다. 그대로 제출할까요?\n(동의하지 않으면 계약 체결이나 서비스 이용이 제한될 수 있습니다.)')) return;
+        setBusy(true);
+        try { await onSubmit(signature, consentBlocks.length ? answers : null); } finally { setBusy(false); }
+    };
+
+    return (
+        <div className="fixed inset-0 z-50 bg-black/50 flex items-end md:items-center justify-center md:p-6">
+            <div className="bg-white w-full md:max-w-[900px] max-h-[94vh] flex flex-col rounded-t-2xl md:rounded-2xl overflow-hidden">
+                <div className="flex items-center justify-between px-5 py-4 border-b border-gray-100 shrink-0">
+                    <h3 className="font-extrabold text-[16px]">{contract.title} — 내용 확인 및 서명</h3>
+                    <button onClick={onClose} className="text-gray-400 hover:text-gray-700 text-2xl leading-none px-2">&times;</button>
+                </div>
+                <div className="overflow-y-auto flex-1">
+                    <div className="bg-gray-100 p-3 md:p-6">
+                        <PdfTemplate contract={{ ...contract, consents: answers }} preview />
+                    </div>
+                    <div className="p-5 space-y-5">
+                        {consentBlocks.length > 0 && (
+                            <div className="space-y-3">
+                                <p className="font-extrabold text-[14px]">동의 여부 선택</p>
+                                {consentBlocks.map((b) => (
+                                    <div key={b.key} className="border border-gray-200 rounded-xl p-3">
+                                        <p className="text-[13.5px] font-bold text-gray-800 mb-2">{b.label}</p>
+                                        <div className="flex gap-2">
+                                            {[['agree', '동의함'], ['disagree', '동의하지 않음']].map(([v, l]) => (
+                                                <button key={v} type="button" onClick={() => setAnswers((a) => ({ ...a, [b.key]: v }))}
+                                                    className={`flex-1 py-2.5 rounded-lg border text-[14px] font-extrabold ${answers[b.key] === v ? (v === 'agree' ? 'bg-[#2E68ED] border-[#2E68ED] text-white' : 'bg-red-500 border-red-500 text-white') : 'bg-white border-gray-200 text-gray-600'}`}>{l}</button>
+                                            ))}
+                                        </div>
+                                    </div>
+                                ))}
+                            </div>
+                        )}
+                        <label className="flex items-start gap-2.5 cursor-pointer">
+                            <input type="checkbox" className="mt-1 w-5 h-5 accent-blue-600" checked={ack} onChange={(e) => setAck(e.target.checked)} />
+                            <span className="text-[14px] font-bold text-gray-800">위 문서의 내용을 모두 읽고 확인했습니다.</span>
+                        </label>
+                        <div>
+                            <p className="font-extrabold text-[14px] mb-1.5">서명</p>
+                            <SignaturePad onChange={setSignature} />
+                        </div>
+                    </div>
+                </div>
+                <div className="px-5 py-4 border-t border-gray-100 flex gap-3 shrink-0 bg-[#f8fafc]">
+                    <button onClick={onClose} className="flex-1 py-3 bg-white border border-gray-200 rounded-xl font-extrabold text-gray-700">취소</button>
+                    <button onClick={submit} disabled={busy} className="flex-[2] py-3 bg-[#2E68ED] text-white rounded-xl font-extrabold disabled:opacity-50">{busy ? '제출 중...' : '서명 제출'}</button>
+                </div>
+            </div>
+        </div>
+    );
+};
 
 const ADMIN_EMAIL = 's01025144826@gmail.com';
 
@@ -128,6 +197,8 @@ const ContractManagement = ({ user, contracts, setContracts, contacts }) => {
     const [activePdfContract, setActivePdfContract] = useState(null);
     const [signingContract, setSigningContract] = useState(null);
     const [previewContract, setPreviewContract] = useState(null);
+    const [consentTargets, setConsentTargets] = useState(new Set());
+    const [consentSearch, setConsentSearch] = useState('');
 
     const isAdmin = user && user.email === ADMIN_EMAIL;
     const [statusFilter, setStatusFilter] = useState('all');
@@ -231,6 +302,10 @@ const ContractManagement = ({ user, contracts, setContracts, contacts }) => {
     };
 
     const validateTemplateData = () => {
+        if (isConsentType(templateData.templateType)) {
+            if (consentTargets.size === 0) { alert('동의서를 받을 기사님을 한 명 이상 선택해주세요.'); return false; }
+            return true;
+        }
         if (!templateData.targetEmail) { alert('서명 요청을 수신할 기사님을 선택해주세요.'); return false; }
         if (templateData.templateType === 'standard_consignment' && !templateData.targetDate) {
             alert('계약 개시일을 입력해주세요.');
@@ -257,6 +332,7 @@ const ContractManagement = ({ user, contracts, setContracts, contacts }) => {
         if (templateType === 'standard_consignment') return '물류표준 위수탁계약서';
         if (templateType === 'standard_supplementary') return '부속합의서';
         if (templateType === 'accident_report') return '산업재해조사표';
+        if (isConsentType(templateType)) return CONSENT_FORMS[templateType].title;
         return '맞춤형 양식';
     };
 
@@ -277,6 +353,21 @@ const ContractManagement = ({ user, contracts, setContracts, contacts }) => {
     });
 
     const buildPreviewContract = () => {
+        if (isConsentType(templateData.templateType)) {
+            const firstEmail = Array.from(consentTargets)[0];
+            const firstContact = contacts?.find(c => c.email === firstEmail);
+            return {
+                name: firstContact?.name || (firstEmail || '').split('@')[0],
+                title: getTemplateTitle(templateData.templateType),
+                reqAdminName: user.name,
+                status: '서명대기',
+                date: localDateStr(),
+                templateType: templateData.templateType,
+                templateVersion: 'v2',
+                variables: {},
+                signatureField: null
+            };
+        }
         const targetContact = contacts?.find(c => c.email === templateData.targetEmail);
         const today = new Date().toISOString().split('T')[0];
         return {
@@ -303,8 +394,43 @@ const ContractManagement = ({ user, contracts, setContracts, contacts }) => {
         setPreviewContract(buildPreviewContract());
     };
 
+    const handleSendConsents = async () => {
+        const type = templateData.templateType;
+        const emails = Array.from(consentTargets);
+        const skipped = [];
+        let sent = 0;
+        try {
+            for (const email of emails) {
+                const contact = contacts?.find(c => c.email === email);
+                const name = contact?.name || email.split('@')[0];
+                // 이미 같은 동의서를 받았거나 서명 대기 중인 기사님은 중복 발송하지 않음
+                if ((contracts || []).some(x => x.templateType === type && x.targetEmail === email)) { skipped.push(name); continue; }
+                await db.collection('contracts').doc('contract_' + Date.now().toString() + '_' + sent).set({
+                    name,
+                    title: getTemplateTitle(type),
+                    ownerEmail: user.email,
+                    targetEmail: email,
+                    reqAdminName: user.name,
+                    status: '서명대기',
+                    date: localDateStr(),
+                    templateType: type,
+                    templateVersion: 'v2',
+                    variables: {},
+                    signatureField: null
+                });
+                sent += 1;
+            }
+            setShowTemplateModal(false);
+            setPreviewContract(null);
+            setConsentTargets(new Set());
+            setTemplateData(emptyTemplateData);
+            alert(`${sent}명에게 동의서 서명 요청을 발송했습니다.` + (skipped.length ? `\n\n이미 받은(또는 서명 대기 중인) 분은 건너뛰었습니다: ${skipped.join(', ')}` : ''));
+        } catch (e) { alert('발송 실패: ' + e.message); }
+    };
+
     const handleSendTemplate = async () => {
         if (!validateTemplateData()) return;
+        if (isConsentType(templateData.templateType)) return handleSendConsents();
 
         const targetContact = contacts?.find(c => c.email === templateData.targetEmail);
         const today = new Date().toISOString().split('T')[0];
@@ -339,14 +465,16 @@ const ContractManagement = ({ user, contracts, setContracts, contacts }) => {
         } catch (e) { alert('빌드 실패: ' + e.message); }
     };
 
-    const handleDriverSign = async (dataUrl) => {
+    const handleDriverSign = async (dataUrl, consents) => {
         try {
             await db.collection('contracts').doc(signingContract.id).update({
                 signatureField: { dataUrl: dataUrl, x: 0, y: 0 },
+                ...(consents ? { consents } : {}),
+                signedAt: firebase.firestore.FieldValue.serverTimestamp(),
                 status: '서명완료',
                 // 서명자가 본 문구 버전을 고정 (이후 계약서 문구가 개정돼도 서명본은 서명 당시 문구로 표시)
                 templateVersion: signingContract.templateVersion || 'v2',
-                signedDate: new Date().toISOString().split('T')[0]
+                signedDate: localDateStr()
             });
             setSigningContract(null);
             alert('서명이 성공적으로 접수되어 최종 PDF 계약서가 자동 생성되었습니다.');
@@ -396,7 +524,7 @@ const ContractManagement = ({ user, contracts, setContracts, contacts }) => {
 
 
     if (showBuilder) return <DocumentBuilder user={user} onClose={() => setShowBuilder(false)} onSaveContract={handleSaveBuilder} />;
-    if (signingContract) return <SignaturePadModal signingContract={signingContract} onClose={() => setSigningContract(null)} onSave={handleDriverSign} />;
+    if (signingContract) return <ContractSignView contract={signingContract} onClose={() => setSigningContract(null)} onSubmit={handleDriverSign} />;
 
     const availableDrivers = (contacts || []).filter(c => c.email && c.email !== ADMIN_EMAIL);
 
@@ -417,6 +545,9 @@ const ContractManagement = ({ user, contracts, setContracts, contacts }) => {
                         </button>
                         <button onClick={() => { setTemplateData({ ...templateData, templateType: 'standard_supplementary' }); setShowTemplateModal(true); }} className="flex items-center gap-1.5 whitespace-nowrap bg-[#2E68ED] hover:bg-blue-700 text-white px-5 py-2.5 rounded-xl font-bold shadow-[0_4px_12px_rgb(46,104,237,0.3)] transition-colors text-[14px]">
                             <Icons.FileText /> 부속합의서 즉시 등록
+                        </button>
+                        <button onClick={() => { setTemplateData({ ...templateData, templateType: 'consent_collect' }); setConsentTargets(new Set()); setShowTemplateModal(true); }} className="flex items-center gap-1.5 whitespace-nowrap bg-emerald-600 hover:bg-emerald-700 text-white px-5 py-2.5 rounded-xl font-bold shadow-[0_4px_12px_rgba(5,150,105,0.3)] transition-colors text-[14px]">
+                            <Icons.FileText /> 개인정보 동의서 발송
                         </button>
                         <button onClick={() => { setTemplateData({ ...templateData, templateType: 'accident_report' }); setShowTemplateModal(true); }} className="flex items-center gap-1.5 whitespace-nowrap bg-red-500 hover:bg-red-600 text-white px-5 py-2.5 rounded-xl font-bold shadow-[0_4px_12px_rgba(239,68,68,0.3)] transition-colors text-[14px]">
                             <Icons.AlertTriangle /> 산업재해조사표 작성
@@ -476,7 +607,7 @@ const ContractManagement = ({ user, contracts, setContracts, contacts }) => {
                         {visibleContracts.length === 0 ? <tr><td colSpan={5} className="py-16 text-center text-gray-400 font-bold">{statusFilter === 'all' ? '생성된 계약 문서가 없습니다.' : `해당하는 계약 문서가 없습니다.`}</td></tr> : visibleContracts.slice(0, contractVisible).map(c => (
                             <tr key={c.id} className="hover:bg-blue-50/20 transition-colors">
                                 <td className="px-6 py-5 font-bold text-[15px] text-gray-900">{c.name} <span className="text-gray-400 font-normal ml-1">({c.title})</span></td>
-                                <td className="px-6 py-5 text-[14px] font-medium text-gray-600">{c.templateType === 'standard_supplementary' ? '단가 부속합의서' : (c.templateType === 'custom' ? '맞춤 스캔양식' : (c.templateType === 'accident_report' ? '산업재해조사표' : '위수탁 표준양식'))}</td>
+                                <td className="px-6 py-5 text-[14px] font-medium text-gray-600">{isConsentType(c.templateType) ? CONSENT_FORMS[c.templateType].listLabel : c.templateType === 'standard_supplementary' ? '단가 부속합의서' : (c.templateType === 'custom' ? '맞춤 스캔양식' : (c.templateType === 'accident_report' ? '산업재해조사표' : '위수탁 표준양식'))}</td>
                                 <td className="px-6 py-5 text-[14px] font-medium text-gray-500">{c.signedDate || c.date}</td>
                                 <td className="px-6 py-5">
                                     {c.status === '서명대기' ? (
@@ -493,7 +624,7 @@ const ContractManagement = ({ user, contracts, setContracts, contacts }) => {
                                     )}
                                     {(c.status === '서명완료' || isAdmin || c.templateType === 'custom') && (
                                         <button onClick={() => handleDownloadClick(c)} disabled={activePdfContract?.id === c.id && isGeneratingPdf} className="inline-flex gap-1.5 items-center px-4 py-2 bg-gray-50 border border-gray-200 hover:border-gray-300 hover:bg-gray-100 text-gray-700 text-[14px] font-bold rounded-xl shadow-sm transition-colors disabled:opacity-50">
-                                            <Icons.Download /> {isGeneratingPdf && activePdfContract?.id === c.id ? '로딩..' : (c.templateType === 'standard_supplementary' ? '부속합의서 다운로드' : (c.templateType === 'accident_report' ? '조사표 다운로드' : '계약서 다운로드'))}
+                                            <Icons.Download /> {isGeneratingPdf && activePdfContract?.id === c.id ? '로딩..' : (c.templateType === 'standard_supplementary' ? '부속합의서 다운로드' : (c.templateType === 'accident_report' ? '조사표 다운로드' : (isConsentType(c.templateType) ? '동의서 다운로드' : '계약서 다운로드')))}
                                         </button>
                                     )}
                                     {isAdmin && c.status === '서명대기' && (
@@ -518,6 +649,8 @@ const ContractManagement = ({ user, contracts, setContracts, contacts }) => {
                 const lc = 'text-[13px] font-bold text-gray-700';
                 const isConsign = templateData.templateType === 'standard_consignment';
                 const isAccident = templateData.templateType === 'accident_report';
+                const isConsent = isConsentType(templateData.templateType);
+                const consentCandidates = (contacts || []).filter(d => d.email && d.email !== ADMIN_EMAIL && (!consentSearch.trim() || (d.name || '').includes(consentSearch.trim())));
                 const set = (patch) => setTemplateData({ ...templateData, ...patch });
                 return (
                 <div className="fixed inset-0 z-50 bg-[#0F172A]/40 backdrop-blur-sm flex justify-center items-center p-3 sm:p-6">
@@ -536,12 +669,44 @@ const ContractManagement = ({ user, contracts, setContracts, contacts }) => {
                                         <option value="standard_consignment">물류운송 위수탁계약서 (표준)</option>
                                         <option value="standard_supplementary">부속합의서</option>
                                         <option value="accident_report">산업재해조사표</option>
+                                        <option value="consent_collect">[별지] 개인정보 수집·이용 동의서</option>
+                                        <option value="consent_third">[별지] 개인정보 제3자 제공 동의서 (CLS 양식)</option>
+                                        <option value="consent_health">[별지] 종합건강검진 개인정보 수집·3자 제공 동의서</option>
                                     </select>
                                 </div>
+                                {!isConsent && (
                                 <div className="flex flex-col gap-1.5">
                                     <label className={lc}>작성일자 <span className="text-red-500">*</span></label>
                                     <input type="date" value={templateData.docDate} onChange={e => set({ docDate: e.target.value })} className={ic} />
                                 </div>
+                                )}
+                                {isConsent && (
+                                <div className="flex flex-col gap-1.5 sm:col-span-2">
+                                    <div className="flex items-center justify-between gap-2">
+                                        <label className={lc}>동의서를 받을 기사님 <span className="text-red-500">*</span> <span className="text-gray-400 font-medium">({consentTargets.size}명 선택)</span></label>
+                                        <div className="flex gap-2 text-[12px] font-bold">
+                                            <button type="button" className="text-blue-600" onClick={() => setConsentTargets(new Set(consentCandidates.map(d => d.email)))}>전체 선택</button>
+                                            <button type="button" className="text-gray-400" onClick={() => setConsentTargets(new Set())}>선택 해제</button>
+                                        </div>
+                                    </div>
+                                    <input type="text" placeholder="이름 검색" value={consentSearch} onChange={e => setConsentSearch(e.target.value)} className={ic} />
+                                    <div className="max-h-[220px] overflow-y-auto border border-gray-100 rounded-xl divide-y divide-gray-50">
+                                        {consentCandidates.map(d => {
+                                            const already = (contracts || []).some(x => x.templateType === templateData.templateType && x.targetEmail === d.email);
+                                            return (
+                                                <label key={d.id} className={`flex items-center gap-2.5 px-3 py-2 cursor-pointer hover:bg-gray-50 ${already ? 'opacity-50' : ''}`}>
+                                                    <input type="checkbox" className="w-4 h-4 accent-blue-600" checked={consentTargets.has(d.email)} onChange={e => { const n = new Set(consentTargets); if (e.target.checked) n.add(d.email); else n.delete(d.email); setConsentTargets(n); }} />
+                                                    <span className="text-[14px] font-bold">{d.name}</span>
+                                                    <span className="text-[12px] text-gray-400">{d.tag || ''}</span>
+                                                    {already && <span className="ml-auto text-[11.5px] font-bold text-amber-600">이미 발송됨</span>}
+                                                </label>
+                                            );
+                                        })}
+                                    </div>
+                                    <p className="text-[11.5px] text-gray-400 font-bold">동의일은 기사님이 서명하는 실제 날짜로 자동 기록됩니다. 이미 발송된 기사님은 건너뜁니다.</p>
+                                </div>
+                                )}
+                                {!isConsent && (
                                 <div className="flex flex-col gap-1.5 sm:col-span-2">
                                     <label className={lc}>서명 대상자 (기사님) <span className="text-red-500">*</span></label>
                                     <select
@@ -560,6 +725,7 @@ const ContractManagement = ({ user, contracts, setContracts, contacts }) => {
                                     </select>
                                     {isConsign && <p className="text-[11.5px] text-gray-400 font-bold">서류관리에서 자격증·차량번호를 등록해둔 기사님은 아래 번호가 자동으로 채워집니다.</p>}
                                 </div>
+                                )}
                             </div>
 
                             {templateData.templateType === 'standard_supplementary' && (
