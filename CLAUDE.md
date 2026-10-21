@@ -34,6 +34,9 @@ React 19 + Vite + Tailwind, Firebase(Auth/Firestore/Storage/Functions/FCM). 사�
 - **계약서 문구는 버전 관리**: 서명 완료된 기존 계약서는 `templateVersion` 없음 → v1 문구 유지. 새 문구는 v2에만 적용합니다.
 - 주민등록번호는 앱에서 수집·저장하지 않습니다(동의서는 동의만 받음). 서류 사진 업로드 시 가림 확인을 받습니다.
 - 접속기록(`accessLogs`)은 서버 함수만 쓰고 3년 이상 보관, 자동 삭제하지 않습니다.
+- **퇴사자 자동 파기**: `purgeExpiredPersonalData`(매일 03시)가 퇴사 처리(`resignedAt`) 후 12개월 지난 회원정보·연락처·서류 사본·유지비·로그인 계정을 파기하고 `destructionLogs`에 기록합니다. 계약서·동의서·서약서·교육·접속기록·업무내역·안전보건 기록은 파기하지 않습니다(보존 기간은 대표가 별도 확인).
+- **Cloud Storage**: 규칙은 `storage.rules`(서울 `asia-northeast3`). 경로는 `vehicleDocs|safety_education|accident_reports/{이메일}/…`, `privacy/pledges/{이메일}/…`, `privacy/training/…`. 새 경로는 규칙을 명시하세요.
+- Firestore 시점 복구(PITR 7일)와 삭제 방지가 켜져 있습니다.
 - 개인정보 처리방침·동의서 문구는 법률 자문이 아닌 초안입니다. 사실이 아닌 내용을 쓰지 않습니다.
 
 ## 알려진 미해결/주의

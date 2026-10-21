@@ -355,9 +355,27 @@ const DestructionSection = ({ user, checks }) => {
     );
 };
 
-export const IncidentDestructionTab = ({ user, checks }) => (
+// 퇴사 후 12개월이 지나면 서버가 매일 새벽 3시에 자동 파기합니다. (functions/index.js purgeExpiredPersonalData)
+const RETENTION_MONTHS = 12;
+const AutoPurgeNotice = ({ members }) => {
+    const upcoming = (members || [])
+        .filter((m) => m.isActive === false && toDate(m.resignedAt))
+        .map((m) => { const d = new Date(toDate(m.resignedAt)); d.setMonth(d.getMonth() + RETENTION_MONTHS); return { name: m.name || '이름 없음', due: d }; })
+        .sort((a, b) => a.due - b.due);
+    return (
+        <div className={`${card} p-4 bg-emerald-50/40 border-emerald-200 text-[13px] text-gray-700 font-medium leading-relaxed`}>
+            <p className="font-extrabold text-[14px] text-emerald-800 mb-1">⏱ 퇴사자 정보 자동 파기 (보유기간 {RETENTION_MONTHS}개월)</p>
+            <p>퇴사 처리 후 {RETENTION_MONTHS}개월이 지나면 매일 새벽 3시에 <b>회원정보·비상연락망·서류 사본·차량 유지비 기록·로그인 계정</b>을 자동 파기하고, 위 대장에 "시스템(자동 파기)"으로 기록합니다.</p>
+            <p className="mt-1 text-gray-500">계약서·동의서·서약서·교육 이수·접속기록·업무내역·안전보건 기록은 증빙·법령 보존을 위해 자동 파기하지 않습니다. 이 자료의 보존 기간은 별도로 확인해 정해 주세요.</p>
+            {upcoming.length > 0 && <p className="mt-2">파기 예정: {upcoming.slice(0, 5).map((u) => `${u.name} (${fmtDate(u.due)})`).join(', ')}{upcoming.length > 5 ? ` 외 ${upcoming.length - 5}명` : ''}</p>}
+        </div>
+    );
+};
+
+export const IncidentDestructionTab = ({ user, checks, members }) => (
     <div className="space-y-8">
         <IncidentSection user={user} />
+        <AutoPurgeNotice members={members} />
         <DestructionSection user={user} checks={checks} />
     </div>
 );

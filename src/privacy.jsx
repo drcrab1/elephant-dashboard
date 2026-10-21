@@ -645,7 +645,7 @@ const PrivacyManagement = ({ user, contacts = [], contracts = [], setActivePage 
                 {tab === 'pledge' && <PledgeTab members={members} pledges={pledges} />}
                 {tab === 'training' && <TrainingTab user={user} members={members} />}
                 {tab === 'accesslog' && <AccessLogTab />}
-                {tab === 'incidents' && <IncidentDestructionTab user={user} checks={checks} />}
+                {tab === 'incidents' && <IncidentDestructionTab user={user} checks={checks} members={members} />}
             </div>
         </main>
     );

@@ -244,6 +244,60 @@ exports.logAccess = onCall(async (request) => {
     return { ok: true };
 });
 
+// --- 퇴사자 개인정보 자동 파기: 퇴사 처리 후 보유기간(12개월)이 지나면 매일 새벽 3시에 파기하고 파기 대장에 기록 ---
+// 파기 대상: 회원정보(users), 비상연락망 항목, 서류 사본(문서 기록 + 저장소 사진), 차량 유지비 기록, 구글(Firebase) 로그인 계정
+// 보존(파기하지 않음): 계약서·동의서·서약서·교육 이수 기록·접속기록·업무내역·안전보건 기록 — 법령·정산·증빙 목적의 별도 보존 대상
+const RETENTION_MONTHS = 12;
+const STORAGE_BUCKET = 'elephant-logistics.firebasestorage.app';
+
+const deleteByEmail = async (collection, email) => {
+    const snap = await db.collection(collection).where('email', '==', email).get();
+    await Promise.all(snap.docs.map((d) => d.ref.delete()));
+    return snap.size;
+};
+
+exports.purgeExpiredPersonalData = onSchedule({ schedule: '0 3 * * *', timeZone: 'Asia/Seoul' }, async () => {
+    const cutoff = new Date();
+    cutoff.setMonth(cutoff.getMonth() - RETENTION_MONTHS);
+    const snap = await db.collection('users').where('isActive', '==', false).get();
+    for (const doc of snap.docs) {
+        const u = doc.data();
+        const resignedAt = u.resignedAt && u.resignedAt.toDate ? u.resignedAt.toDate() : null;
+        if (!resignedAt || resignedAt > cutoff) continue;
+        const email = doc.id;
+        if (email === ADMIN_EMAIL) continue;
+        try {
+            const counts = {};
+            counts.contacts = await deleteByEmail('contacts', email);
+            counts.vehicleDocs = await deleteByEmail('vehicleDocs', email);
+            counts.vehicleCosts = await deleteByEmail('vehicleCosts', email);
+            try {
+                await admin.storage().bucket(STORAGE_BUCKET).deleteFiles({ prefix: `vehicleDocs/${email}/` });
+            } catch (se) { console.warn('저장소 파일 삭제 확인 필요', email, se.message); }
+            let authDeleted = false;
+            try {
+                const au = await admin.auth().getUserByEmail(email);
+                await admin.auth().deleteUser(au.uid);
+                authDeleted = true;
+            } catch (ae) { if (ae.code !== 'auth/user-not-found') console.warn('로그인 계정 삭제 확인 필요', email, ae.message); }
+            await doc.ref.delete();
+            await db.collection('destructionLogs').add({
+                category: '퇴사자 계정·회원정보',
+                subject: `${u.name || '이름 없음'} — 회원정보·비상연락망·서류 사본(${counts.vehicleDocs}건)·유지비 기록(${counts.vehicleCosts}건)·로그인 계정${authDeleted ? '' : '(없음)'}`,
+                reason: '보유기간 경과',
+                method: '전자파일 영구 삭제(복구 불가)',
+                count: `서류 ${counts.vehicleDocs}건, 유지비 ${counts.vehicleCosts}건, 연락처 ${counts.contacts}건`,
+                performer: '시스템(자동 파기)',
+                createdBy: 'system',
+                createdAt: admin.firestore.FieldValue.serverTimestamp(),
+            });
+            console.log('퇴사자 개인정보 파기 완료', email, counts);
+        } catch (e) {
+            console.error('퇴사자 개인정보 파기 실패', email, e);
+        }
+    }
+});
+
 // --- 10분마다 실행: 설정된 시각이 되면, 오늘 배차된 기사님께만 TBM 알림 발송 ---
 exports.dailyTbmReminder = onSchedule({ schedule: 'every 10 minutes', timeZone: 'Asia/Seoul' }, async () => {
     const settingsRef = db.collection('settings').doc('notificationSettings');
