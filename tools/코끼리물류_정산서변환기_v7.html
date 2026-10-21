@@ -1,0 +1,1361 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>코끼리물류 정산서 변환기 v2</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/exceljs/4.4.0/exceljs.min.js"></script>
+<link href="https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@300;400;500;600;700;900&display=swap" rel="stylesheet">
+<style>
+*{margin:0;padding:0;box-sizing:border-box}
+body{font-family:'Noto Sans KR',sans-serif;background:#0c0c14;color:#d0d0d0;min-height:100vh}
+.app{max-width:1200px;margin:0 auto;padding:32px 20px}
+.hdr{text-align:center;margin-bottom:40px}
+.hdr h1{font-size:28px;font-weight:900;background:linear-gradient(135deg,#4fc3f7,#7c4dff,#e040fb);-webkit-background-clip:text;-webkit-text-fill-color:transparent;letter-spacing:-1px;margin-bottom:6px}
+.hdr p{font-size:13px;color:#555;font-weight:300}
+.sec{background:#13131e;border:1px solid #222;border-radius:14px;padding:28px;margin-bottom:20px}
+.sec:hover{border-color:#2a2a3a}
+.sec-t{font-size:15px;font-weight:700;color:#7c4dff;margin-bottom:16px;display:flex;align-items:center;gap:8px}
+.sec-t .n{background:#7c4dff;color:#fff;width:22px;height:22px;border-radius:5px;display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:900}
+.dz{border:2px dashed #333;border-radius:12px;padding:40px;text-align:center;cursor:pointer;transition:all .3s}
+.dz:hover,.dz.over{border-color:#7c4dff;background:rgba(124,77,255,.04)}
+.dz.ok{border-color:#4caf50;background:rgba(76,175,80,.04)}
+.dz input{display:none}
+.dz .ic{font-size:40px;margin-bottom:12px;display:block}
+.dz .lb{font-size:14px;color:#666}
+.dz .fn{font-size:13px;color:#4caf50;font-weight:600;margin-top:8px}
+.help{font-size:11px;color:#444;margin-top:8px;line-height:1.7}
+.sbar{display:flex;gap:16px;flex-wrap:wrap;margin-bottom:20px}
+.si{flex:1;min-width:120px;background:#1a1a28;border-radius:10px;padding:14px;text-align:center}
+.si .sl{font-size:10px;color:#555;margin-bottom:2px}
+.si .sv{font-size:18px;font-weight:700;color:#4fc3f7}
+.si .sv.tot{color:#e040fb}
+.si .sv.red{color:#ff5252}
+.tabs{display:flex;gap:4px;margin-bottom:16px;flex-wrap:wrap}
+.tab{padding:7px 14px;background:#1a1a28;border:1px solid #252535;border-radius:7px;font-size:12px;color:#777;cursor:pointer;font-family:inherit;transition:all .2s}
+.tab.on{background:#7c4dff;color:#fff;border-color:#7c4dff}
+table.pt{width:100%;border-collapse:collapse;font-size:12px}
+.pt th{background:#1a1a28;padding:8px 10px;text-align:center;font-weight:600;color:#999;border-bottom:2px solid #333;font-size:11px}
+.pt td{padding:6px 10px;border-bottom:1px solid #1c1c2c;text-align:center}
+.pt tr:hover td{background:#161624}
+.pt input,.adj input,.ded input{background:#0a0a10;border:1px solid #2a2a3a;border-radius:5px;padding:5px 7px;color:#d0d0d0;text-align:right;font-family:inherit;font-size:12px;width:72px}
+.pt input:focus,.adj input:focus,.ded input:focus{outline:none;border-color:#7c4dff}
+.dc{background:#1a1a28;border:1px solid #252535;border-radius:10px;padding:14px;font-size:12px;margin-bottom:10px}
+.dc .nm{font-weight:700;color:#e040fb;font-size:13px}
+.dc .id{color:#555;font-size:11px;margin-bottom:6px}
+.dc .sts{display:flex;gap:14px;flex-wrap:wrap;margin-bottom:8px}
+.dc .st-l{font-size:10px;color:#444}
+.dc .st-v{font-weight:600;color:#4fc3f7}
+.ch{cursor:pointer;display:flex;justify-content:space-between;align-items:center;padding:4px 0}
+.ch:hover{color:#7c4dff}
+.ar{transition:transform .3s;display:inline-block;font-size:10px}
+.ar.op{transform:rotate(90deg)}
+.dg{display:grid;grid-template-columns:repeat(auto-fill,minmax(320px,1fr));gap:10px;margin-top:12px}
+.adj{width:100%;border-collapse:collapse;font-size:11px;margin-top:8px}
+.adj th{background:#111;padding:6px;text-align:center;font-weight:500;color:#666;border-bottom:1px solid #252535}
+.adj td{padding:4px 6px;border-bottom:1px solid #1a1a2a;text-align:center}
+.ded{display:flex;gap:6px;align-items:center;margin-bottom:5px}
+.ded input:first-child{flex:1;text-align:left}
+.ded input:last-of-type{width:90px}
+.rm{background:#ff5252;border:none;color:#fff;width:22px;height:22px;border-radius:4px;cursor:pointer;font-size:13px;display:flex;align-items:center;justify-content:center}
+.add{background:#1e1e2e;border:1px dashed #333;color:#666;padding:5px 10px;border-radius:5px;cursor:pointer;font-size:11px;font-family:inherit;margin-top:4px}
+.add:hover{border-color:#7c4dff;color:#7c4dff}
+.btn{width:100%;padding:16px;background:linear-gradient(135deg,#7c4dff,#e040fb);border:none;border-radius:12px;color:#fff;font-size:17px;font-weight:700;font-family:inherit;cursor:pointer;transition:all .3s;letter-spacing:-.5px}
+.btn:hover{transform:translateY(-2px);box-shadow:0 8px 32px rgba(124,77,255,.3)}
+.btn:disabled{opacity:.3;cursor:not-allowed;transform:none;box-shadow:none}
+.log{background:#0a0a10;border:1px solid #1a1a2a;border-radius:8px;padding:12px;margin-top:16px;max-height:180px;overflow-y:auto;font-size:11px;color:#555;line-height:1.8}
+.log .ok{color:#4caf50}.log .warn{color:#ff9800}.log .info{color:#4fc3f7}
+.info-box{background:#111;border:1px solid #252535;border-radius:10px;padding:16px;margin-top:12px;font-size:12px;line-height:1.8;color:#888}
+.info-box h4{color:#4fc3f7;font-size:13px;margin-bottom:8px}
+.info-box .tag{display:inline-block;background:#1a1a28;border:1px solid #333;border-radius:4px;padding:2px 8px;font-size:11px;margin:2px;color:#d0d0d0}
+.save-bar{display:flex;gap:8px;margin-top:12px;justify-content:flex-end}
+.save-bar button{padding:6px 16px;border-radius:6px;border:1px solid #333;background:#1a1a28;color:#d0d0d0;font-family:inherit;font-size:12px;cursor:pointer}
+.save-bar button.primary{background:#7c4dff;border-color:#7c4dff;color:#fff}
+.save-bar button:hover{opacity:.85}
+.badge{display:inline-block;background:#4caf50;color:#fff;font-size:9px;padding:1px 6px;border-radius:3px;margin-left:6px;font-weight:600}
+</style>
+</head>
+<body>
+<div class="app" id="app"></div>
+<script>
+let ROUTES=['001C','001D','323C','323D','402C','402D','452A','452B','452C','452D','454A','454B','454D','503A','503B','503C','503D','901C','901D'];
+const BASE_PRICES={'001C':1140,'001D':1040,'323C':1070,'323D':1070,'402C':1160,'402D':930,'452A':1100,'452B':1100,'452C':1150,'452D':1150,'454A':1110,'454B':1150,'454D':1110,'503A':1080,'503B':1080,'503C':1060,'503D':1060,'901C':1020,'901D':1020};
+const ID_NAME={};
+
+let S={file:null,data:null,prices:{...BASE_PRICES},priceChange:{enabled:false,date:'',pricesAfter:{...BASE_PRICES}},drivers:[],logs:[],tab:'drivers',open:{},savedPrices:null,
+  ins:{goyang:{},sanjae:{},nameMap:{},_deleted:{},gFile:null,sFile:null},excluded:new Set()};
+
+// ===== STORAGE =====
+async function saveDriverPrices(){
+  const d={};
+  S.drivers.forEach(dr=>{
+    const dpc=dr.priceChange||{enabled:false,date:'',adjAfter:{}};
+    d[dr.id]={name:dr.name||'',adj:{...dr.adjustments},ded:(dr.deductions||[]).map(x=>({...x})),
+      priceChange:{enabled:!!dpc.enabled,date:dpc.date||'',adjAfter:{...(dpc.adjAfter||{})}}};
+  });
+  d._basePrices={...S.prices};
+  d._priceChange={enabled:S.priceChange.enabled,date:S.priceChange.date,pricesAfter:{...S.priceChange.pricesAfter}};
+  d._nameMap={...S.ins.nameMap};
+  d._insDeleted={...S.ins._deleted};
+  d._insGoyang={...S.ins.goyang};
+  d._insSanjae={...S.ins.sanjae};
+  // 기사별 보험료 미리 계산해서 저장
+  const insPerDriver={};
+  S.drivers.forEach(dr=>{
+    const ins=getInsuranceForDriver(dr.id);
+    if(ins.goyang>0||ins.sanjae>0)insPerDriver[dr.id]={g:ins.goyang,s:ins.sanjae};
+  });
+  d._insPerDriver=insPerDriver;
+  try{
+    if(window.storage){await window.storage.set('elephant-driver-prices',JSON.stringify(d))}
+    else{localStorage.setItem('elephant-driver-prices',JSON.stringify(d))}
+    addLog('기사별 단가 설정 저장 완료','ok');
+  }catch(e){addLog('저장 실패: '+e.message,'warn')}
+}
+async function loadDriverPrices(){
+  try{
+    let raw;
+    if(window.storage){const r=await window.storage.get('elephant-driver-prices');raw=r?r.value:null}
+    else{raw=localStorage.getItem('elephant-driver-prices')}
+    if(raw){S.savedPrices=JSON.parse(raw);addLog('저장된 기사별 단가 설정 로드 완료','ok');return true}
+  }catch(e){}
+  return false;
+}
+function applySavedPrices(){
+  if(!S.savedPrices)return;
+  // BASE_PRICES → 이번 파싱에서 감지된 단가(신규 노선 포함) → 저장된 단가 순으로 병합
+  // (신규 노선은 BASE_PRICES/저장된 값에 없을 수 있으므로 S.prices의 현재값을 보존해야 함)
+  if(S.savedPrices._basePrices)S.prices={...BASE_PRICES,...S.prices,...S.savedPrices._basePrices};
+  if(S.savedPrices._priceChange){
+    S.priceChange={...S.priceChange,...S.savedPrices._priceChange,pricesAfter:{...BASE_PRICES,...S.priceChange.pricesAfter,...(S.savedPrices._priceChange.pricesAfter||{})}};
+  }
+  if(S.savedPrices._nameMap){
+    const nm=S.savedPrices._nameMap;
+    Object.entries(nm).forEach(([name,val])=>{
+      if(typeof val==='string')S.ins.nameMap[name]={id:val,gRate:100,sRate:100};
+      else S.ins.nameMap[name]={id:val.id||'',gRate:val.gRate!=null?val.gRate:100,sRate:val.sRate!=null?val.sRate:100};
+    });
+  }
+  if(S.savedPrices._insDeleted)S.ins._deleted={...S.savedPrices._insDeleted};
+  if(S.savedPrices._insGoyang&&Object.keys(S.ins.goyang).length===0)S.ins.goyang={...S.savedPrices._insGoyang};
+  if(S.savedPrices._insSanjae&&Object.keys(S.ins.sanjae).length===0)S.ins.sanjae={...S.savedPrices._insSanjae};
+  // 저장된 기사별 보험료 직접 적용
+  if(S.savedPrices._insPerDriver){
+    S.drivers.forEach(dr=>{
+      const iv=S.savedPrices._insPerDriver[dr.id];
+      if(iv){dr._insGoyang=iv.g||0;dr._insSanjae=iv.s||0}
+    });
+  }
+  S.drivers.forEach(dr=>{
+    const sv=S.savedPrices[dr.id];
+    if(sv){
+      if(!dr.name&&sv.name)dr.name=sv.name;
+      dr.adjustments=sv.adj||{};
+      dr.deductions=(sv.ded||[]).map(x=>({...x}));
+      dr.priceChange=sv.priceChange?{enabled:!!sv.priceChange.enabled,date:sv.priceChange.date||'',adjAfter:{...(sv.priceChange.adjAfter||{})}}:{enabled:false,date:'',adjAfter:{}};
+    }
+  });
+  splitRoutesByDate();
+}
+
+function fmt(n){return n==null||isNaN(n)?'0':Number(n).toLocaleString('ko-KR')}
+function addLog(m,t='info'){S.logs.push({m,t,time:new Date().toLocaleTimeString()})}
+function getSheet(key){return S.data&&S.data._wb?S.data._wb.Sheets[S.data['_sheet_'+key]||key]:null}
+// ===== PARSE =====
+function parseFile(file){
+  // 파일 확장자 체크
+  if(!file.name.match(/\.(xlsx|xls)$/i)){
+    addLog('⚠️ xlsx/xls 파일만 업로드 가능합니다. 업로드된 파일: '+file.name,'warn');
+    S.file=file;
+    render();
+    return;
+  }
+  const r=new FileReader();
+  r.onload=function(e){
+    try{
+      const wb=XLSX.read(e.target.result,{type:'array',cellDates:true});
+      S.file=file;S.data={_wb:wb};
+      addLog('파일 로드 성공: '+wb.SheetNames.join(', '),'ok');
+
+      // 시트명 매핑 (쿠팡 구버전/신버전 호환)
+      const SHEET_MAP={
+        '정산총괄':['정산총괄','정산 총괄 요약'],
+        '정산Raw':['정산Raw','정산원천데이터'],
+        '분실파손List':['분실파손List','분실및파손'],
+        '정산서이력List':['정산서이력List','정산서 수정이력']
+      };
+      for(const [key,candidates] of Object.entries(SHEET_MAP)){
+        const found=candidates.find(c=>wb.SheetNames.includes(c));
+        if(found){
+          S.data[key]=XLSX.utils.sheet_to_json(wb.Sheets[found],{header:1,defval:'',raw:false});
+          S.data['_sheet_'+key]=found; // 실제 시트명 저장
+          addLog(found+' → '+key+' 로드','ok');
+        }
+      }
+      try{processDrivers()}catch(e2){addLog('processDrivers 오류: '+e2.message,'warn');console.error(e2)}
+      try{applySavedPrices()}catch(e3){addLog('applySavedPrices 오류: '+e3.message,'warn');console.error(e3)}
+      render();
+    }catch(err){S.file=file;addLog('파싱 오류: '+err.message,'warn');console.error(err);render()}
+  };
+  r.onerror=function(){addLog('파일 읽기 실패','warn');S.file=file;render()};
+  r.readAsArrayBuffer(file);
+}
+
+function processDrivers(){
+  const raw=S.data['정산Raw'];if(!raw||raw.length<2)return;
+  const srcSheet=getSheet('정산Raw');
+
+  // 1) 정산Raw에서 프레쉬백 O열 직접 읽기 (sheet_to_json이 빈 열 잘라먹는 문제 방지)
+  const fbFromRaw={};
+  if(srcSheet){
+    const range=XLSX.utils.decode_range(srcSheet['!ref']||'A1');
+    for(let r=1;r<=range.e.r;r++){
+      const aCell=srcSheet[XLSX.utils.encode_cell({r,c:0})];
+      const type=String((aCell&&aCell.v)||'');
+      if(type.includes('프레쉬백')||type.includes('프레시백')||type.includes('재사용포장재')){
+        const bCell=srcSheet[XLSX.utils.encode_cell({r,c:1})];
+        const id=String((bCell&&bCell.v)||'').trim();
+        const oCell=srcSheet[XLSX.utils.encode_cell({r,c:14})]; // O열 = col index 14
+        const amt=Number((oCell&&oCell.v)||0);
+        if(id&&amt){fbFromRaw[id]=(fbFromRaw[id]||0)+amt}
+      }
+    }
+  }
+
+  // 2) 분실파손List에서 ID별 합산 (시트 직접 읽기 - 구/신 포맷 호환)
+  const ldFromList={};
+  const ldSheet=getSheet('분실파손List');
+  if(ldSheet){
+    const ldRange=XLSX.utils.decode_range(ldSheet['!ref']||'A1');
+    // 헤더에서 차감금액 열 위치 자동 감지
+    let amtCol=7; // 기본값: H열(구버전 index 7)
+    const hdrG=ldSheet[XLSX.utils.encode_cell({r:0,c:6})];
+    if(hdrG&&String(hdrG.v||'').includes('차감금액'))amtCol=6; // G열(신버전 index 6)
+    // 이름 열 감지 (구버전 D=이름, 신버전 D=유형)
+    const hdrD=ldSheet[XLSX.utils.encode_cell({r:0,c:3})];
+    const hasName=hdrD&&String(hdrD.v||'').includes('이름');
+    addLog(`분실파손 차감금액 열: ${amtCol===6?'G열(신버전)':'H열(구버전)'}`, 'info');
+
+    for(let r=1;r<=ldRange.e.r;r++){
+      const cCell=ldSheet[XLSX.utils.encode_cell({r,c:2})]; // C열=ID
+      const amtCell=ldSheet[XLSX.utils.encode_cell({r,c:amtCol})]; // 차감금액
+      const id=String((cCell&&cCell.v)||'').trim();
+      const amt=Number((amtCell&&amtCell.v)||0);
+      if(id&&amt){ldFromList[id]=(ldFromList[id]||0)+amt}
+      if(hasName){
+        const dCell=ldSheet[XLSX.utils.encode_cell({r,c:3})];
+        const nm=String((dCell&&dCell.v)||'').trim();
+        if(id&&nm)ID_NAME[id]=nm;
+      }
+    }
+  }
+
+  // 3) 정산Raw 배송 데이터 파싱
+  const dm={};
+  for(let i=1;i<raw.length;i++){
+    const row=raw[i],type=String(row[0]||''),id=String(row[1]||'').trim(),route=String(row[2]||'').trim();
+    const qty=Number(row[7])||0,ret=Number(row[8])||0,up=Number(row[9])||0;
+    const ai=Number(row[10])||0,baseAmt=Number(row[11])||0,aiAmt=Number(row[12])||0;
+    const total=Number(row[13])||0;
+    if(!id||id.includes('영업점'))continue;
+    if(!dm[id])dm[id]={id,routes:{},totalQty:0,totalRet:0,totalBaseAmt:0,totalAiAmt:0,totalAmt:0,rawRows:[],incentiveRates:{}};
+    const d=dm[id];
+    if(type==='배송'||type==='수기반영'||type==='반품'){
+      if(route){
+        if(!d.routes[route])d.routes[route]={qty:0,ret:0,cp:up,baseAmt:0};
+        d.routes[route].qty+=qty;d.routes[route].ret+=ret;d.routes[route].baseAmt+=baseAmt;
+        if(up>0)d.routes[route].cp=up;
+        if(ai>0){const aiVat=Math.round(ai*1.1);if(!d.incentiveRates[aiVat])d.incentiveRates[aiVat]=0;d.incentiveRates[aiVat]+=qty}
+      }
+      d.totalQty+=qty;d.totalRet+=ret;d.totalBaseAmt+=baseAmt;d.totalAiAmt+=aiAmt;d.totalAmt+=total;
+      d.rawRows.push(row);
+    }else if(type.includes('프레쉬백')||type.includes('프레시백')||type.includes('재사용포장재')){
+      d.rawRows.push(row); // raw rows만 보관, 금액은 fbFromRaw에서
+    }else if(type==='미계약 라우트'){d.rawRows.push(row)}
+    else{d.rawRows.push(row)}
+  }
+
+  // 3-1) 신규 노선 자동 감지 및 등록 (ROUTES/단가표에 없는 노선이 정산Raw에 나타난 경우)
+  {
+    const foundRoutes=new Set();
+    Object.values(dm).forEach(d=>Object.keys(d.routes).forEach(rt=>foundRoutes.add(rt)));
+    const newRoutes=[...foundRoutes].filter(rt=>!ROUTES.includes(rt)).sort();
+    if(newRoutes.length){
+      newRoutes.forEach(rt=>{
+        ROUTES.push(rt);
+        // 기본 단가: 정산Raw의 쿠팡 단가(cp)가 있으면 사용, 없으면 0 (단가표 탭에서 확인/수정 필요)
+        let cp=0;
+        Object.values(dm).forEach(d=>{if(d.routes[rt]&&d.routes[rt].cp>0)cp=d.routes[rt].cp});
+        if(S.prices[rt]===undefined)S.prices[rt]=cp;
+        if(S.priceChange.pricesAfter[rt]===undefined)S.priceChange.pricesAfter[rt]=cp;
+      });
+      addLog(`🆕 신규 노선 감지: ${newRoutes.join(', ')} — 단가표에 자동 등록되었습니다. "단가" 탭에서 금액을 확인/수정해 주세요.`,'warn');
+    }
+  }
+
+  // 4) 드라이버 목록 생성
+  // 배송건수(totalQty)가 0이어도 프레시백 회수나 분실파손 금액이 있으면 목록에 포함시켜야
+  // 해당 기사의 개인시트에 프레시백 회수 인센티브가 반영됨
+  S.drivers=Object.values(dm).filter(d=>!d.id.includes('에코백')&&(d.totalQty>0||(fbFromRaw[d.id]||0)>0||(ldFromList[d.id]||0)>0))
+    .map(d=>({...d,
+      name:(ID_NAME[d.id]&&!ID_NAME[d.id].includes('분실')&&!ID_NAME[d.id].includes('파손')?ID_NAME[d.id]:''),
+      fbTotal:fbFromRaw[d.id]||0,        // 정산Raw O열 합산
+      lostDamage:ldFromList[d.id]||0,     // 분실파손List H열 ID별 합산
+      adjustments:{},deductions:[],priceChange:{enabled:false,date:'',adjAfter:{}}}))
+    .sort((a,b)=>b.totalQty-a.totalQty);
+
+  const eco=Object.values(dm).filter(d=>d.id.includes('에코백'));
+  if(eco.length)S.data._eco=eco;
+  addLog(`기사 ${S.drivers.length}명 처리 완료`,'ok');
+  // 검증 로그
+  const totalFb=S.drivers.reduce((s,d)=>s+d.fbTotal,0);
+  const totalLd=S.drivers.reduce((s,d)=>s+d.lostDamage,0);
+  addLog(`프레쉬백 합계: ${totalFb.toLocaleString()}원 (정산Raw O열)`, 'info');
+  addLog(`분실파손 합계: ${totalLd.toLocaleString()}원 (분실파손List)`, 'info');
+  S.drivers.filter(d=>d.lostDamage>0).forEach(d=>{
+    addLog(`  └ ${d.name||d.id}: 분실파손 ${d.lostDamage.toLocaleString()}원`, 'warn');
+  });
+  splitRoutesByDate();
+}
+
+// 전체(회사 공통) 단가 변경일 또는 기사 개인 단가 변경일 중, 그 기사에게 적용되는 날짜를 기준으로
+// 정산Raw를 한 번만 훑어서 라우트별 배송건수를 "변경 전/후"로 나눕니다.
+// 기사 개인 설정이 켜져 있으면 그 날짜가 우선이고, 없으면 전체 단가 변경일을 씁니다.
+function getEffectiveChangeDate(dr){
+  if(dr.priceChange&&dr.priceChange.enabled&&dr.priceChange.date)return dr.priceChange.date;
+  if(S.priceChange.enabled&&S.priceChange.date)return S.priceChange.date;
+  return null;
+}
+function splitRoutesByDate(){
+  const srcSheet=getSheet('정산Raw');
+  if(!srcSheet)return;
+
+  // 기본값: 분리 없음 (전체 수량 = 변경 전)
+  S.drivers.forEach(dr=>{
+    Object.values(dr.routes).forEach(rd=>{rd.qtyBefore=rd.qty;rd.qtyAfter=0});
+  });
+
+  const anyDate=S.drivers.some(dr=>getEffectiveChangeDate(dr));
+  if(!anyDate)return;
+
+  const range=XLSX.utils.decode_range(srcSheet['!ref']||'A1');
+  const idRows={}; // id -> [{route,date,qty}]
+  for(let r=1;r<=range.e.r;r++){
+    const tC=srcSheet[XLSX.utils.encode_cell({r,c:0})];
+    const type=String((tC&&tC.v)||'');
+    if(type!=='배송'&&type!=='수기반영'&&type!=='반품')continue;
+    const idC=srcSheet[XLSX.utils.encode_cell({r,c:1})];
+    const rtC=srcSheet[XLSX.utils.encode_cell({r,c:2})];
+    const dtC=srcSheet[XLSX.utils.encode_cell({r,c:3})];
+    const qtC=srcSheet[XLSX.utils.encode_cell({r,c:7})];
+    const id=String((idC&&idC.v)||'').trim();
+    const route=String((rtC&&rtC.v)||'').trim();
+    const qty=Number((qtC&&qtC.v)||0);
+    if(!id||!route)continue;
+    let dd=null;
+    if(dtC&&dtC.v){
+      if(dtC.v instanceof Date)dd=dtC.v;
+      else{dd=new Date(dtC.v);if(isNaN(dd))dd=null}
+    }
+    if(!idRows[id])idRows[id]=[];
+    idRows[id].push({route,date:dd,qty});
+  }
+
+  S.drivers.forEach(dr=>{
+    const effDateStr=getEffectiveChangeDate(dr);
+    if(!effDateStr)return;
+    // 적용일 "당일부터"가 변경 후 단가입니다. 시·분·시간대 차이로 당일이 전날로 계산되지 않도록 날짜(년-월-일)끼리 비교합니다.
+    const changeKey=String(effDateStr).slice(0,10);
+    if(!/^\d{4}-\d{2}-\d{2}$/.test(changeKey))return;
+    const dayKey=dt=>{const t=new Date(dt.getTime()+12*3600*1000);return t.getFullYear()+'-'+String(t.getMonth()+1).padStart(2,'0')+'-'+String(t.getDate()).padStart(2,'0')};
+    const rows=idRows[dr.id];if(!rows)return;
+    const perRoute={};
+    rows.forEach(x=>{
+      if(!perRoute[x.route])perRoute[x.route]={before:0,after:0};
+      const isAfter=x.date&&dayKey(x.date)>=changeKey;
+      if(isAfter)perRoute[x.route].after+=x.qty;
+      else perRoute[x.route].before+=x.qty;
+    });
+    Object.entries(dr.routes).forEach(([rt,rd])=>{
+      const sp=perRoute[rt];
+      if(sp){rd.qtyBefore=sp.before;rd.qtyAfter=sp.after}
+    });
+  });
+  addLog('날짜 분류 완료 (전체 단가 변경일 및 기사 개인 단가 변경일 기준)','ok');
+}
+
+// ===== EXCEL OUTPUT (ExcelJS) =====
+async function generateOutput(){
+  const wb=new ExcelJS.Workbook();
+  wb.creator='코끼리물류 정산서 변환기';
+
+  // Color constants
+  const C={
+    hdrFill:'D9E2F3',greenFill:'92D050',darkGreen:'375623',lightGreen:'E2EFDA',
+    lightBlue:'DDEBF7',yellow:'FFFF00',gold:'F3E2A9',darkBlue:'002060',
+    white:'FFFFFF',black:'000000',red:'FF0000'
+  };
+  const thinBorder={style:'thin',color:{argb:'FFB0B0B0'}};
+  const allBorders={top:thinBorder,left:thinBorder,bottom:thinBorder,right:thinBorder};
+
+  // --- 정산총괄 (copy from input) ---
+  copySheetFromInput(wb,'정산총괄');
+  addLog('정산총괄 시트 복사','ok');
+
+  // --- 분실파손List ---
+  copySheetFromInput(wb,'분실파손List');
+  addLog('분실파손List 시트 복사','ok');
+
+  // --- 정산Raw ---
+  copySheetFromInput(wb,'정산Raw');
+  addLog('정산Raw 시트 복사','ok');
+
+  // --- TEMPLATE ---
+  createTemplateSheet(wb,C,allBorders);
+  addLog('TEMPLATE 시트 생성','ok');
+
+  // --- Driver sheets ---
+  const driverFinalRows={}; // {sheetName: {finalRow, insurRow1, insurRow2}}
+  addLog(`보험 데이터: 고용 ${Object.keys(S.ins.goyang).length}명, 산재 ${Object.keys(S.ins.sanjae).length}명`,'info');
+  S.drivers.forEach(dr=>{
+    const insCalc=getInsuranceForDriver(dr.id);
+    const g=insCalc.goyang||dr._insGoyang||0;
+    const s=insCalc.sanjae||dr._insSanjae||0;
+    if(g>0||s>0)addLog(`  └ ${dr.name||dr.id}: 고용=${g.toLocaleString()}, 산재=${s.toLocaleString()}`,'info');
+    const info=createDriverSheet(wb,dr,C,allBorders);
+    driverFinalRows[info.sheetName]=info;
+  });
+  addLog(`기사 ${S.drivers.length}명 개인시트 생성`,'ok');
+
+  // --- 단가 ---
+  createPriceSheet(wb,C,allBorders);
+  addLog('단가 시트 생성','ok');
+
+  // --- 합계 ---
+  createSummarySheet(wb,C,allBorders,driverFinalRows);
+  addLog('합계 시트 생성','ok');
+
+  // Download
+  const buf=await wb.xlsx.writeBuffer();
+  const blob=new Blob([buf],{type:'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'});
+  const url=URL.createObjectURL(blob);
+  const a=document.createElement('a');
+  const mm=(S.file.name||'').match(/(\d{4})년[_\s]*(\d{1,2})월/)||
+           (S.file.name||'').match(/(\d{1,2})월/);
+  let fn='정산서_코끼리물류_변환완료.xlsx';
+  if(mm&&mm.length>=3)fn=`${mm[1]}년_정산서_코끼리물류_${mm[2]}월.xlsx`;
+  else if(mm)fn=`2026년_정산서_코끼리물류_${mm[1]}월.xlsx`;
+  a.href=url;a.download=fn;a.click();URL.revokeObjectURL(url);
+  addLog(`다운로드: ${fn}`,'ok');
+}
+
+function copySheetFromInput(wb,name){
+  const actualName=S.data['_sheet_'+name]||name;
+  const src=S.data._wb.Sheets[actualName];if(!src)return;
+  const aoa=XLSX.utils.sheet_to_json(src,{header:1,defval:null,raw:true});
+  const ws=wb.addWorksheet(name);
+  aoa.forEach((row,ri)=>{
+    row.forEach((val,ci)=>{
+      if(val!==null&&val!==undefined){
+        const cell=ws.getCell(ri+1,ci+1);
+        cell.value=val;
+        cell.font={name:'맑은 고딕',size:10};
+      }
+    });
+  });
+}
+
+function setCell(ws,r,c,val,opts={}){
+  const cell=ws.getCell(r,c);
+  cell.value=val;
+  cell.font={name:'맑은 고딕',size:opts.size||11,bold:!!opts.bold,color:opts.fontColor?{argb:'FF'+opts.fontColor}:undefined};
+  if(opts.fill)cell.fill={type:'pattern',pattern:'solid',fgColor:{argb:'FF'+opts.fill}};
+  if(opts.align)cell.alignment={horizontal:opts.align,vertical:'center',wrapText:!!opts.wrap};
+  else cell.alignment={vertical:'center'};
+  if(opts.border)cell.border=opts.border;
+  if(opts.numFmt)cell.numFmt=opts.numFmt;
+  return cell;
+}
+
+function createTemplateSheet(wb,C,bdr){
+  const ws=wb.addWorksheet('TEMPLATE');
+  ws.columns=[{width:3},{width:12},{width:14},{width:9},{width:9},{width:13},{width:8},{width:4},{width:2},{width:8},{width:9},{width:10}];
+
+  // Row 3: date
+  setCell(ws,3,2,{formula:'TODAY()'},{bold:true,size:18,align:'center'});
+  // Row 4
+  setCell(ws,4,10,'조정 내역',{align:'center'});
+  // Row 5: headers
+  [['B','항 목'],['D','수 량'],['E','단 가'],['F','금 액'],['G','비 고']].forEach(([col,val])=>{
+    setCell(ws,5,col.charCodeAt(0)-64,val,{bold:true,align:'center',fill:C.hdrFill,border:bdr});
+  });
+  setCell(ws,5,3,null,{fill:C.hdrFill,border:bdr}); // C5 배경
+  setCell(ws,5,10,'라우트',{bold:true,align:'center',fill:C.hdrFill,border:bdr});
+  setCell(ws,5,11,'차감 수량',{bold:true,align:'center',fill:C.greenFill,border:bdr});
+  setCell(ws,5,12,'단가 조정액',{bold:true,align:'center',fill:C.greenFill,border:bdr});
+
+  // Routes
+  ROUTES.forEach((rt,i)=>{
+    const r=i+6;
+    if(i===0)setCell(ws,r,2,'담당라우트',{align:'center',border:bdr});
+    else setCell(ws,r,2,null,{border:bdr});
+    setCell(ws,r,3,rt,{align:'center',border:bdr});
+    setCell(ws,r,4,0,{numFmt:'#,##0',border:bdr});
+    setCell(ws,r,5,S.prices[rt]||0,{numFmt:'#,##0',border:bdr});
+    setCell(ws,r,6,0,{numFmt:'#,##0',border:bdr});
+    setCell(ws,r,7,null,{border:bdr});
+    setCell(ws,r,10,rt,{align:'center',border:bdr});
+    setCell(ws,r,11,null,{border:bdr});
+    setCell(ws,r,12,null,{border:bdr});
+  });
+
+  const rAfter=6+ROUTES.length;
+  setCell(ws,rAfter,3,'미계약 라우트',{align:'center',border:bdr});
+  setCell(ws,rAfter,4,0,{numFmt:'#,##0',border:bdr});
+  setCell(ws,rAfter,6,0,{numFmt:'#,##0',border:bdr});
+
+  setCell(ws,rAfter+1,2,'인센티브',{align:'center',border:bdr});
+  setCell(ws,rAfter+1,3,'추가 인센티브',{align:'center',border:bdr});
+  setCell(ws,rAfter+1,4,0,{numFmt:'#,##0',border:bdr});
+  setCell(ws,rAfter+1,5,25,{numFmt:'#,##0',border:bdr});
+  setCell(ws,rAfter+1,6,0,{numFmt:'#,##0',border:bdr});
+
+  setCell(ws,rAfter+2,3,'프레쉬백 회수 인센티브',{align:'center',border:bdr});
+  setCell(ws,rAfter+2,4,0,{numFmt:'#,##0',border:bdr});
+  setCell(ws,rAfter+2,6,0,{numFmt:'#,##0',border:bdr});
+
+  setCell(ws,rAfter+3,2,'지급 금액',{bold:true,align:'center',fill:C.hdrFill,border:bdr});
+  setCell(ws,rAfter+3,4,0,{bold:true,numFmt:'#,##0',fill:C.hdrFill,border:bdr});
+  setCell(ws,rAfter+3,6,0,{bold:true,numFmt:'#,##0',fill:C.hdrFill,border:bdr});
+
+  setCell(ws,rAfter+4,2,'보험료',{align:'center',border:bdr});
+  setCell(ws,rAfter+4,3,'고용 보험',{align:'center',border:bdr});
+  setCell(ws,rAfter+4,4,null,{numFmt:'#,##0',border:bdr});
+  setCell(ws,rAfter+4,5,null,{border:bdr});
+  setCell(ws,rAfter+4,6,null,{numFmt:'#,##0',border:bdr});
+  setCell(ws,rAfter+4,7,null,{border:bdr});
+  setCell(ws,rAfter+5,2,null,{border:bdr});
+  setCell(ws,rAfter+5,3,'산재 보험',{align:'center',border:bdr});
+  setCell(ws,rAfter+5,4,null,{numFmt:'#,##0',border:bdr});
+  setCell(ws,rAfter+5,5,null,{border:bdr});
+  setCell(ws,rAfter+5,6,null,{numFmt:'#,##0',border:bdr});
+  setCell(ws,rAfter+5,7,null,{border:bdr});
+  setCell(ws,rAfter+6,2,'기 타',{align:'center',border:bdr});
+  setCell(ws,rAfter+6,3,'분실파손차감',{align:'center',border:bdr});
+  setCell(ws,rAfter+6,4,null,{numFmt:'#,##0',border:bdr});
+  setCell(ws,rAfter+6,5,null,{border:bdr});
+  setCell(ws,rAfter+6,6,null,{numFmt:'#,##0',border:bdr});
+  setCell(ws,rAfter+6,7,null,{border:bdr});
+  setCell(ws,rAfter+7,2,null,{border:bdr});
+  setCell(ws,rAfter+7,3,null,{border:bdr});
+  setCell(ws,rAfter+7,4,null,{numFmt:'#,##0',border:bdr});
+  setCell(ws,rAfter+7,5,null,{numFmt:'#,##0',border:bdr});
+  setCell(ws,rAfter+7,6,null,{numFmt:'#,##0',border:bdr});
+  setCell(ws,rAfter+7,7,null,{border:bdr});
+
+  setCell(ws,rAfter+8,2,'공제 금액',{bold:true,align:'center',fill:C.hdrFill,border:bdr});
+  setCell(ws,rAfter+8,4,0,{bold:true,numFmt:'#,##0',fill:C.hdrFill,border:bdr});
+  setCell(ws,rAfter+8,6,0,{bold:true,numFmt:'#,##0',fill:C.hdrFill,border:bdr});
+
+  setCell(ws,rAfter+9,2,'최종 지급액',{bold:true,align:'center',border:bdr});
+  setCell(ws,rAfter+9,6,0,{bold:true,numFmt:'#,##0',border:bdr});
+
+  // Raw header
+  const rawHdrRow=rAfter+13;
+  setCell(ws,rawHdrRow-1,2,'**매달 정산Raw에서 붙여넣기',{bold:true,fontColor:C.red});
+  const rawHdrs=['구분','ID','Route','배송일자','캠프명','배송유형\n(주간/심야)','업체명','배송건수\n(파슬)','반품\n(운송장)','단가\n(반품동일)','추가 인센티브','기본 배송단가 금액','추가 인센티브\n가중요인 금액','총금액','프레시백 회수 인센티브'];
+  const rawColors=[C.darkGreen,C.lightGreen,C.lightGreen,C.lightGreen,C.lightGreen,C.lightGreen,C.lightGreen,C.lightBlue,C.lightBlue,C.yellow,C.yellow,C.gold,C.gold,C.gold,C.darkBlue];
+  const rawFontColors=[C.white,null,null,null,null,null,null,null,null,null,null,null,null,null,C.white];
+  rawHdrs.forEach((h,i)=>{
+    setCell(ws,rawHdrRow,i+2,h,{bold:true,align:'center',fill:rawColors[i],fontColor:rawFontColors[i]||undefined,border:bdr,wrap:true});
+  });
+}
+
+function createDriverSheet(wb,dr,C,bdr){
+  const sn=dr.id.substring(0,31);
+  const ws=wb.addWorksheet(sn);
+  ws.columns=[{width:3},{width:12},{width:18},{width:11},{width:9},{width:13},{width:8},{width:4},{width:2},{width:12},{width:9},{width:10}];
+
+  // Row 3: date
+  setCell(ws,3,2,{formula:'TODAY()'},{bold:true,size:18,align:'center'});
+  // Row 4: name + 조정 내역
+  setCell(ws,4,2,dr.name||'',{align:'center'});
+  setCell(ws,4,10,'조정 내역',{align:'center'});
+
+  // Row 5: headers
+  [['B','항 목'],['D','수 량'],['E','단 가'],['F','금 액'],['G','비 고']].forEach(([col,val])=>{
+    setCell(ws,5,col.charCodeAt(0)-64,val,{bold:true,align:'center',fill:C.hdrFill,border:bdr});
+  });
+  setCell(ws,5,3,null,{fill:C.hdrFill,border:bdr});
+  setCell(ws,5,10,'라우트',{bold:true,align:'center',fill:C.hdrFill,border:bdr});
+  setCell(ws,5,11,'차감 수량',{bold:true,align:'center',fill:C.greenFill,border:bdr});
+  setCell(ws,5,12,'단가 조정액',{bold:true,align:'center',fill:C.greenFill,border:bdr});
+
+  // Routes: 수량 있는 것만 출력, 단가 변경 시 기간별 분리
+  const activeRoutes=ROUTES.filter(rt=>{const rd=dr.routes[rt];return rd&&rd.qty>0});
+  const firstDataRow=6;
+  let isFirst=true;
+  let cr=6;
+  const pcGlobal=S.priceChange.enabled&&S.priceChange.date;
+  const pcDriver=dr.priceChange&&dr.priceChange.enabled&&dr.priceChange.date;
+  const pc=pcGlobal||pcDriver;
+
+  activeRoutes.forEach(rt=>{
+    const rd=dr.routes[rt];
+    const adj=dr.adjustments[rt]||0;
+    const bpOld=S.prices[rt]||0;
+    const dpOld=bpOld-adj;
+    // 변경 후: 회사 전체 단가 변경(있으면 기본단가가 바뀜) + 이 기사 개인 단가 변경(있으면 조정액이 바뀜)을 함께 반영
+    // '단가 변경' 탭에 입력된 값을 항상 새 기준단가로 사용 (전체 적용 체크박스를 켜지 않았어도,
+    //  개인 단가 변경이 걸린 기사에게는 이 표의 값이 변경 후 기준단가가 됩니다)
+    const bpNew=(S.priceChange.pricesAfter[rt]!=null?S.priceChange.pricesAfter[rt]:bpOld);
+    const adjNew=pcDriver?((dr.priceChange.adjAfter&&dr.priceChange.adjAfter[rt]!=null)?dr.priceChange.adjAfter[rt]:adj):adj;
+    const dpNew=bpNew-adjNew;
+    const changeTag=pcDriver?'개인 변경':'변경';
+
+    if(pc&&rd.qtyBefore>0&&rd.qtyAfter>0){
+      // 기존 단가 기간
+      if(isFirst){setCell(ws,cr,2,'담당라우트',{align:'center',border:bdr});isFirst=false}
+      else setCell(ws,cr,2,null,{border:bdr});
+      setCell(ws,cr,3,rt,{align:'center',border:bdr});
+      setCell(ws,cr,4,rd.qtyBefore,{numFmt:'#,##0',border:bdr});
+      setCell(ws,cr,5,dpOld,{numFmt:'#,##0',border:bdr});
+      setCell(ws,cr,6,{formula:`D${cr}*E${cr}`},{numFmt:'#,##0',border:bdr});
+      setCell(ws,cr,7,'기존',{align:'center',border:bdr,fontColor:'888888'});
+      setCell(ws,cr,10,rt,{align:'center',border:bdr});
+      setCell(ws,cr,11,null,{border:bdr});
+      setCell(ws,cr,12,adj>0?adj:null,{numFmt:'#,##0',border:bdr});
+      cr++;
+
+      // 변경 단가 기간
+      setCell(ws,cr,2,null,{border:bdr});
+      setCell(ws,cr,3,rt,{align:'center',border:bdr});
+      setCell(ws,cr,4,rd.qtyAfter,{numFmt:'#,##0',border:bdr});
+      setCell(ws,cr,5,dpNew,{numFmt:'#,##0',border:bdr});
+      setCell(ws,cr,6,{formula:`D${cr}*E${cr}`},{numFmt:'#,##0',border:bdr});
+      setCell(ws,cr,7,changeTag,{align:'center',border:bdr,fontColor:'7c4dff'});
+      setCell(ws,cr,10,null,{border:bdr});
+      setCell(ws,cr,11,null,{border:bdr});
+      setCell(ws,cr,12,null,{border:bdr});
+      cr++;
+    } else if(pc&&rd.qtyAfter>0){
+      // 변경 기간만
+      if(isFirst){setCell(ws,cr,2,'담당라우트',{align:'center',border:bdr});isFirst=false}
+      else setCell(ws,cr,2,null,{border:bdr});
+      setCell(ws,cr,3,rt,{align:'center',border:bdr});
+      setCell(ws,cr,4,rd.qtyAfter,{numFmt:'#,##0',border:bdr});
+      setCell(ws,cr,5,dpNew,{numFmt:'#,##0',border:bdr});
+      setCell(ws,cr,6,{formula:`D${cr}*E${cr}`},{numFmt:'#,##0',border:bdr});
+      setCell(ws,cr,7,null,{border:bdr});
+      setCell(ws,cr,10,rt,{align:'center',border:bdr});
+      setCell(ws,cr,11,null,{border:bdr});
+      setCell(ws,cr,12,adj>0?adj:null,{numFmt:'#,##0',border:bdr});
+      cr++;
+    } else {
+      // 기존 기간만 또는 분리 미적용
+      if(isFirst){setCell(ws,cr,2,'담당라우트',{align:'center',border:bdr});isFirst=false}
+      else setCell(ws,cr,2,null,{border:bdr});
+      setCell(ws,cr,3,rt,{align:'center',border:bdr});
+      setCell(ws,cr,4,pc?rd.qtyBefore:rd.qty,{numFmt:'#,##0',border:bdr});
+      setCell(ws,cr,5,dpOld,{numFmt:'#,##0',border:bdr});
+      setCell(ws,cr,6,{formula:`D${cr}*E${cr}`},{numFmt:'#,##0',border:bdr});
+      setCell(ws,cr,7,null,{border:bdr});
+      setCell(ws,cr,10,rt,{align:'center',border:bdr});
+      setCell(ws,cr,11,null,{border:bdr});
+      setCell(ws,cr,12,adj>0?adj:null,{numFmt:'#,##0',border:bdr});
+      cr++;
+    }
+  });
+
+  // ===== 일자별 배송건수 합계 (우측 요약표) =====
+  const dailyQty={};
+  dr.rawRows.forEach(row=>{
+    const t=String(row[0]||'');
+    if(t==='배송'||t==='수기반영'||t==='반품'){
+      let dtv=row[3],key;
+      if(dtv instanceof Date)key=`${dtv.getFullYear()}-${String(dtv.getMonth()+1).padStart(2,'0')}-${String(dtv.getDate()).padStart(2,'0')}`;
+      else key=String(dtv||'').trim();
+      if(!key)return;
+      dailyQty[key]=(dailyQty[key]||0)+(Number(row[7])||0);
+    }
+  });
+  const dailyKeys=Object.keys(dailyQty).sort();
+  let dqr=cr+1;
+  setCell(ws,dqr,10,'일자별 배송건수',{bold:true,align:'center',fill:C.hdrFill,border:bdr});
+  setCell(ws,dqr,11,null,{fill:C.hdrFill,border:bdr});
+  dqr++;
+  setCell(ws,dqr,10,'날짜',{bold:true,align:'center',fill:C.lightGreen,border:bdr});
+  setCell(ws,dqr,11,'건수',{bold:true,align:'center',fill:C.lightGreen,border:bdr});
+  dqr++;
+  const dqStartRow=dqr;
+  dailyKeys.forEach(k=>{
+    setCell(ws,dqr,10,k,{align:'center',border:bdr});
+    setCell(ws,dqr,11,dailyQty[k],{numFmt:'#,##0',border:bdr});
+    dqr++;
+  });
+  const dqEndRow=dqr-1;
+  setCell(ws,dqr,10,'합계',{bold:true,align:'center',border:bdr,fill:C.hdrFill});
+  setCell(ws,dqr,11,dqEndRow>=dqStartRow?{formula:`SUM(K${dqStartRow}:K${dqEndRow})`}:0,{bold:true,numFmt:'#,##0',border:bdr,fill:C.hdrFill});
+
+  // 미계약 라우트
+  setCell(ws,cr,2,null,{border:bdr});
+  setCell(ws,cr,3,'미계약 라우트',{align:'center',border:bdr});
+  setCell(ws,cr,4,0,{numFmt:'#,##0',border:bdr});
+  setCell(ws,cr,5,null,{border:bdr});
+  setCell(ws,cr,6,{formula:`D${cr}*E${cr}`},{numFmt:'#,##0',border:bdr});
+  setCell(ws,cr,7,null,{border:bdr});
+  const lastRouteRow=cr; // 미계약 라우트까지 = 수량 합계 범위
+  cr++;
+  const rates=dr.incentiveRates||{};
+  const sortedR=Object.keys(rates).map(Number).sort((a,b)=>a-b);
+  if(sortedR.length>1){
+    for(let i=0;i<sortedR.length-1;i++){
+      const rate=sortedR[i],rq=rates[rate];
+      setCell(ws,cr,2,null,{border:bdr});
+      setCell(ws,cr,3,'추가 인센티브',{align:'center',border:bdr});
+      setCell(ws,cr,4,rq,{numFmt:'#,##0',border:bdr});
+      setCell(ws,cr,5,rate,{numFmt:'#,##0',border:bdr});
+      setCell(ws,cr,6,{formula:`D${cr}*E${cr}`},{numFmt:'#,##0',border:bdr});
+      setCell(ws,cr,7,null,{border:bdr});
+      cr++;
+    }
+    const lr=sortedR[sortedR.length-1],lq=rates[lr];
+    setCell(ws,cr,2,'인센티브',{align:'center',border:bdr});
+    setCell(ws,cr,3,'추가 인센티브',{align:'center',border:bdr});
+    setCell(ws,cr,4,lq,{numFmt:'#,##0',border:bdr});
+    setCell(ws,cr,5,lr,{numFmt:'#,##0',border:bdr});
+    setCell(ws,cr,6,{formula:`D${cr}*E${cr}`},{numFmt:'#,##0',border:bdr});
+    setCell(ws,cr,7,null,{border:bdr});
+  }else{
+    const rate=sortedR[0]||25,rq=rates[rate]||0;
+    setCell(ws,cr,2,'인센티브',{align:'center',border:bdr});
+    setCell(ws,cr,3,'추가 인센티브',{align:'center',border:bdr});
+    setCell(ws,cr,4,rq||dr.totalQty,{numFmt:'#,##0',border:bdr});
+    setCell(ws,cr,5,rate,{numFmt:'#,##0',border:bdr});
+    setCell(ws,cr,6,{formula:`D${cr}*E${cr}`},{numFmt:'#,##0',border:bdr});
+    setCell(ws,cr,7,null,{border:bdr});
+  }
+  cr++;
+
+  // 프레쉬백 회수 인센티브
+  setCell(ws,cr,2,null,{border:bdr});
+  setCell(ws,cr,3,'프레쉬백 회수 인센티브',{align:'center',border:bdr});
+  setCell(ws,cr,4,null,{numFmt:'#,##0',border:bdr});
+  setCell(ws,cr,5,null,{border:bdr});
+  setCell(ws,cr,6,dr.fbTotal,{numFmt:'#,##0',border:bdr});
+  setCell(ws,cr,7,null,{border:bdr});
+  const lastPayDetailRow=cr;
+  cr++;
+
+  // ★ 지급 금액: =SUM(F6:F{lastPayDetailRow})
+  const payRow=cr;
+  for(let c=2;c<=7;c++)setCell(ws,cr,c,null,{bold:true,fill:C.hdrFill,border:bdr});
+  setCell(ws,cr,2,'지급 금액',{bold:true,align:'center',fill:C.hdrFill,border:bdr});
+  setCell(ws,cr,4,{formula:`SUM(D${firstDataRow}:D${lastRouteRow})`},{bold:true,numFmt:'#,##0',fill:C.hdrFill,border:bdr});
+  setCell(ws,cr,6,{formula:`SUM(F${firstDataRow}:F${lastPayDetailRow})`},{bold:true,numFmt:'#,##0',fill:C.hdrFill,border:bdr});
+  cr++;
+
+  // 보험료 - 고용
+  const insCalc=getInsuranceForDriver(dr.id);
+  const ins={goyang:insCalc.goyang||dr._insGoyang||0, sanjae:insCalc.sanjae||dr._insSanjae||0};
+  const deductStartRow=cr;
+  const insurRow1=cr;
+  setCell(ws,cr,2,'보험료',{align:'center',border:bdr});
+  setCell(ws,cr,3,'고용 보험',{align:'center',border:bdr});
+  setCell(ws,cr,4,null,{numFmt:'#,##0',border:bdr});
+  setCell(ws,cr,5,null,{border:bdr});
+  setCell(ws,cr,6,ins.goyang>0?ins.goyang:null,{numFmt:'#,##0',border:bdr});
+  setCell(ws,cr,7,null,{border:bdr});
+  cr++;
+  // 보험료 - 산재
+  const insurRow2=cr;
+  setCell(ws,cr,2,null,{border:bdr});
+  setCell(ws,cr,3,'산재 보험',{align:'center',border:bdr});
+  setCell(ws,cr,4,null,{numFmt:'#,##0',border:bdr});
+  setCell(ws,cr,5,null,{border:bdr});
+  setCell(ws,cr,6,ins.sanjae>0?ins.sanjae:null,{numFmt:'#,##0',border:bdr});
+  setCell(ws,cr,7,null,{border:bdr});
+  cr++;
+
+  // 기 타 - 분실파손차감
+  setCell(ws,cr,2,'기 타',{align:'center',border:bdr});
+  setCell(ws,cr,3,'분실파손차감',{align:'center',border:bdr});
+  setCell(ws,cr,4,null,{numFmt:'#,##0',border:bdr});
+  setCell(ws,cr,5,null,{border:bdr});
+  setCell(ws,cr,6,dr.lostDamage>0?dr.lostDamage:null,{numFmt:'#,##0',border:bdr,fontColor:dr.lostDamage>0?C.red:undefined});
+  setCell(ws,cr,7,null,{border:bdr});
+  cr++;
+
+  // Custom deductions
+  (dr.deductions||[]).forEach(ded=>{
+    setCell(ws,cr,2,null,{border:bdr});
+    setCell(ws,cr,3,ded.name||'',{align:'center',border:bdr});
+    setCell(ws,cr,4,null,{numFmt:'#,##0',border:bdr});
+    setCell(ws,cr,5,null,{border:bdr});
+    setCell(ws,cr,6,ded.amount||0,{numFmt:'#,##0',border:bdr});
+    setCell(ws,cr,7,null,{border:bdr});
+    cr++;
+  });
+
+  // Empty deduction row (수기 추가용)
+  setCell(ws,cr,2,null,{border:bdr});
+  setCell(ws,cr,3,null,{border:bdr});
+  setCell(ws,cr,4,null,{numFmt:'#,##0',border:bdr});
+  setCell(ws,cr,5,null,{numFmt:'#,##0',border:bdr});
+  setCell(ws,cr,6,null,{numFmt:'#,##0',border:bdr});
+  setCell(ws,cr,7,null,{border:bdr});
+  const deductEndRow=cr;
+  cr++;
+
+  // ★ 공제 금액: =SUM(F{deductStartRow}:F{deductEndRow})
+  const deductTotalRow=cr;
+  for(let c=2;c<=7;c++)setCell(ws,cr,c,null,{bold:true,fill:C.hdrFill,border:bdr});
+  setCell(ws,cr,2,'공제 금액',{bold:true,align:'center',fill:C.hdrFill,border:bdr});
+  setCell(ws,cr,4,{formula:`SUM(D${deductStartRow}:D${deductEndRow})`},{bold:true,numFmt:'#,##0',fill:C.hdrFill,border:bdr});
+  setCell(ws,cr,6,{formula:`SUM(F${deductStartRow}:F${deductEndRow})`},{bold:true,numFmt:'#,##0',fill:C.hdrFill,border:bdr});
+  cr++;
+
+  // ★ 최종 지급액: =F{payRow}-F{deductTotalRow}
+  const finalPayRow=cr;
+  for(let c=2;c<=7;c++)setCell(ws,cr,c,null,{bold:true,border:bdr});
+  setCell(ws,cr,2,'최종 지급액',{bold:true,align:'center',border:bdr});
+  setCell(ws,cr,6,{formula:`F${payRow}-F${deductTotalRow}`},{bold:true,numFmt:'#,##0',border:bdr,size:12});
+  cr++;
+
+  // ★ 전자세금계산서 발행용: 최종 지급액(부가세 포함가정)을 공급가액 + 세액으로 분리
+  const taxRow=cr;
+  for(let c=2;c<=7;c++)setCell(ws,cr,c,null,{bold:true,border:bdr});
+  setCell(ws,cr,2,'전자세금계산서',{bold:true,align:'center',border:bdr,fontColor:'7C4DFF'});
+  setCell(ws,cr,3,'공급가액',{bold:true,align:'center',border:bdr});
+  setCell(ws,cr,4,{formula:`ROUND(F${finalPayRow}/1.1,0)`},{bold:true,numFmt:'#,##0',border:bdr});
+  setCell(ws,cr,5,'세액',{bold:true,align:'center',border:bdr});
+  setCell(ws,cr,6,{formula:`F${finalPayRow}-D${taxRow}`},{bold:true,numFmt:'#,##0',border:bdr});
+  cr++;
+
+  return {sheetName:sn, finalRow:finalPayRow, insurRow1, insurRow2};
+}
+
+function createPriceSheet(wb,C,bdr){
+  const ws=wb.addWorksheet('단가');
+  ws.columns=[{width:3},{width:10},{width:10}];
+  setCell(ws,2,2,'라우트',{bold:true,align:'center',fill:C.hdrFill,border:bdr});
+  setCell(ws,2,3,'단가',{bold:true,align:'center',fill:C.hdrFill,border:bdr});
+  ROUTES.forEach((rt,i)=>{
+    setCell(ws,i+3,2,rt,{align:'center',border:bdr});
+    setCell(ws,i+3,3,S.prices[rt]||0,{numFmt:'#,##0',border:bdr});
+  });
+}
+
+function createSummarySheet(wb,C,bdr,driverFinalRows){
+  const ws=wb.addWorksheet('합계');
+  ws.columns=[{width:3},{width:5},{width:16},{width:16}];
+
+  setCell(ws,3,3,'항목',{bold:true,align:'center',fill:C.hdrFill,border:bdr});
+  setCell(ws,3,4,'금액',{bold:true,align:'center',fill:C.hdrFill,border:bdr});
+
+  // D4: 최종 지급액 = 각 기사 시트의 최종 지급액 F열 합산 수식
+  const parts=[];
+  for(const [sn,info] of Object.entries(driverFinalRows||{})){
+    parts.push(`'${sn}'!F${info.finalRow}`);
+  }
+  const sumFormula=parts.length>0?parts.join('+'):'0';
+
+  setCell(ws,4,2,'A',{align:'center',border:bdr});
+  setCell(ws,4,3,'최종 지급액',{align:'center',border:bdr});
+  setCell(ws,4,4,{formula:sumFormula},{bold:true,numFmt:'#,##0',border:bdr});
+
+  // D5: 쿠팡 입금액 (정산총괄 L열 TOTAL - 시트에서 직접 읽기)
+  let coupangTotal=0;
+  const totSheet=getSheet('정산총괄');
+  if(totSheet){
+    // L3 = 전체 TOTAL
+    const l3=totSheet[XLSX.utils.encode_cell({r:2,c:11})];
+    if(l3&&l3.v)coupangTotal=Number(l3.v)||0;
+  }
+  setCell(ws,5,2,'B',{align:'center',border:bdr});
+  setCell(ws,5,3,'쿠팡 입금액 (VAT포함)',{align:'center',border:bdr});
+  setCell(ws,5,4,coupangTotal?Math.round(coupangTotal*1.1):null,{numFmt:'#,##0',border:bdr});
+
+  // D6: B-A
+  setCell(ws,6,2,null,{border:bdr});
+  setCell(ws,6,3,'B-A',{align:'center',border:bdr});
+  setCell(ws,6,4,{formula:'D5-D4'},{numFmt:'#,##0',border:bdr});
+
+  // D7: 고용보험 = 각 기사 시트 고용보험 F열 합산
+  const insur1Parts=[];
+  const insur2Parts=[];
+  for(const [sn,info] of Object.entries(driverFinalRows||{})){
+    if(info.insurRow1)insur1Parts.push(`'${sn}'!F${info.insurRow1}`);
+    if(info.insurRow2)insur2Parts.push(`'${sn}'!F${info.insurRow2}`);
+  }
+  setCell(ws,7,2,'a',{align:'center',border:bdr});
+  setCell(ws,7,3,'고용보험',{align:'center',border:bdr});
+  setCell(ws,7,4,insur1Parts.length>0?{formula:insur1Parts.join('+')}:null,{numFmt:'#,##0',border:bdr});
+
+  // D8: 산재보험
+  setCell(ws,8,2,'b',{align:'center',border:bdr});
+  setCell(ws,8,3,'산재보험',{align:'center',border:bdr});
+  setCell(ws,8,4,insur2Parts.length>0?{formula:insur2Parts.join('+')}:null,{numFmt:'#,##0',border:bdr});
+
+  // D9: 고용보험 원본합계 (보험료 파일 전체 합산)
+  const gTotal=Object.values(S.ins.goyang).reduce((s,v)=>s+v,0);
+  const sTotal=Object.values(S.ins.sanjae).reduce((s,v)=>s+v,0);
+  setCell(ws,9,2,null,{border:bdr});
+  setCell(ws,9,3,'고용보험 원본합계',{align:'center',border:bdr,fontColor:'888888'});
+  setCell(ws,9,4,gTotal>0?gTotal:null,{numFmt:'#,##0',border:bdr,fontColor:'888888'});
+
+  // D10: 산재보험 원본합계 (보험료 파일 전체 합산)
+  setCell(ws,10,2,null,{border:bdr});
+  setCell(ws,10,3,'산재보험 원본합계',{align:'center',border:bdr,fontColor:'888888'});
+  setCell(ws,10,4,sTotal>0?sTotal:null,{numFmt:'#,##0',border:bdr,fontColor:'888888'});
+
+  // D11: 기타
+  setCell(ws,11,2,null,{border:bdr});
+  setCell(ws,11,3,'기타',{align:'center',border:bdr});
+  setCell(ws,11,4,null,{numFmt:'#,##0',border:bdr});
+
+  // D12: 잔액 = B-A - 고용 - 산재 - 기타
+  setCell(ws,12,2,null,{border:bdr});
+  setCell(ws,12,3,'잔액',{align:'center',bold:true,border:bdr});
+  setCell(ws,12,4,{formula:'D6-D7-D8-D11'},{bold:true,numFmt:'#,##0',border:bdr});
+}
+
+// ===== RENDERING =====
+// ===== INSURANCE =====
+function parseInsurance(file,type){
+  const r=new FileReader();
+  r.onload=function(e){
+    try{
+      const wb=XLSX.read(e.target.result,{type:'array'});
+      const ws=wb.Sheets[wb.SheetNames[0]];
+      const range=XLSX.utils.decode_range(ws['!ref']||'A1');
+      const result={};
+      // 고용: C=name(2), W+X=합계(22+23) / 산재: C=name(2), N=합계(13)
+      for(let r2=1;r2<=range.e.r;r2++){
+        const nC=ws[XLSX.utils.encode_cell({r:r2,c:2})];
+        const name=String((nC&&nC.v)||'').trim();
+        if(!name||name==='합계')continue;
+        let amt=0;
+        if(type==='goyang'){
+          // 고용보험: W(22)+X(23)+Y(24) = 합계 (Z열은 문자열이라 직접 합산)
+          const wC=ws[XLSX.utils.encode_cell({r:r2,c:22})];
+          const xC=ws[XLSX.utils.encode_cell({r:r2,c:23})];
+          const yC=ws[XLSX.utils.encode_cell({r:r2,c:24})];
+          amt=(Number((wC&&wC.v)||0))+(Number((xC&&xC.v)||0))+(Number((yC&&yC.v)||0));
+        }else{
+          // 산재보험: N열(13) = 합계
+          const aC=ws[XLSX.utils.encode_cell({r:r2,c:13})];
+          amt=Number((aC&&aC.v)||0);
+        }
+        if(amt>0)result[name]=amt;
+      }
+      S.ins[type]=result;
+      if(type==='goyang')S.ins.gFile=file;else S.ins.sFile=file;
+      addLog(`${type==='goyang'?'고용':'산재'}보험 로드: ${Object.keys(result).length}명`,'ok');
+      // 이름 자동 매칭 시도
+      autoMatchNames();
+      render();
+    }catch(err){addLog(`보험 파싱 오류: ${err.message}`,'warn');render()}
+  };
+  r.readAsArrayBuffer(file);
+}
+
+function autoMatchNames(){
+  const nameToId={};
+  Object.entries(ID_NAME).forEach(([id,name])=>{nameToId[name]=id});
+  S.drivers.forEach(dr=>{if(dr.name)nameToId[dr.name]=dr.id});
+  const allNames=new Set([...Object.keys(S.ins.goyang),...Object.keys(S.ins.sanjae)]);
+  allNames.forEach(name=>{
+    const cur=S.ins.nameMap[name];
+    // 구버전(문자열) → 신버전(객체) 변환
+    if(typeof cur==='string'){S.ins.nameMap[name]={id:cur,gRate:100,sRate:100}}
+    if(!cur&&nameToId[name])S.ins.nameMap[name]={id:nameToId[name],gRate:100,sRate:100};
+    if(!cur&&!nameToId[name])S.ins.nameMap[name]={id:'',gRate:100,sRate:100};
+  });
+}
+
+function getInsuranceForDriver(driverId){
+  let g=0,s=0;
+  Object.entries(S.ins.nameMap).forEach(([name,m])=>{
+    if(S.ins._deleted&&S.ins._deleted[name])return;
+    const info=typeof m==='string'?{id:m,gRate:100,sRate:100}:m;
+    if(info.id===driverId){
+      g+=(S.ins.goyang[name]||0)*(info.gRate!=null?info.gRate:100)/100;
+      s+=(S.ins.sanjae[name]||0)*(info.sRate!=null?info.sRate:100)/100;
+    }
+  });
+  return {goyang:Math.round(g),sanjae:Math.round(s)};
+}
+
+function render(){
+  try{
+  const app=document.getElementById('app');
+  let h=`<div class="hdr"><h1>🐘 코끼리물류 정산서 변환기</h1>
+    <p>쿠팡 정산서 → 기사별 개인 정산시트 자동 생성 · 기사별 단가 저장</p></div>`;
+
+  // Upload
+  h+=`<div class="sec"><div class="sec-t"><span class="n">1</span> 쿠팡 정산서 업로드</div>
+    <div class="dz ${S.file?'ok':''}" id="dz" onclick="document.getElementById('fi').click()">
+    <input type="file" id="fi" accept=".xlsx,.xls" onchange="hFile(event)">
+    <span class="ic">${S.file?'✅':'📂'}</span>
+    <span class="lb">${S.file?'':'쿠팡 정산서 파일(.xlsx) 드래그 또는 클릭'}</span>
+    ${S.file?`<span class="fn">${S.file.name}</span>`:''}</div>
+    <p class="help">필수 시트: 정산총괄, 정산Raw, 분실파손List</p></div>`;
+
+  // 에러/로그를 업로드 바로 아래에 표시
+  if(S.logs.length>0){
+    h+='<div class="log" style="margin-bottom:20px">';
+    S.logs.forEach(l=>{h+=`<div class="${l.t}">[${l.time}] ${l.m}</div>`});
+    h+='</div>';
+  }
+
+  if(S.data&&S.drivers.length>0){
+    const tq=S.drivers.reduce((s,d)=>s+d.totalQty,0);
+    const ta=S.drivers.reduce((s,d)=>s+d.totalAmt,0);
+    const tfb=S.drivers.reduce((s,d)=>s+d.fbTotal,0);
+    const tld=S.drivers.reduce((s,d)=>s+d.lostDamage,0);
+
+    h+=`<div class="sbar">
+      <div class="si"><div class="sl">기사 수</div><div class="sv">${S.drivers.length}명</div></div>
+      <div class="si"><div class="sl">총 배송건수</div><div class="sv">${fmt(tq)}</div></div>
+      <div class="si"><div class="sl">쿠팡 총액</div><div class="sv tot">${fmt(ta)}</div></div>
+      <div class="si"><div class="sl">프레쉬백</div><div class="sv">${fmt(tfb)}</div></div>
+    </div>`;
+
+    // 탭 이동 바
+    h+=`<div class="tabs">
+      <div class="tab ${S.tab==='drivers'?'on':''}" onclick="sTab('drivers')">기사별 단가 설정</div>
+      <div class="tab ${S.tab==='prices'?'on':''}" onclick="sTab('prices')">기본 단가표</div>
+      <div class="tab ${S.tab==='insurance'?'on':''}" onclick="sTab('insurance')">보험료 적용</div>
+      <div class="tab ${S.tab==='change'?'on':''}" onclick="sTab('change')">단가 변경${S.priceChange.enabled?' ✅':''}</div>
+    </div>`;
+    if(S.tab==='drivers'){
+      h+=`<div class="sec-t"><span class="n">2</span> 기사별 단가 조정${S.savedPrices?'<span class="badge">저장됨</span>':''}</div>
+        <p class="help" style="margin-bottom:10px">기사마다 라우트별 단가 조정액을 설정합니다. 저장하면 다음 달에도 자동 적용됩니다.<br>
+        단가 조정액 = 기본 단가에서 차감할 금액 (예: 100 입력 → 기본 1140일 때 기사에게 1040 지급)<br>
+        특정 기사님만 월 중간에 단가(조정액)가 바뀌면, 카드를 펼쳐서 "이 기사님만 단가 변경"을 켜고 적용일을 입력하세요.</p>
+        <div class="save-bar"><button onclick="exportSettings()">설정 내보내기 (JSON)</button>
+        <button onclick="document.getElementById('impFile').click()">설정 불러오기</button>
+        <input type="file" id="impFile" accept=".json" style="display:none" onchange="importSettings(event)">
+        <button class="primary" onclick="doSave()">💾 단가 설정 저장</button></div>
+        <div class="dg">`;
+
+      S.drivers.forEach((dr,di)=>{
+        const isO=S.open[dr.id];
+        const actR=Object.entries(dr.routes).filter(([r,d])=>d.qty>0);
+        const hasAdj=Object.values(dr.adjustments||{}).some(v=>v>0);
+        h+=`<div class="dc"><div class="ch" onclick="tog('${dr.id}')"><div>
+          <span class="nm">${dr.name||'이름 미확인'}${hasAdj?'<span class="badge" style="background:#7c4dff">조정됨</span>':''}${(dr.priceChange&&dr.priceChange.enabled)?'<span class="badge" style="background:#e040fb">개인 단가변경</span>':''}</span>
+          <div class="id">${dr.id} · ${fmt(dr.totalQty)}건</div></div>
+          <span class="ar ${isO?'op':''}">▶</span></div>
+          <div class="sts">
+            <div><div class="st-l">배송금액</div><div class="st-v">${fmt(dr.totalAmt)}</div></div>
+            <div><div class="st-l">프레쉬백</div><div class="st-v">${fmt(dr.fbTotal)}</div></div>
+            <div><div class="st-l">분실파손</div><div class="st-v" style="color:${dr.lostDamage>0?'#ff5252':'#4caf50'}">${fmt(dr.lostDamage)}</div></div></div>`;
+
+        if(isO&&actR.length>0){
+          h+=`<table class="adj"><thead><tr><th>라우트</th><th>수량</th><th>쿠팡단가</th><th>기본단가</th><th>조정액</th><th>지급단가</th><th>차액수익</th></tr></thead><tbody>`;
+          actR.forEach(([rt,rd])=>{
+            const bp=S.prices[rt]||0;const adj=dr.adjustments[rt]||0;const dp=bp-adj;
+            const diff=rd.cp-dp;
+            h+=`<tr><td>${rt}</td><td>${fmt(rd.qty)}</td><td style="color:#666">${fmt(rd.cp)}</td>
+              <td>${fmt(bp)}</td>
+              <td><input type="number" value="${adj}" onchange="uAdj(${di},'${rt}',this.value)" style="width:60px"></td>
+              <td style="color:#4fc3f7;font-weight:600">${fmt(dp)}</td>
+              <td style="color:${diff>0?'#4caf50':'#ff5252'}">${fmt(diff)}×${fmt(rd.qty)}=${fmt(diff*rd.qty)}</td></tr>`;
+          });
+          h+=`</tbody></table>`;
+
+          // 이 기사님만 단가 변경 (날짜 기준으로 조정액을 전/후로 나눔)
+          const dpc=dr.priceChange||{enabled:false,date:'',adjAfter:{}};
+          h+=`<div style="margin-top:14px;padding-top:12px;border-top:1px dashed #2a2a3a">
+            <label style="display:flex;align-items:center;gap:8px;cursor:pointer;margin-bottom:8px">
+              <input type="checkbox" ${dpc.enabled?'checked':''} onchange="toggleDriverPC(${di},this.checked)" style="width:16px;height:16px;accent-color:#7c4dff">
+              <span style="font-size:12.5px;font-weight:600;color:${dpc.enabled?'#7c4dff':'#888'}">이 기사님만 단가 변경${dpc.enabled?' ✅':''}</span>
+            </label>`;
+          if(dpc.enabled){
+            h+=`<div style="display:flex;align-items:center;gap:8px;margin-bottom:8px">
+              <span style="font-size:11px;color:#888">변경 적용일:</span>
+              <input type="date" value="${dpc.date}" onchange="setDriverPCDate(${di},this.value)"
+                style="background:#0a0a10;border:1px solid #333;border-radius:6px;padding:5px 8px;color:#e0e0e0;font-family:inherit;font-size:12px">
+              <span style="font-size:10.5px;color:#555">(이 날짜 전=기존 조정액, 이후=아래 조정액)</span>
+            </div>
+            <table class="adj"><thead><tr><th>라우트</th><th>기존 조정액</th><th>→</th><th>변경 후 조정액</th></tr></thead><tbody>`;
+            actR.forEach(([rt,rd])=>{
+              const curAdj=dr.adjustments[rt]||0;
+              const afterAdj=(dpc.adjAfter&&dpc.adjAfter[rt]!=null)?dpc.adjAfter[rt]:curAdj;
+              h+=`<tr><td>${rt}</td><td style="color:#666">${fmt(curAdj)}</td><td style="color:#444">→</td>
+                <td><input type="number" value="${afterAdj}" onchange="uDriverPA(${di},'${rt}',this.value)" style="width:70px"></td></tr>`;
+            });
+            h+=`</tbody></table>`;
+          }
+          h+=`</div>`;
+
+          // Deductions
+          h+=`<div style="font-size:11px;color:#666;margin-top:10px">추가 공제 항목</div>`;
+          (dr.deductions||[]).forEach((ded,ddi)=>{
+            h+=`<div class="ded">
+              <input placeholder="항목명 (알바비, 용차 등)" value="${ded.name}" onchange="uDed(${di},${ddi},'name',this.value)">
+              <input type="number" placeholder="금액" value="${ded.amount}" onchange="uDed(${di},${ddi},'amount',this.value)">
+              <button class="rm" onclick="rDed(${di},${ddi})">×</button></div>`;
+          });
+          h+=`<button class="add" onclick="aDed(${di})">+ 공제 항목 추가</button>`;
+        }
+        h+=`</div>`;
+      });
+      h+=`</div>`;
+
+    }else if(S.tab==='prices'){
+      const cp={};
+      S.drivers.forEach(d=>Object.entries(d.routes).forEach(([rt,rd])=>{if(rd.cp>0)cp[rt]=rd.cp}));
+      h+=`<div class="sec-t"><span class="n">2</span> 기본 단가표 (전체 기사 공통)</div>
+        <p class="help" style="margin-bottom:10px">모든 기사에게 적용되는 기본 단가입니다. 개별 기사는 "기사별 단가 설정"에서 조정합니다.</p>
+        <table class="pt"><thead><tr><th>라우트</th><th>기본 단가 (원)</th><th>쿠팡 단가</th><th>차액</th></tr></thead><tbody>`;
+      ROUTES.forEach(rt=>{
+        const c=cp[rt]||'-';const d=c!=='-'?S.prices[rt]-c:'-';
+        h+=`<tr><td style="font-weight:600">${rt}</td>
+          <td><input type="number" value="${S.prices[rt]}" onchange="uP('${rt}',this.value)"></td>
+          <td style="color:#555">${c!=='-'?fmt(c):'-'}</td>
+          <td style="color:${d>0?'#4caf50':d<0?'#ff5252':'#555'}">${d!=='-'?fmt(d):'-'}</td></tr>`;
+      });
+      h+=`</tbody></table>`;
+
+    }else if(S.tab==='change'){
+      h+=`<div class="sec-t"><span class="n">⚡</span> 단가 변경 설정</div>
+        <p class="help" style="margin-bottom:12px">단가가 변경되는 경우, 변경 적용일 기준으로 기존/변경 단가를 자동 분리하여 정산합니다.<br>
+        예: 적용일 4/1 → 3/26~3/31은 기존 단가, 4/1~4/25는 변경 단가로 각각 계산</p>
+
+        <div style="display:flex;gap:16px;align-items:center;margin-bottom:16px;flex-wrap:wrap">
+          <label style="display:flex;align-items:center;gap:8px;cursor:pointer">
+            <input type="checkbox" ${S.priceChange.enabled?'checked':''} onchange="togglePC(this.checked)" style="width:18px;height:18px;accent-color:#7c4dff">
+            <span style="font-size:14px;font-weight:600;color:${S.priceChange.enabled?'#7c4dff':'#666'}">단가 변경 적용</span>
+          </label>
+          ${S.priceChange.enabled?`
+          <div style="display:flex;align-items:center;gap:8px">
+            <span style="font-size:12px;color:#888">변경 적용일:</span>
+            <input type="date" value="${S.priceChange.date}" onchange="setPCDate(this.value)"
+              style="background:#0a0a10;border:1px solid #333;border-radius:6px;padding:6px 10px;color:#e0e0e0;font-family:inherit;font-size:13px">
+          </div>`:''}
+        </div>`;
+
+      if(S.priceChange.enabled){
+        const cp={};
+        S.drivers.forEach(d=>Object.entries(d.routes).forEach(([rt,rd])=>{if(rd.cp>0)cp[rt]=rd.cp}));
+
+        h+=`<table class="pt"><thead><tr><th>라우트</th><th>기존 단가</th><th>→</th><th>변경 단가</th><th>차이</th></tr></thead><tbody>`;
+        ROUTES.forEach(rt=>{
+          const old=S.prices[rt]||0;
+          const nw=S.priceChange.pricesAfter[rt]||old;
+          const diff=nw-old;
+          h+=`<tr><td style="font-weight:600">${rt}</td>
+            <td>${fmt(old)}</td>
+            <td style="color:#444">→</td>
+            <td><input type="number" value="${nw}" onchange="uPA('${rt}',this.value)"></td>
+            <td style="color:${diff>0?'#4caf50':diff<0?'#ff5252':'#555'};font-weight:600">${diff>0?'+':''}${fmt(diff)}</td></tr>`;
+        });
+        h+=`</tbody></table>`;
+
+        h+=`<div style="margin-top:10px;padding:10px 12px;background:#1a1a28;border:1px solid #7c4dff;border-radius:8px;display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap">
+          <span style="font-size:11.5px;color:#bbb">위 "변경 단가" 값을 그대로 새로운 기본 단가로 확정합니다. 적용하면 기존/변경 분리 없이 다음부터 이 값이 기본 단가가 되고, 단가 변경 설정은 초기화됩니다.</span>
+          <button onclick="applyChangedAsBase()" style="background:#7c4dff;border:none;color:#fff;font-weight:600;padding:8px 14px;border-radius:6px;cursor:pointer;white-space:nowrap">✅ 변경 단가를 기본 단가로 적용</button>
+        </div>`;
+
+        // 기간별 수량 미리보기
+        if(S.priceChange.date&&S.drivers.length>0){
+          const cd=new Date(S.priceChange.date);
+          const cdStr=`${cd.getMonth()+1}/${cd.getDate()}`;
+          h+=`<div style="margin-top:16px;font-size:12px;color:#888">기사별 기간 분류 미리보기</div>
+            <table class="pt" style="margin-top:8px"><thead><tr><th>기사</th><th>~${cdStr} 전 (기존)</th><th>${cdStr}~ (변경)</th><th>합계</th></tr></thead><tbody>`;
+          S.drivers.forEach(dr=>{
+            let qb=0,qa=0;
+            Object.values(dr.routes).forEach(rd=>{qb+=(rd.qtyBefore||0);qa+=(rd.qtyAfter||0)});
+            h+=`<tr><td>${dr.name||dr.id}</td>
+              <td>${fmt(qb)}건</td><td>${fmt(qa)}건</td>
+              <td style="font-weight:600">${fmt(dr.totalQty)}건</td></tr>`;
+          });
+          h+=`</tbody></table>`;
+        }
+
+        h+=`<div class="save-bar" style="margin-top:12px">
+          <button class="primary" onclick="doSave()">💾 단가 변경 설정 저장</button></div>`;
+      }
+
+    }else if(S.tab==='insurance'){
+      h+=`<div class="sec-t"><span class="n">📋</span> 보험료 자동 적용</div>
+        <p class="help" style="margin-bottom:12px">고용보험·산재보험 엑셀 파일을 업로드하면 이름별로 자동 매칭하여 개인시트에 적용합니다.<br>
+        고용보험: 첫 시트, C열=이름, W+X+Y열=합계 / 산재보험: 첫 시트, C열=이름, N열=합계 (2행부터)</p>`;
+      h+=`<div class="dg">`;
+      [['goyang','고용보험','gFile'],['sanjae','산재보험','sFile']].forEach(([tp,lb,fk])=>{
+        const f=S.ins[fk];const cnt=Object.keys(S.ins[tp]).length;
+        h+=`<div class="dc"><div class="nm">${lb}</div>
+          <div class="id">${f?`✅ ${f.name} · ${cnt}명`:(cnt>0?`저장된 데이터 ${cnt}명 (새 파일로 교체 가능)`:'아직 업로드된 파일이 없습니다')}</div>
+          <div class="save-bar" style="justify-content:flex-start;margin-top:4px">
+            <button onclick="document.getElementById('ins_${tp}').click()">📂 ${lb} 파일 선택</button>
+            <input type="file" id="ins_${tp}" accept=".xlsx,.xls" style="display:none" onchange="hIns(event,'${tp}')"></div></div>`;
+      });
+      h+=`</div>`;
+
+      const insNames=[...new Set([...Object.keys(S.ins.goyang),...Object.keys(S.ins.sanjae)])].sort((a,b)=>a.localeCompare(b,'ko'));
+      const attr=v=>String(v).replace(/&/g,'&amp;').replace(/"/g,'&quot;');
+      if(insNames.length>0){
+        const unmatched=insNames.filter(n=>{const m=S.ins.nameMap[n];const id=typeof m==='string'?m:(m&&m.id);return !id&&!(S.ins._deleted&&S.ins._deleted[n])}).length;
+        h+=`<div class="info-box" style="margin-top:14px">총 ${insNames.length}명 · 기사 미매칭 <b style="color:${unmatched?'#ff9800':'#4caf50'}">${unmatched}명</b>
+          <span style="color:#555"> (이름이 같으면 자동 매칭됩니다. 매칭이 안 된 사람은 기사를 직접 선택하세요. 반영률은 보험료의 몇 %를 그 기사에게 적용할지입니다)</span></div>
+          <table class="pt" style="margin-top:10px"><thead><tr><th>이름(보험 파일)</th><th>고용보험</th><th>산재보험</th><th>매칭 기사</th><th>고용 반영률(%)</th><th>산재 반영률(%)</th><th>제외</th></tr></thead><tbody>`;
+        insNames.forEach(name=>{
+          const m=S.ins.nameMap[name];
+          const info=typeof m==='string'?{id:m,gRate:100,sRate:100}:(m||{id:'',gRate:100,sRate:100});
+          const del=!!(S.ins._deleted&&S.ins._deleted[name]);
+          const opts=S.drivers.map(d=>`<option value="${attr(d.id)}" ${info.id===d.id?'selected':''}>${d.name||d.id} (${d.id})</option>`).join('');
+          h+=`<tr style="${del?'opacity:.35':''}"><td style="font-weight:600">${name}</td>
+            <td>${fmt(S.ins.goyang[name]||0)}</td><td>${fmt(S.ins.sanjae[name]||0)}</td>
+            <td><select data-n="${attr(name)}" onchange="mapName(this.dataset.n,'id',this.value)" style="background:#0a0a10;border:1px solid #2a2a3a;border-radius:5px;padding:5px 7px;color:#d0d0d0;font-family:inherit;font-size:11px;max-width:200px"><option value="">(미매칭)</option>${opts}</select></td>
+            <td><input type="number" min="0" max="100" value="${info.gRate!=null?info.gRate:100}" data-n="${attr(name)}" onchange="mapName(this.dataset.n,'gRate',this.value)" style="width:64px"></td>
+            <td><input type="number" min="0" max="100" value="${info.sRate!=null?info.sRate:100}" data-n="${attr(name)}" onchange="mapName(this.dataset.n,'sRate',this.value)" style="width:64px"></td>
+            <td>${del?`<button class="add" data-n="${attr(name)}" onclick="restoreIns(this.dataset.n)">복원</button>`:`<button class="rm" data-n="${attr(name)}" onclick="delIns(this.dataset.n)">×</button>`}</td></tr>`;
+        });
+        h+=`</tbody></table>`;
+
+        // 기사별 적용 결과 미리보기
+        const withIns=S.drivers.map(d=>({d,ins:getInsuranceForDriver(d.id)})).filter(x=>x.ins.goyang>0||x.ins.sanjae>0);
+        if(withIns.length>0){
+          h+=`<div style="margin-top:16px;font-size:12px;color:#888">기사별 적용 보험료 미리보기</div>
+            <table class="pt" style="margin-top:8px"><thead><tr><th>기사</th><th>고용보험</th><th>산재보험</th><th>합계</th></tr></thead><tbody>`;
+          withIns.forEach(({d,ins})=>{h+=`<tr><td>${d.name||d.id}</td><td>${fmt(ins.goyang)}</td><td>${fmt(ins.sanjae)}</td><td style="font-weight:600">${fmt(ins.goyang+ins.sanjae)}</td></tr>`});
+          h+=`</tbody></table>`;
+        }
+      }
+      h+=`<div class="save-bar" style="margin-top:12px"><button class="primary" onclick="doSave()">💾 보험 매칭 저장</button></div>`;
+    }
+
+    // 정산서 생성
+    h+=`<div class="sec" style="margin-top:20px"><div class="sec-t"><span class="n">3</span> 정산서 생성</div>
+      <button class="btn" onclick="doGen()">📥 개인 정산서 엑셀 생성 및 다운로드</button></div>`;
+  }
+
+  app.innerHTML=h;
+  setupDZ();
+  }catch(renderErr){
+
+    console.error('Render error:',renderErr);
+    document.getElementById('app').innerHTML=`<div style="color:red;padding:20px">렌더링 오류: ${renderErr.message}<br><pre>${renderErr.stack}</pre></div>`;
+  }
+}
+
+function setupDZ(){
+  const dz=document.getElementById('dz');if(!dz)return;
+  dz.addEventListener('dragover',e=>{e.preventDefault();dz.classList.add('over')});
+  dz.addEventListener('dragleave',()=>dz.classList.remove('over'));
+  dz.addEventListener('drop',e=>{e.preventDefault();dz.classList.remove('over');if(e.dataTransfer.files[0])parseFile(e.dataTransfer.files[0])});
+}
+
+// ===== EVENTS =====
+window.hFile=e=>{const f=e.target.files[0];if(f)parseFile(f)};
+window.sTab=t=>{S.tab=t;render()};
+window.uP=(rt,v)=>{S.prices[rt]=Number(v)||0};
+window.uAdj=(di,rt,v)=>{S.drivers[di].adjustments[rt]=Number(v)||0};
+window.tog=id=>{S.open[id]=!S.open[id];render()};
+window.aDed=di=>{if(!S.drivers[di].deductions)S.drivers[di].deductions=[];S.drivers[di].deductions.push({name:'',amount:0});render()};
+window.rDed=(di,ddi)=>{S.drivers[di].deductions.splice(ddi,1);render()};
+window.uDed=(di,ddi,f,v)=>{S.drivers[di].deductions[ddi][f]=f==='amount'?Number(v):v};
+window.doSave=async()=>{await saveDriverPrices();render()};
+window.doGen=async()=>{await generateOutput()};
+
+window.togglePC=function(checked){
+  S.priceChange.enabled=checked;
+  if(checked&&S.priceChange.date&&S.data)splitRoutesByDate();
+  render();
+};
+window.setPCDate=function(val){
+  S.priceChange.date=val;
+  if(S.priceChange.enabled&&val&&S.data)splitRoutesByDate();
+  render();
+};
+window.uPA=function(rt,v){S.priceChange.pricesAfter[rt]=Number(v)||0};
+window.applyChangedAsBase=async function(){
+  if(!window.confirm('지금 "변경 단가"에 입력된 값을 새 기본 단가로 적용할까요?\n(기존 기본 단가표는 이 값으로 덮어써지고, 단가 변경 설정은 초기화됩니다)'))return;
+  ROUTES.forEach(rt=>{
+    if(S.priceChange.pricesAfter[rt]!=null)S.prices[rt]=S.priceChange.pricesAfter[rt];
+  });
+  S.priceChange={enabled:false,date:'',pricesAfter:{...S.prices}};
+  addLog('"단가 변경" 값을 기본 단가표에 적용했습니다.','ok');
+  await saveDriverPrices();
+  render();
+};
+
+window.toggleDriverPC=function(di,checked){
+  const dr=S.drivers[di];
+  if(!dr.priceChange)dr.priceChange={enabled:false,date:'',adjAfter:{}};
+  dr.priceChange.enabled=checked;
+  if(checked&&dr.priceChange.date&&S.data)splitRoutesByDate();
+  render();
+};
+window.setDriverPCDate=function(di,val){
+  const dr=S.drivers[di];
+  if(!dr.priceChange)dr.priceChange={enabled:false,date:'',adjAfter:{}};
+  dr.priceChange.date=val;
+  if(dr.priceChange.enabled&&val&&S.data)splitRoutesByDate();
+  render();
+};
+window.uDriverPA=function(di,rt,v){
+  const dr=S.drivers[di];
+  if(!dr.priceChange)dr.priceChange={enabled:false,date:'',adjAfter:{}};
+  if(!dr.priceChange.adjAfter)dr.priceChange.adjAfter={};
+  dr.priceChange.adjAfter[rt]=Number(v)||0;
+};
+
+window.hIns=function(e,type){const f=e.target.files[0];if(f)parseInsurance(f,type)};
+window.mapName=function(name,field,val){
+  if(!S.ins.nameMap[name])S.ins.nameMap[name]={id:'',gRate:100,sRate:100};
+  const m=S.ins.nameMap[name];
+  if(typeof m==='string')S.ins.nameMap[name]={id:m,gRate:100,sRate:100};
+  if(field==='id')S.ins.nameMap[name].id=val;
+  else if(field==='gRate')S.ins.nameMap[name].gRate=Number(val);
+  else if(field==='sRate')S.ins.nameMap[name].sRate=Number(val);
+  render();
+};
+window.delIns=function(name){S.ins._deleted[name]=true;render()};
+window.restoreIns=function(name){delete S.ins._deleted[name];render()};
+
+window.exportSettings=async()=>{
+  await saveDriverPrices();
+  await loadDriverPrices();
+  const blob=new Blob([JSON.stringify(S.savedPrices||{},null,2)],{type:'application/json'});
+  const a=document.createElement('a');
+  const d=new Date();
+  a.href=URL.createObjectURL(blob);
+  a.download=`코끼리물류_단가설정_${d.getFullYear()}${String(d.getMonth()+1).padStart(2,'0')}${String(d.getDate()).padStart(2,'0')}.json`;
+  a.click();
+  URL.revokeObjectURL(a.href);
+  addLog('설정 내보내기 완료 (JSON)','ok');
+  render();
+};
+
+window.importSettings=function(e){
+  const f=e.target.files[0];if(!f)return;
+  const r=new FileReader();
+  r.onload=async function(ev){
+    try{
+      const obj=JSON.parse(ev.target.result);
+      if(typeof obj!=='object'||obj===null||Array.isArray(obj))throw new Error('올바른 설정 파일이 아닙니다');
+      const raw=JSON.stringify(obj);
+      if(window.storage){await window.storage.set('elephant-driver-prices',raw)}
+      else{localStorage.setItem('elephant-driver-prices',raw)}
+      S.savedPrices=obj;
+      if(S.data){try{processDrivers()}catch(e2){console.error(e2)}}
+      applySavedPrices();
+      addLog('설정 불러오기 완료','ok');
+    }catch(err){addLog('설정 불러오기 실패: '+err.message,'warn')}
+    render();
+  };
+  r.readAsText(f);
+  e.target.value='';
+};
+
+// ===== INIT =====
+loadDriverPrices().then(()=>{render()});
+</script>
+</body>
+</html>
+
