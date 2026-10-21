@@ -1,6 +1,7 @@
 import React, { useState, useMemo, useRef } from 'react';
 import { jsPDF } from 'jspdf';
 import { toJpeg } from 'html-to-image';
+import { elementToA4Pdf } from './pdf-pages';
 import firebase, { auth, db, storage } from './firebase';
 import { Icons, DraggableNode, SignaturePadModal, PdfTemplate } from './ui-components';
 import { SignaturePad } from './signature-pad';
@@ -500,20 +501,21 @@ const ContractManagement = ({ user, contracts, setContracts, contacts, profiles 
             const generate = async () => {
                 const element = printRef.current;
                 try {
-                    const dataUrl = await toJpeg(element, {
-                        quality: 0.95,
-                        backgroundColor: '#ffffff',
-                        style: {
-                            opacity: '1',
-                            visibility: 'visible',
-                            transform: 'none'
-                        }
-                    });
-                    
-                    const pdfWidth = 210; // A4 width in mm
-                    const pdfHeight = (element.offsetHeight * pdfWidth) / element.offsetWidth;
-                    const pdf = new jsPDF('p', 'mm', [pdfWidth, pdfHeight]);
-                    pdf.addImage(dataUrl, 'JPEG', 0, 0, pdfWidth, pdfHeight);
+                    let pdf;
+                    if (activePdfContract.templateType === 'custom') {
+                        // 사용자 지정 서식은 배경 이미지 크기 그대로 한 장으로 저장
+                        const dataUrl = await toJpeg(element, {
+                            quality: 0.95,
+                            backgroundColor: '#ffffff',
+                            style: { opacity: '1', visibility: 'visible', transform: 'none' }
+                        });
+                        const pdfWidth = 210; // A4 width in mm
+                        const pdfHeight = (element.offsetHeight * pdfWidth) / element.offsetWidth;
+                        pdf = new jsPDF('p', 'mm', [pdfWidth, pdfHeight]);
+                        pdf.addImage(dataUrl, 'JPEG', 0, 0, pdfWidth, pdfHeight);
+                    } else {
+                        pdf = await elementToA4Pdf(element);
+                    }
 
                     pdf.save(`코끼리물류_${activePdfContract.title}_${activePdfContract.name}.pdf`);
                 } catch (error) {
