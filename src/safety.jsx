@@ -7,7 +7,7 @@ const formatPhoneNumber = (value) => {
     return `${raw.slice(0, 3)}-${raw.slice(3, 7)}-${raw.slice(7, 11)}`;
 };
 import React, { useState, useEffect } from 'react';
-import firebase, { db, storage } from './firebase';
+import firebase, { auth, db, storage } from './firebase';
 import { toJpeg } from 'html-to-image';
 import { jsPDF } from 'jspdf';
 
@@ -2882,7 +2882,7 @@ const FormSafetyEducationUpload = ({ user, onSubmit, onCancel }) => {
             let finalFileUrl = '';
             
             if (fileData.startsWith('data:')) {
-                const storageRef = storage.ref(`safety_education/${recordId}`);
+                const storageRef = storage.ref(`safety_education/${auth.currentUser.email}/${recordId}`);
                 await storageRef.putString(fileData, 'data_url');
                 finalFileUrl = await storageRef.getDownloadURL();
             }
@@ -2976,7 +2976,7 @@ const FormAccidentReport = ({ user, onSubmit, onCancel }) => {
             const recordId = `safe_${Date.now()}`;
             let finalFileUrl = '';
             if (fileData && fileData.startsWith('data:')) {
-                const storageRef = storage.ref(`accident_reports/${recordId}`);
+                const storageRef = storage.ref(`accident_reports/${auth.currentUser.email}/${recordId}`);
                 await storageRef.putString(fileData, 'data_url');
                 finalFileUrl = await storageRef.getDownloadURL();
             }

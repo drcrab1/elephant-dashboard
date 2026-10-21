@@ -1,0 +1,70 @@
+rules_version = '2';
+service firebase.storage {
+  match /b/{bucket}/o {
+    function isSignedIn() {
+      return request.auth != null;
+    }
+    function isAdmin() {
+      return isSignedIn() && request.auth.token.email == 's01025144826@gmail.com';
+    }
+    function isOwner(email) {
+      return isSignedIn() && request.auth.token.email == email;
+    }
+    // 이미지 또는 PDF만, 크기 제한
+    function validUpload(maxMb) {
+      return request.resource.size < maxMb * 1024 * 1024
+        && request.resource.contentType.matches('image/.*|application/pdf');
+    }
+    function validPdf(maxMb) {
+      return request.resource.size < maxMb * 1024 * 1024
+        && request.resource.contentType == 'application/pdf';
+    }
+
+    // 차량·자격 서류 사진: 파일 이름이 Firestore 서류 문서 ID와 같고, 그 문서의 주인(email)만 접근. 대표자는 전체.
+    match /vehicleDocs/{docId} {
+      allow read, delete: if isAdmin()
+        || (isSignedIn() && firestore.get(/databases/(default)/documents/vehicleDocs/$(docId)).data.email == request.auth.token.email);
+      allow create, update: if (isAdmin()
+        || (isSignedIn() && firestore.get(/databases/(default)/documents/vehicleDocs/$(docId)).data.email == request.auth.token.email))
+        && validUpload(10);
+    }
+
+    // 안전교육·사고 보고 첨부: 작성자 이메일 폴더(본인)만 접근. 대표자는 전체.
+    match /safety_education/{ownerEmail}/{fileName} {
+      allow read, delete: if isAdmin() || isOwner(ownerEmail);
+      allow create, update: if (isAdmin() || isOwner(ownerEmail)) && validUpload(10);
+    }
+    match /accident_reports/{ownerEmail}/{fileName} {
+      allow read, delete: if isAdmin() || isOwner(ownerEmail);
+      allow create, update: if (isAdmin() || isOwner(ownerEmail)) && validUpload(10);
+    }
+
+    // 스캔 양식 계약서(배경 이미지·서명): 대표자만
+    match /contracts/{fileName} {
+      allow read, write: if isAdmin();
+    }
+
+    // 노선 지도 이미지: 로그인한 사용자 열람·등록 (기존 동작 유지)
+    match /routes/{fileName} {
+      allow read: if isSignedIn();
+      allow create, update: if isSignedIn() && validUpload(10);
+      allow delete: if isAdmin();
+    }
+
+    // 개인정보 교육자료 PDF: 로그인한 사용자 열람, 등록·삭제는 대표자만
+    match /privacy/training/{fileName} {
+      allow read: if isSignedIn();
+      allow create: if isAdmin() && validPdf(20);
+      allow update, delete: if false;
+    }
+
+    // 서명된 서약서 PDF: 본인 폴더에만 생성(수정·삭제 불가), 열람은 본인과 대표자
+    match /privacy/pledges/{ownerEmail}/{fileName} {
+      allow read: if isAdmin() || isOwner(ownerEmail);
+      allow create: if isOwner(ownerEmail) && validPdf(5);
+      allow update, delete: if false;
+    }
+
+    // 그 외 경로는 모두 거부 (새 경로를 쓰려면 위처럼 규칙을 명시하세요)
+  }
+}
