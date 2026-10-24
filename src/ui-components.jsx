@@ -357,9 +357,12 @@ const PdfTemplate = ({ contract, templateRef, preview = false }) => {
                                         .replace('{appealDue}', '10');
                                 }
                                 // 표준계약서와 같은 쪽 구성(6쪽)으로 PDF를 만들기 위해, 아래 조항은 새 쪽에서 시작
-                                const pageBreak = ['제5조', '제7조', '제8조', '제12조', '제16조'].some(n => art.title.startsWith(n));
+                                const pageStarts = ['제5조', '제7조', '제8조', '제12조', '제16조'];
+                                const pageNo = pageStarts.findIndex(n => art.title.startsWith(n)) + 2; // 2 미만이면 새 쪽 아님
+                                const pageBreak = pageNo >= 2;
                                 return (
                                     <div key={idx} className="text-justify" data-pdf-break={pageBreak ? 'before' : undefined}>
+                                        {preview && pageBreak && <div className="-mx-10 mb-5 -mt-1 py-1.5 bg-gray-200 text-center text-[11px] font-bold text-gray-500">— {pageNo}쪽 —</div>}
                                         <h4 className="font-bold mb-1.5">{art.title}</h4>
                                         <p className="whitespace-pre-wrap">{content}</p>
                                     </div>
