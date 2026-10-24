@@ -362,8 +362,8 @@ export const PledgePaper = ({ type, name, email, signature, signedAtText }) => (
 
 export const DEFAULT_TRAINING = {
     title: '배송 기사 개인정보 보호 교육 (배송 주소·업무 정보 취급 주의사항)',
-    durationMin: 8,
-    minSeconds: 150,
+    durationMin: '',
+    minSeconds: '',
     content: `배송 기사 개인정보 보호 교육
 (끝까지 읽으면 아래에 "이수 확인" 버튼이 활성화됩니다)
 
