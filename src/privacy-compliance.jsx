@@ -171,7 +171,7 @@ export const ComplianceTab = ({ user, members, metas, checks, pledges, trainings
                                 <p className="text-[12.5px] mt-1.5"><span className="font-extrabold text-gray-700">권장 답변:</span> <span className="font-bold text-blue-700">{r.answer}</span></p>
                                 {r.copy && (
                                     <div className="mt-2">
-                                        <textarea readOnly value={SYSTEM_DESCRIPTION} rows={8} className="w-full border border-gray-200 rounded-xl p-3 text-[12.5px] bg-gray-50" />
+                                        <textarea readOnly value={SYSTEM_DESCRIPTION} rows={14} className="w-full border border-gray-200 rounded-xl p-3 text-[12.5px] bg-gray-50" />
                                         <button className={`${btnGhost} mt-1.5`} onClick={copy}>{copied ? '복사됨 ✓' : '설명문 복사'}</button>
                                     </div>
                                 )}
