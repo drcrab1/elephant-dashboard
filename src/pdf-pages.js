@@ -28,16 +28,26 @@ export const elementToA4Pdf = async (element, { margin = 8, pixelRatio = 2 } = {
         if (r.height > 0) cuts.push(r.bottom - top);
     });
 
+    // data-pdf-break="before"가 붙은 요소는 항상 새 쪽에서 시작
+    const forced = Array.from(element.querySelectorAll('[data-pdf-break="before"]'))
+        .map((el) => el.getBoundingClientRect().top - top)
+        .filter((y) => y > 1 && y < elH - 1)
+        .sort((a, b) => a - b);
+    const bounds = [0, ...forced, elH];
+
     const ranges = [];
-    let start = 0;
-    while (elH - start > pageHpx + 1) {
-        const limit = start + pageHpx;
-        const fit = cuts.filter((c) => c > start + pageHpx * 0.4 && c <= limit + 0.5);
-        const end = fit.length ? Math.max(...fit) : limit;
-        ranges.push([start, end]);
-        start = end;
+    for (let k = 0; k < bounds.length - 1; k++) {
+        let start = bounds[k];
+        const segEnd = bounds[k + 1];
+        while (segEnd - start > pageHpx + 1) {
+            const limit = start + pageHpx;
+            const fit = cuts.filter((c) => c > start + pageHpx * 0.4 && c <= limit + 0.5);
+            const end = fit.length ? Math.max(...fit) : limit;
+            ranges.push([start, end]);
+            start = end;
+        }
+        ranges.push([start, segEnd]);
     }
-    ranges.push([start, elH]);
 
     const pdf = new jsPDF('p', 'mm', 'a4');
     ranges.forEach(([a, b], i) => {
@@ -54,5 +64,12 @@ export const elementToA4Pdf = async (element, { margin = 8, pixelRatio = 2 } = {
         if (i > 0) pdf.addPage();
         pdf.addImage(slice.toDataURL('image/jpeg', 0.95), 'JPEG', margin, margin, usableW, (sh / ratio) * (usableW / elW));
     });
+    // 쪽 번호 (- 1 -)
+    const total = pdf.getNumberOfPages();
+    pdf.setFontSize(9);
+    for (let i = 1; i <= total; i++) {
+        pdf.setPage(i);
+        pdf.text(`- ${i} -`, 105, 293, { align: 'center' });
+    }
     return pdf;
 };
