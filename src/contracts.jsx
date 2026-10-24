@@ -589,6 +589,9 @@ const ContractManagement = ({ user, contracts, setContracts, contacts, profiles 
                     <option value="standard_consignment">위수탁계약서</option>
                     <option value="standard_supplementary">부속합의서</option>
                     <option value="accident_report">산업재해조사표</option>
+                    <option value="consent_collect">개인정보 수집·이용 동의서</option>
+                    <option value="consent_third">개인정보 제3자 제공 동의서</option>
+                    <option value="consent_health">건강검진 동의서</option>
                     <option value="custom">맞춤 스캔양식</option>
                 </select>
                 <input
