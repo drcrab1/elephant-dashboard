@@ -50,8 +50,8 @@ const sameFlags = (a, b) => a.isActive === b.isActive && a.pledgeRequired === b.
 // 개인정보가 많이 들어 있는 관리자 화면 — 열람 시 접속기록을 남깁니다.
 const SENSITIVE_PAGES = ['회원관리', '서류관리', '계약관리', '안전보건관리', '개인정보 관리', '알림관리'];
 
-// 링크(?menu=...)로 들어왔을 때 열 화면 (카톡으로 공유하는 서약서 링크용)
-const MENU_FROM_LINK = { pledge: '개인정보 서약·교육' };
+// 링크(?menu=...)로 들어왔을 때 열 화면 (카톡으로 공유하는 서약서·계약 서명 링크용)
+const MENU_FROM_LINK = { pledge: '개인정보 서약·교육', contract: '계약관리' };
 
 const App = () => {
     const [user, setUser] = useState(null);
