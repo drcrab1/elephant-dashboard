@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>코끼리물류 정산서 변환기 v2</title>
+<title>코끼리물류 정산서 변환기 v7</title>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/exceljs/4.4.0/exceljs.min.js"></script>
 <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@300;400;500;600;700;900&display=swap" rel="stylesheet">
@@ -31,7 +31,6 @@ body{font-family:'Noto Sans KR',sans-serif;background:#0c0c14;color:#d0d0d0;min-
 .si .sl{font-size:10px;color:#555;margin-bottom:2px}
 .si .sv{font-size:18px;font-weight:700;color:#4fc3f7}
 .si .sv.tot{color:#e040fb}
-.si .sv.red{color:#ff5252}
 .tabs{display:flex;gap:4px;margin-bottom:16px;flex-wrap:wrap}
 .tab{padding:7px 14px;background:#1a1a28;border:1px solid #252535;border-radius:7px;font-size:12px;color:#777;cursor:pointer;font-family:inherit;transition:all .2s}
 .tab.on{background:#7c4dff;color:#fff;border-color:#7c4dff}
@@ -67,8 +66,6 @@ table.pt{width:100%;border-collapse:collapse;font-size:12px}
 .log{background:#0a0a10;border:1px solid #1a1a2a;border-radius:8px;padding:12px;margin-top:16px;max-height:180px;overflow-y:auto;font-size:11px;color:#555;line-height:1.8}
 .log .ok{color:#4caf50}.log .warn{color:#ff9800}.log .info{color:#4fc3f7}
 .info-box{background:#111;border:1px solid #252535;border-radius:10px;padding:16px;margin-top:12px;font-size:12px;line-height:1.8;color:#888}
-.info-box h4{color:#4fc3f7;font-size:13px;margin-bottom:8px}
-.info-box .tag{display:inline-block;background:#1a1a28;border:1px solid #333;border-radius:4px;padding:2px 8px;font-size:11px;margin:2px;color:#d0d0d0}
 .save-bar{display:flex;gap:8px;margin-top:12px;justify-content:flex-end}
 .save-bar button{padding:6px 16px;border-radius:6px;border:1px solid #333;background:#1a1a28;color:#d0d0d0;font-family:inherit;font-size:12px;cursor:pointer}
 .save-bar button.primary{background:#7c4dff;border-color:#7c4dff;color:#fff}
@@ -84,7 +81,9 @@ const BASE_PRICES={'001C':1140,'001D':1040,'323C':1070,'323D':1070,'402C':1160,'
 const ID_NAME={};
 
 let S={file:null,data:null,prices:{...BASE_PRICES},priceChange:{enabled:false,date:'',pricesAfter:{...BASE_PRICES}},drivers:[],logs:[],tab:'drivers',open:{},savedPrices:null,
-  ins:{goyang:{},sanjae:{},nameMap:{},_deleted:{},gFile:null,sFile:null},excluded:new Set()};
+  ins:{goyang:{},sanjae:{},nameMap:{},_deleted:{},gFile:null,sFile:null}};
+
+function esc(v){return String(v==null?'':v).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;')}
 
 // ===== STORAGE =====
 async function saveDriverPrices(){
@@ -108,16 +107,13 @@ async function saveDriverPrices(){
   });
   d._insPerDriver=insPerDriver;
   try{
-    if(window.storage){await window.storage.set('elephant-driver-prices',JSON.stringify(d))}
-    else{localStorage.setItem('elephant-driver-prices',JSON.stringify(d))}
+    localStorage.setItem('elephant-driver-prices',JSON.stringify(d));
     addLog('기사별 단가 설정 저장 완료','ok');
   }catch(e){addLog('저장 실패: '+e.message,'warn')}
 }
 async function loadDriverPrices(){
   try{
-    let raw;
-    if(window.storage){const r=await window.storage.get('elephant-driver-prices');raw=r?r.value:null}
-    else{raw=localStorage.getItem('elephant-driver-prices')}
+    const raw=localStorage.getItem('elephant-driver-prices');
     if(raw){S.savedPrices=JSON.parse(raw);addLog('저장된 기사별 단가 설정 로드 완료','ok');return true}
   }catch(e){}
   return false;
@@ -270,10 +266,9 @@ function processDrivers(){
       }
       d.totalQty+=qty;d.totalRet+=ret;d.totalBaseAmt+=baseAmt;d.totalAiAmt+=aiAmt;d.totalAmt+=total;
       d.rawRows.push(row);
-    }else if(type.includes('프레쉬백')||type.includes('프레시백')||type.includes('재사용포장재')){
-      d.rawRows.push(row); // raw rows만 보관, 금액은 fbFromRaw에서
-    }else if(type==='미계약 라우트'){d.rawRows.push(row)}
-    else{d.rawRows.push(row)}
+    }else{
+      d.rawRows.push(row); // 프레쉬백·미계약 라우트 등은 raw rows만 보관 (프레쉬백 금액은 fbFromRaw에서)
+    }
   }
 
   // 3-1) 신규 노선 자동 감지 및 등록 (ROUTES/단가표에 없는 노선이 정산Raw에 나타난 경우)
@@ -305,8 +300,6 @@ function processDrivers(){
       adjustments:{},deductions:[],priceChange:{enabled:false,date:'',adjAfter:{}}}))
     .sort((a,b)=>b.totalQty-a.totalQty);
 
-  const eco=Object.values(dm).filter(d=>d.id.includes('에코백'));
-  if(eco.length)S.data._eco=eco;
   addLog(`기사 ${S.drivers.length}명 처리 완료`,'ok');
   // 검증 로그
   const totalFb=S.drivers.reduce((s,d)=>s+d.fbTotal,0);
@@ -419,9 +412,9 @@ async function generateOutput(){
   const driverFinalRows={}; // {sheetName: {finalRow, insurRow1, insurRow2}}
   addLog(`보험 데이터: 고용 ${Object.keys(S.ins.goyang).length}명, 산재 ${Object.keys(S.ins.sanjae).length}명`,'info');
   S.drivers.forEach(dr=>{
-    const insCalc=getInsuranceForDriver(dr.id);
-    const g=insCalc.goyang||dr._insGoyang||0;
-    const s=insCalc.sanjae||dr._insSanjae||0;
+    const insCalc=insuranceOf(dr);
+    const g=insCalc.goyang;
+    const s=insCalc.sanjae;
     if(g>0||s>0)addLog(`  └ ${dr.name||dr.id}: 고용=${g.toLocaleString()}, 산재=${s.toLocaleString()}`,'info');
     const info=createDriverSheet(wb,dr,C,allBorders);
     driverFinalRows[info.sheetName]=info;
@@ -680,7 +673,10 @@ function createDriverSheet(wb,dr,C,bdr){
       dailyQty[key]=(dailyQty[key]||0)+(Number(row[7])||0);
     }
   });
-  const dailyKeys=Object.keys(dailyQty).sort();
+  const dailyKeys=Object.keys(dailyQty).sort((a,b)=>{
+    const ta=Date.parse(a),tb=Date.parse(b);
+    return (isNaN(ta)||isNaN(tb))?a.localeCompare(b):ta-tb;
+  });
   let dqr=cr+1;
   setCell(ws,dqr,10,'일자별 배송건수',{bold:true,align:'center',fill:C.hdrFill,border:bdr});
   setCell(ws,dqr,11,null,{fill:C.hdrFill,border:bdr});
@@ -757,8 +753,7 @@ function createDriverSheet(wb,dr,C,bdr){
   cr++;
 
   // 보험료 - 고용
-  const insCalc=getInsuranceForDriver(dr.id);
-  const ins={goyang:insCalc.goyang||dr._insGoyang||0, sanjae:insCalc.sanjae||dr._insSanjae||0};
+  const ins=insuranceOf(dr);
   const deductStartRow=cr;
   const insurRow1=cr;
   setCell(ws,cr,2,'보험료',{align:'center',border:bdr});
@@ -899,15 +894,17 @@ function createSummarySheet(wb,C,bdr,driverFinalRows){
   setCell(ws,8,4,insur2Parts.length>0?{formula:insur2Parts.join('+')}:null,{numFmt:'#,##0',border:bdr});
 
   // D9: 고용보험 원본합계 (보험료 파일 전체 합산)
-  const gTotal=Object.values(S.ins.goyang).reduce((s,v)=>s+v,0);
-  const sTotal=Object.values(S.ins.sanjae).reduce((s,v)=>s+v,0);
+  // 보험 파일 합계에서 "제외(×)"한 사람의 금액은 뺍니다
+  const keptSum=obj=>Object.entries(obj).reduce((s,[name,v])=>s+((S.ins._deleted&&S.ins._deleted[name])?0:v),0);
+  const gTotal=keptSum(S.ins.goyang);
+  const sTotal=keptSum(S.ins.sanjae);
   setCell(ws,9,2,null,{border:bdr});
-  setCell(ws,9,3,'고용보험 원본합계',{align:'center',border:bdr,fontColor:'888888'});
+  setCell(ws,9,3,'고용보험 원본합계 (제외 인원 뺀 금액)',{align:'center',border:bdr,fontColor:'888888'});
   setCell(ws,9,4,gTotal>0?gTotal:null,{numFmt:'#,##0',border:bdr,fontColor:'888888'});
 
   // D10: 산재보험 원본합계 (보험료 파일 전체 합산)
   setCell(ws,10,2,null,{border:bdr});
-  setCell(ws,10,3,'산재보험 원본합계',{align:'center',border:bdr,fontColor:'888888'});
+  setCell(ws,10,3,'산재보험 원본합계 (제외 인원 뺀 금액)',{align:'center',border:bdr,fontColor:'888888'});
   setCell(ws,10,4,sTotal>0?sTotal:null,{numFmt:'#,##0',border:bdr,fontColor:'888888'});
 
   // D11: 기타
@@ -915,13 +912,12 @@ function createSummarySheet(wb,C,bdr,driverFinalRows){
   setCell(ws,11,3,'기타',{align:'center',border:bdr});
   setCell(ws,11,4,null,{numFmt:'#,##0',border:bdr});
 
-  // D12: 잔액 = B-A - 고용 - 산재 - 기타
+  // D12: 잔액 = B-A - 고용보험 원본합계 - 산재보험 원본합계 - 기타 (기사에게 반영한 금액이 아니라 보험료 파일 원본 합계를 뺍니다)
   setCell(ws,12,2,null,{border:bdr});
   setCell(ws,12,3,'잔액',{align:'center',bold:true,border:bdr});
-  setCell(ws,12,4,{formula:'D6-D7-D8-D11'},{bold:true,numFmt:'#,##0',border:bdr});
+  setCell(ws,12,4,{formula:'D6-D9-D10-D11'},{bold:true,numFmt:'#,##0',border:bdr});
 }
 
-// ===== RENDERING =====
 // ===== INSURANCE =====
 function parseInsurance(file,type){
   const r=new FileReader();
@@ -975,6 +971,20 @@ function autoMatchNames(){
   });
 }
 
+function rateSelect(name,field,val){
+  const v=val!=null?Number(val):100;
+  const opts=[[100,'전액'],[50,'반액']];
+  if(v!==100&&v!==50)opts.push([v,'기타 '+v+'%']); // 예전에 저장된 다른 비율은 그대로 보존
+  return `<select data-n="${esc(name)}" onchange="mapName(this.dataset.n,'${field}',this.value)" style="background:#0a0a10;border:1px solid #2a2a3a;border-radius:5px;padding:5px 7px;color:#d0d0d0;font-family:inherit;font-size:12px">${opts.map(([n,l])=>`<option value="${n}" ${n===v?'selected':''}>${l}</option>`).join('')}</select>`;
+}
+
+// 기사에게 적용할 보험료. 이름 매칭 정보가 있으면 그것만 따르고(제외한 사람은 0원),
+// 매칭 정보가 전혀 없는 옛 저장본일 때만 저장된 기사별 금액을 대신 사용합니다.
+function insuranceOf(dr){
+  if(Object.keys(S.ins.nameMap).length>0)return getInsuranceForDriver(dr.id);
+  return {goyang:dr._insGoyang||0,sanjae:dr._insSanjae||0};
+}
+
 function getInsuranceForDriver(driverId){
   let g=0,s=0;
   Object.entries(S.ins.nameMap).forEach(([name,m])=>{
@@ -988,6 +998,7 @@ function getInsuranceForDriver(driverId){
   return {goyang:Math.round(g),sanjae:Math.round(s)};
 }
 
+// ===== RENDERING =====
 function render(){
   try{
   const app=document.getElementById('app');
@@ -1000,13 +1011,13 @@ function render(){
     <input type="file" id="fi" accept=".xlsx,.xls" onchange="hFile(event)">
     <span class="ic">${S.file?'✅':'📂'}</span>
     <span class="lb">${S.file?'':'쿠팡 정산서 파일(.xlsx) 드래그 또는 클릭'}</span>
-    ${S.file?`<span class="fn">${S.file.name}</span>`:''}</div>
+    ${S.file?`<span class="fn">${esc(S.file.name)}</span>`:''}</div>
     <p class="help">필수 시트: 정산총괄, 정산Raw, 분실파손List</p></div>`;
 
   // 에러/로그를 업로드 바로 아래에 표시
   if(S.logs.length>0){
     h+='<div class="log" style="margin-bottom:20px">';
-    S.logs.forEach(l=>{h+=`<div class="${l.t}">[${l.time}] ${l.m}</div>`});
+    S.logs.forEach(l=>{h+=`<div class="${l.t}">[${l.time}] ${esc(l.m)}</div>`});
     h+='</div>';
   }
 
@@ -1046,8 +1057,8 @@ function render(){
         const actR=Object.entries(dr.routes).filter(([r,d])=>d.qty>0);
         const hasAdj=Object.values(dr.adjustments||{}).some(v=>v>0);
         h+=`<div class="dc"><div class="ch" onclick="tog('${dr.id}')"><div>
-          <span class="nm">${dr.name||'이름 미확인'}${hasAdj?'<span class="badge" style="background:#7c4dff">조정됨</span>':''}${(dr.priceChange&&dr.priceChange.enabled)?'<span class="badge" style="background:#e040fb">개인 단가변경</span>':''}</span>
-          <div class="id">${dr.id} · ${fmt(dr.totalQty)}건</div></div>
+          <span class="nm">${esc(dr.name)||'이름 미확인'}${hasAdj?'<span class="badge" style="background:#7c4dff">조정됨</span>':''}${(dr.priceChange&&dr.priceChange.enabled)?'<span class="badge" style="background:#e040fb">개인 단가변경</span>':''}</span>
+          <div class="id">${esc(dr.id)} · ${fmt(dr.totalQty)}건</div></div>
           <span class="ar ${isO?'op':''}">▶</span></div>
           <div class="sts">
             <div><div class="st-l">배송금액</div><div class="st-v">${fmt(dr.totalAmt)}</div></div>
@@ -1096,7 +1107,7 @@ function render(){
           h+=`<div style="font-size:11px;color:#666;margin-top:10px">추가 공제 항목</div>`;
           (dr.deductions||[]).forEach((ded,ddi)=>{
             h+=`<div class="ded">
-              <input placeholder="항목명 (알바비, 용차 등)" value="${ded.name}" onchange="uDed(${di},${ddi},'name',this.value)">
+              <input placeholder="항목명 (알바비, 용차 등)" value="${esc(ded.name)}" onchange="uDed(${di},${ddi},'name',this.value)">
               <input type="number" placeholder="금액" value="${ded.amount}" onchange="uDed(${di},${ddi},'amount',this.value)">
               <button class="rm" onclick="rDed(${di},${ddi})">×</button></div>`;
           });
@@ -1201,8 +1212,8 @@ function render(){
       if(insNames.length>0){
         const unmatched=insNames.filter(n=>{const m=S.ins.nameMap[n];const id=typeof m==='string'?m:(m&&m.id);return !id&&!(S.ins._deleted&&S.ins._deleted[n])}).length;
         h+=`<div class="info-box" style="margin-top:14px">총 ${insNames.length}명 · 기사 미매칭 <b style="color:${unmatched?'#ff9800':'#4caf50'}">${unmatched}명</b>
-          <span style="color:#555"> (이름이 같으면 자동 매칭됩니다. 매칭이 안 된 사람은 기사를 직접 선택하세요. 반영률은 보험료의 몇 %를 그 기사에게 적용할지입니다)</span></div>
-          <table class="pt" style="margin-top:10px"><thead><tr><th>이름(보험 파일)</th><th>고용보험</th><th>산재보험</th><th>매칭 기사</th><th>고용 반영률(%)</th><th>산재 반영률(%)</th><th>제외</th></tr></thead><tbody>`;
+          <span style="color:#555"> (이름이 같으면 자동 매칭됩니다. 매칭이 안 된 사람은 기사를 직접 선택하세요. "전액"은 보험료 100%, "반액"은 50%를 그 기사에게 적용합니다)</span></div>
+          <table class="pt" style="margin-top:10px"><thead><tr><th>이름(보험 파일)</th><th>고용보험</th><th>산재보험</th><th>매칭 기사</th><th>고용 반영</th><th>산재 반영</th><th>제외</th></tr></thead><tbody>`;
         insNames.forEach(name=>{
           const m=S.ins.nameMap[name];
           const info=typeof m==='string'?{id:m,gRate:100,sRate:100}:(m||{id:'',gRate:100,sRate:100});
@@ -1211,8 +1222,8 @@ function render(){
           h+=`<tr style="${del?'opacity:.35':''}"><td style="font-weight:600">${name}</td>
             <td>${fmt(S.ins.goyang[name]||0)}</td><td>${fmt(S.ins.sanjae[name]||0)}</td>
             <td><select data-n="${attr(name)}" onchange="mapName(this.dataset.n,'id',this.value)" style="background:#0a0a10;border:1px solid #2a2a3a;border-radius:5px;padding:5px 7px;color:#d0d0d0;font-family:inherit;font-size:11px;max-width:200px"><option value="">(미매칭)</option>${opts}</select></td>
-            <td><input type="number" min="0" max="100" value="${info.gRate!=null?info.gRate:100}" data-n="${attr(name)}" onchange="mapName(this.dataset.n,'gRate',this.value)" style="width:64px"></td>
-            <td><input type="number" min="0" max="100" value="${info.sRate!=null?info.sRate:100}" data-n="${attr(name)}" onchange="mapName(this.dataset.n,'sRate',this.value)" style="width:64px"></td>
+            <td>${rateSelect(name,'gRate',info.gRate)}</td>
+            <td>${rateSelect(name,'sRate',info.sRate)}</td>
             <td>${del?`<button class="add" data-n="${attr(name)}" onclick="restoreIns(this.dataset.n)">복원</button>`:`<button class="rm" data-n="${attr(name)}" onclick="delIns(this.dataset.n)">×</button>`}</td></tr>`;
         });
         h+=`</tbody></table>`;
@@ -1340,8 +1351,7 @@ window.importSettings=function(e){
       const obj=JSON.parse(ev.target.result);
       if(typeof obj!=='object'||obj===null||Array.isArray(obj))throw new Error('올바른 설정 파일이 아닙니다');
       const raw=JSON.stringify(obj);
-      if(window.storage){await window.storage.set('elephant-driver-prices',raw)}
-      else{localStorage.setItem('elephant-driver-prices',raw)}
+      localStorage.setItem('elephant-driver-prices',raw);
       S.savedPrices=obj;
       if(S.data){try{processDrivers()}catch(e2){console.error(e2)}}
       applySavedPrices();
