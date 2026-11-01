@@ -6,6 +6,8 @@
 <title>코끼리물류 정산서 변환기 v7</title>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/exceljs/4.4.0/exceljs.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
 <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@300;400;500;600;700;900&display=swap" rel="stylesheet">
 <style>
 *{margin:0;padding:0;box-sizing:border-box}
@@ -70,6 +72,8 @@ table.pt{width:100%;border-collapse:collapse;font-size:12px}
 .save-bar button{padding:6px 16px;border-radius:6px;border:1px solid #333;background:#1a1a28;color:#d0d0d0;font-family:inherit;font-size:12px;cursor:pointer}
 .save-bar button.primary{background:#7c4dff;border-color:#7c4dff;color:#fff}
 .save-bar button:hover{opacity:.85}
+.save-bar-btn{padding:8px 16px;border-radius:8px;border:1px solid #333;background:#1a1a28;color:#d0d0d0;font-family:inherit;font-size:13px;cursor:pointer}
+.save-bar-btn:hover{border-color:#7c4dff;color:#fff}
 .badge{display:inline-block;background:#4caf50;color:#fff;font-size:9px;padding:1px 6px;border-radius:3px;margin-left:6px;font-weight:600}
 </style>
 </head>
@@ -998,6 +1002,144 @@ function getInsuranceForDriver(driverId){
   return {goyang:Math.round(g),sanjae:Math.round(s)};
 }
 
+// ===== 기사별 정산서 이미지 (ID별 폴더에 저장) =====
+// 엑셀 개인시트와 같은 계산으로 표를 만들어 이미지(PNG)로 저장합니다.
+function getPeriod(){
+  const nm=(S.file&&S.file.name)||'';
+  const a=nm.match(/(\d{4})년[_\s]*(\d{1,2})월/);
+  if(a)return{y:a[1],m:Number(a[2])};
+  const b=nm.match(/(\d{1,2})월/);
+  return{y:String(new Date().getFullYear()),m:b?Number(b[1]):new Date().getMonth()+1};
+}
+function buildStatement(dr){
+  const R=[];
+  const pcGlobal=S.priceChange.enabled&&S.priceChange.date;
+  const pcDriver=dr.priceChange&&dr.priceChange.enabled&&dr.priceChange.date;
+  const pc=pcGlobal||pcDriver;
+  let first=true;
+  const addRoute=(rt,qty,price,note)=>{R.push({g:first?'담당라우트':'',s:rt,q:qty,p:price,a:qty*price,n:note||'',cnt:true});first=false};
+  ROUTES.filter(rt=>{const rd=dr.routes[rt];return rd&&rd.qty>0}).forEach(rt=>{
+    const rd=dr.routes[rt];
+    const adj=dr.adjustments[rt]||0;
+    const bpOld=S.prices[rt]||0;
+    const dpOld=bpOld-adj;
+    const bpNew=(S.priceChange.pricesAfter[rt]!=null?S.priceChange.pricesAfter[rt]:bpOld);
+    const adjNew=pcDriver?((dr.priceChange.adjAfter&&dr.priceChange.adjAfter[rt]!=null)?dr.priceChange.adjAfter[rt]:adj):adj;
+    const dpNew=bpNew-adjNew;
+    const changeTag=pcDriver?'개인 변경':'변경';
+    if(pc&&rd.qtyBefore>0&&rd.qtyAfter>0){addRoute(rt,rd.qtyBefore,dpOld,'기존');addRoute(rt,rd.qtyAfter,dpNew,changeTag)}
+    else if(pc&&rd.qtyAfter>0){addRoute(rt,rd.qtyAfter,dpNew,'')}
+    else{addRoute(rt,pc?rd.qtyBefore:rd.qty,dpOld,'')}
+  });
+  R.push({g:'',s:'미계약 라우트',q:0,p:null,a:0,cnt:true});
+  const rates=dr.incentiveRates||{};
+  const sortedR=Object.keys(rates).map(Number).sort((x,y)=>x-y);
+  if(sortedR.length>1){
+    for(let i=0;i<sortedR.length-1;i++)R.push({g:'',s:'추가 인센티브',q:rates[sortedR[i]],p:sortedR[i],a:rates[sortedR[i]]*sortedR[i]});
+    const lr=sortedR[sortedR.length-1];
+    R.push({g:'인센티브',s:'추가 인센티브',q:rates[lr],p:lr,a:rates[lr]*lr});
+  }else{
+    const rate=sortedR[0]||25,rq=rates[rate]||0,q=rq||dr.totalQty;
+    R.push({g:'인센티브',s:'추가 인센티브',q,p:rate,a:q*rate});
+  }
+  R.push({g:'',s:'프레쉬백 회수 인센티브',q:null,p:null,a:dr.fbTotal});
+  const payQty=R.filter(r=>r.cnt).reduce((s,r)=>s+(r.q||0),0);
+  const payAmt=R.reduce((s,r)=>s+(r.a||0),0);
+  const payIdx=R.length;
+  const ins=insuranceOf(dr);
+  const D=[];
+  D.push({g:'보험료',s:'고용 보험',a:ins.goyang>0?ins.goyang:null});
+  D.push({g:'',s:'산재 보험',a:ins.sanjae>0?ins.sanjae:null});
+  D.push({g:'기 타',s:'분실파손차감',a:dr.lostDamage>0?dr.lostDamage:null,red:dr.lostDamage>0});
+  (dr.deductions||[]).forEach(ded=>D.push({g:'',s:ded.name||'',a:ded.amount||0}));
+  const deductAmt=D.reduce((s,r)=>s+(r.a||0),0);
+  const finalAmt=payAmt-deductAmt;
+  const supply=Math.round(finalAmt/1.1);
+  return{R,D,payQty,payAmt,deductAmt,finalAmt,supply,tax:finalAmt-supply,payIdx};
+}
+function statementHTML(dr,st,per){
+  const B='border:1px solid #B0B0B0;padding:6px 9px;';
+  const td=(v,al,x)=>`<td style="${B}text-align:${al||'right'};${x||''}">${v}</td>`;
+  const num=v=>(v==null?'':fmt(v));
+  const rowHTML=r=>`<tr>${td(esc(r.g),'center')}${td(esc(r.s),'center',r.red?'color:#f00':'')}${td(num(r.q))}${td(num(r.p))}${td(num(r.a),'right',r.red?'color:#f00':'')}${td(esc(r.n||''),'center','color:#888')}</tr>`;
+  const sum=(label,q,a)=>`<tr style="background:#D9E2F3;font-weight:700">${td(label,'center')}${td('')}${td(q==null?'':fmt(q))}${td('')}${td(fmt(a))}${td('')}</tr>`;
+  const title=(dr.name||dr.id);
+  return `<div style="width:600px;background:#fff;padding:18px;font-family:'Malgun Gothic','Noto Sans KR',sans-serif;color:#000;font-size:14px">
+    <div style="font-size:20px;font-weight:700;margin-bottom:2px">${esc(title)} · ${per.y}년 ${per.m}월 정산</div>
+    <div style="color:#666;font-size:12px;margin-bottom:10px">ID: ${esc(dr.id)} · 생성일 ${new Date().toLocaleDateString('ko-KR')}</div>
+    <table style="border-collapse:collapse;width:100%">
+      <tr style="background:#D9E2F3;font-weight:700">${td('항 목','center')}${td('','center')}${td('수 량','center')}${td('단 가','center')}${td('금 액','center')}${td('비 고','center')}</tr>
+      ${st.R.map(rowHTML).join('')}
+      ${sum('지급 금액',st.payQty,st.payAmt)}
+      ${st.D.map(rowHTML).join('')}
+      ${sum('공제 금액',0,st.deductAmt)}
+      <tr style="font-weight:700">${td('최종 지급액','center')}${td('')}${td('')}${td('')}${td(fmt(st.finalAmt),'right','font-size:15px')}${td('')}</tr>
+      <tr style="font-weight:700">${td('전자세금계산서','center','color:#7C4DFF')}${td('공급가액','center')}${td(fmt(st.supply))}${td('세액','center')}${td(fmt(st.tax))}${td('')}</tr>
+    </table></div>`;
+}
+async function statementBlob(dr,per){
+  const host=document.createElement('div');
+  host.style.cssText='position:fixed;left:-10000px;top:0;';
+  host.innerHTML=statementHTML(dr,buildStatement(dr),per);
+  document.body.appendChild(host);
+  try{
+    const canvas=await html2canvas(host.firstElementChild,{scale:2,backgroundColor:'#ffffff',logging:false});
+    return await new Promise((res,rej)=>canvas.toBlob(b=>b?res(b):rej(new Error('이미지 변환 실패')),'image/png'));
+  }finally{host.remove()}
+}
+function safeName(s){return String(s).replace(/[\\/:*?"<>|]/g,'_').trim()||'unknown'}
+
+// 저장 폴더 기억 (크롬/엣지: 한 번 고르면 다음부터 그대로 사용)
+function openIdb(){return new Promise((res,rej)=>{const r=indexedDB.open('elephant-settle',1);r.onupgradeneeded=()=>r.result.createObjectStore('h');r.onsuccess=()=>res(r.result);r.onerror=()=>rej(r.error)})}
+async function loadDirHandle(){try{const db=await openIdb();return await new Promise(res=>{const q=db.transaction('h').objectStore('h').get('dir');q.onsuccess=()=>res(q.result||null);q.onerror=()=>res(null)})}catch(e){return null}}
+async function storeDirHandle(h){try{const db=await openIdb();await new Promise(res=>{const t=db.transaction('h','readwrite');t.objectStore('h').put(h,'dir');t.oncomplete=res;t.onerror=res})}catch(e){}}
+async function ensureDir(forcePick){
+  if(!window.showDirectoryPicker)return null; // 지원 안 되는 브라우저 → ZIP 다운로드로 대체
+  let h=forcePick?null:await loadDirHandle();
+  if(h){
+    let p=await h.queryPermission({mode:'readwrite'});
+    if(p!=='granted')p=await h.requestPermission({mode:'readwrite'});
+    if(p!=='granted')h=null;
+  }
+  if(!h){h=await window.showDirectoryPicker({mode:'readwrite'});await storeDirHandle(h)}
+  S.dirName=h.name;
+  return h;
+}
+async function saveStatementImages(dir){
+  if(!S.drivers.length)return;
+  if(typeof html2canvas==='undefined'){addLog('이미지 저장 도구를 불러오지 못했습니다. 인터넷 연결을 확인해 주세요.','warn');return}
+  const per=getPeriod();
+  const ym=`${per.y}-${String(per.m).padStart(2,'0')}`;
+  const zip=dir?null:new JSZip();
+  let n=0;
+  for(const dr of S.drivers){
+    const blob=await statementBlob(dr,per);
+    const folder=safeName(dr.id);
+    const file=`${ym}_정산서.png`;
+    if(dir){
+      const sub=await dir.getDirectoryHandle(folder,{create:true});
+      const fh=await sub.getFileHandle(file,{create:true});
+      const w=await fh.createWritable();await w.write(blob);await w.close();
+    }else{zip.file(`${folder}/${file}`,blob)}
+    n++;
+  }
+  if(dir){addLog(`정산서 이미지 ${n}장 저장 완료 → "${dir.name}" 폴더 안 ID별 폴더 (${ym}_정산서.png)`,'ok')}
+  else{
+    const out=await zip.generateAsync({type:'blob'});
+    const a=document.createElement('a');a.href=URL.createObjectURL(out);a.download=`정산서이미지_${ym}.zip`;a.click();URL.revokeObjectURL(a.href);
+    addLog(`정산서 이미지 ${n}장을 ZIP으로 다운로드했습니다 (압축을 풀면 ID별 폴더). 이 브라우저는 폴더 직접 저장을 지원하지 않습니다.`,'ok');
+  }
+}
+async function runImages(forcePick,alsoExcel){
+  try{
+    let dir=null;
+    try{dir=await ensureDir(forcePick)}catch(e){if(e&&e.name==='AbortError'){addLog('폴더 선택을 취소했습니다.','warn');render();return}throw e}
+    if(alsoExcel)await generateOutput();
+    await saveStatementImages(dir);
+  }catch(err){addLog('이미지 저장 실패: '+err.message,'warn');console.error(err)}
+  render();
+}
+
 // ===== RENDERING =====
 function render(){
   try{
@@ -1242,7 +1384,13 @@ function render(){
 
     // 정산서 생성
     h+=`<div class="sec" style="margin-top:20px"><div class="sec-t"><span class="n">3</span> 정산서 생성</div>
-      <button class="btn" onclick="doGen()">📥 개인 정산서 엑셀 생성 및 다운로드</button></div>`;
+      <button class="btn" onclick="runImages(false,true)">⚡ 엑셀 + 기사별 이미지 한번에 저장</button>
+      <div style="display:flex;gap:8px;margin-top:10px;flex-wrap:wrap">
+        <button class="save-bar-btn" onclick="doGen()">📥 엑셀만</button>
+        <button class="save-bar-btn" onclick="runImages(false,false)">📸 기사별 이미지만</button>
+        <button class="save-bar-btn" onclick="runImages(true,false)">📂 저장 폴더 바꾸기</button>
+      </div>
+      <p class="help" style="margin-top:10px">기사별 정산서 이미지는 고른 폴더 안에 <b>ID별 폴더</b>로 저장됩니다 (예: <code>sg3249/2026-10_정산서.png</code>). 폴더는 처음 한 번만 고르면 기억합니다${S.dirName?` · 현재 폴더: <b>${esc(S.dirName)}</b>`:''}.</p></div>`;
   }
 
   app.innerHTML=h;
@@ -1271,7 +1419,8 @@ window.aDed=di=>{if(!S.drivers[di].deductions)S.drivers[di].deductions=[];S.driv
 window.rDed=(di,ddi)=>{S.drivers[di].deductions.splice(ddi,1);render()};
 window.uDed=(di,ddi,f,v)=>{S.drivers[di].deductions[ddi][f]=f==='amount'?Number(v):v};
 window.doSave=async()=>{await saveDriverPrices();render()};
-window.doGen=async()=>{await generateOutput()};
+window.doGen=async()=>{await generateOutput();render()};
+window.runImages=runImages;
 
 window.togglePC=function(checked){
   S.priceChange.enabled=checked;
@@ -1364,7 +1513,7 @@ window.importSettings=function(e){
 };
 
 // ===== INIT =====
-loadDriverPrices().then(()=>{render()});
+loadDriverPrices().then(()=>{render();loadDirHandle().then(h=>{if(h){S.dirName=h.name;render()}})});
 </script>
 </body>
 </html>
