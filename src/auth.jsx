@@ -66,12 +66,12 @@ const ADMIN_EMAIL = 's01025144826@gmail.com';
             };
 
             return (
-                <div className="min-h-screen bg-[#F8FAFC] flex flex-col justify-center py-12 sm:px-6 lg:px-8 font-sans">
+                <div className="min-h-screen bg-soft flex flex-col justify-center py-12 sm:px-6 lg:px-8 font-sans">
                     <div className="sm:mx-auto sm:w-full sm:max-w-md animate-fade-in relative z-10">
                         <div className="mx-auto w-16 h-16 flex items-center justify-center bg-white rounded-2xl shadow-sm mb-6 border border-gray-100 overflow-hidden">
                             <img src="/logo.png" alt="코끼리물류" className="w-full h-full object-cover" />
                         </div>
-                        <h2 className="mt-2 text-center text-[28px] font-extrabold text-[#0F172A] tracking-tight">
+                        <h2 className="mt-2 text-center text-[28px] font-extrabold text-ink tracking-tight">
                             코끼리물류 파트너스
                         </h2>
                         <p className="mt-2 text-center text-[15px] font-medium text-gray-500">
@@ -92,17 +92,17 @@ const ADMIN_EMAIL = 's01025144826@gmail.com';
                                     <div className="space-y-5 mb-6">
                                         <div className="animate-fade-in">
                                             <label htmlFor="name" className="block text-[14px] font-bold text-gray-700 mb-2">실명 (이름) <span className="text-red-500">*</span></label>
-                                            <input id="name" type="text" value={name} onChange={(e) => setName(e.target.value)} placeholder="홍길동" className="appearance-none block w-full px-4 py-3.5 border border-gray-200 rounded-xl shadow-sm placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-[#2E68ED] focus:border-transparent transition-all font-medium text-[15px]" />
+                                            <input id="name" type="text" value={name} onChange={(e) => setName(e.target.value)} placeholder="홍길동" className="appearance-none block w-full px-4 py-3.5 border border-gray-200 rounded-xl shadow-sm placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-brand focus:border-transparent transition-all font-medium text-[15px]" />
                                         </div>
                                         <div className="animate-fade-in" style={{ animationDelay: '0.05s' }}>
                                             <label htmlFor="phone" className="block text-[14px] font-bold text-gray-700 mb-2">휴대폰 번호 <span className="text-red-500">*</span></label>
-                                            <input id="phone" type="tel" value={phone} onChange={(e) => setPhone(formatPhoneNumber(e.target.value))} placeholder="010-0000-0000" className="appearance-none block w-full px-4 py-3.5 border border-gray-200 rounded-xl shadow-sm placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-[#2E68ED] focus:border-transparent transition-all font-extrabold tracking-wide text-[15px]" />
+                                            <input id="phone" type="tel" value={phone} onChange={(e) => setPhone(formatPhoneNumber(e.target.value))} placeholder="010-0000-0000" className="appearance-none block w-full px-4 py-3.5 border border-gray-200 rounded-xl shadow-sm placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-brand focus:border-transparent transition-all font-extrabold tracking-wide text-[15px]" />
                                         </div>
                                     </div>
                                 )}
 
                                 <div className="pt-2">
-                                    <button onClick={handleGoogleAuth} disabled={isLoading} className="w-full flex justify-center items-center gap-2 py-3.5 px-4 border border-transparent rounded-xl shadow-sm text-[15px] font-bold text-white bg-[#2E68ED] hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 transition-colors disabled:opacity-50">
+                                    <button onClick={handleGoogleAuth} disabled={isLoading} className="w-full flex justify-center items-center gap-2 py-3.5 px-4 border border-transparent rounded-xl shadow-sm text-[15px] font-bold text-white bg-brand hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 transition-colors disabled:opacity-50">
                                         <Icons.Google /> {isLoading ? '구글 연동 중...' : (mode === 'login' ? 'Google 계정으로 로그인' : '정보 입력 후 Google 연동 가입')}
                                     </button>
                                     {mode === 'login' && <p className="text-center text-xs text-gray-400 mt-4 font-bold">크롬 브라우저 사용자 권장</p>}

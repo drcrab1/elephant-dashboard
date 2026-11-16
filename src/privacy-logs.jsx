@@ -9,7 +9,7 @@ import {
 
 const card = 'bg-white rounded-2xl border border-gray-100 shadow-sm';
 const btn = 'px-3.5 py-2 rounded-xl text-[13px] font-bold transition-colors disabled:opacity-50';
-const btnPrimary = `${btn} bg-[#2E68ED] text-white hover:bg-blue-700`;
+const btnPrimary = `${btn} bg-brand text-white hover:bg-blue-700`;
 const btnGhost = `${btn} bg-gray-100 text-gray-700 hover:bg-gray-200`;
 const inputCls = 'w-full border border-gray-200 rounded-xl px-3 py-2.5 text-[14px] font-medium outline-none focus:border-blue-500 bg-white';
 
@@ -75,7 +75,7 @@ export const AccessLogTab = () => {
             </div>
             <div className="flex flex-wrap items-center gap-2">
                 {[[1, '오늘 포함 1일'], [7, '7일'], [30, '30일'], [90, '90일']].map(([d, l]) => (
-                    <button key={d} onClick={() => setDays(d)} className={`px-3.5 py-1.5 rounded-full border text-[13px] font-bold ${days === d ? 'bg-[#0F172A] text-white border-[#0F172A]' : 'bg-white text-gray-600 border-gray-200'}`}>{l}</button>
+                    <button key={d} onClick={() => setDays(d)} className={`px-3.5 py-1.5 rounded-full border text-[13px] font-bold ${days === d ? 'bg-ink text-white border-ink' : 'bg-white text-gray-600 border-gray-200'}`}>{l}</button>
                 ))}
                 <select value={actionFilter} onChange={(e) => setActionFilter(e.target.value)} className="border border-gray-200 rounded-xl px-3 py-2 text-[13.5px] font-bold bg-white">
                     <option value="all">전체 업무</option>

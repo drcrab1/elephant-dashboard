@@ -79,9 +79,9 @@ const SafetyDetailModal = ({ activeItem, setActiveItem, isAdmin, deleteRecord })
     ];
 
     return (
-        <div className="fixed inset-0 z-50 bg-[#0F172A]/40 backdrop-blur-sm flex justify-center items-center py-10 px-4">
+        <div className="fixed inset-0 z-50 ui-overlay">
             <div className="bg-white rounded-[24px] w-full max-w-4xl max-h-full overflow-y-auto p-6 md:p-8 shadow-2xl animate-fade-in relative">
-                <button onClick={() => setActiveItem(null)} className="absolute top-6 right-6 text-gray-400 hover:text-black font-extrabold text-2xl">&times;</button>
+                <button type="button" aria-label="닫기" onClick={() => setActiveItem(null)} className="ui-close absolute top-4 right-4">&times;</button>
                 
                 <div className="border-b pb-4 mb-6 flex justify-between items-center pr-10">
                     <div>

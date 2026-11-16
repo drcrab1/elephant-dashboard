@@ -44,7 +44,7 @@ const NotificationPermissionPrompt = ({ user }) => {
     if (dismissed || status === 'granted' || status === 'unsupported') return null;
 
     return (
-        <div className="fixed bottom-[80px] md:bottom-6 left-1/2 -translate-x-1/2 z-30 bg-[#0F172A] text-white rounded-2xl shadow-xl px-5 py-4 flex items-center gap-4 max-w-[92vw] w-[420px] animate-fade-in">
+        <div className="fixed bottom-[80px] md:bottom-6 left-1/2 -translate-x-1/2 z-30 bg-ink text-white rounded-2xl shadow-xl px-5 py-4 flex items-center gap-4 max-w-[92vw] w-[420px] animate-fade-in">
             <span className="text-2xl shrink-0">🔔</span>
             <div className="flex-1 min-w-0">
                 <p className="font-extrabold text-[14px]">알림을 받아보시겠어요?</p>
@@ -56,7 +56,7 @@ const NotificationPermissionPrompt = ({ user }) => {
                 </button>
                 <button
                     onClick={() => { setDismissed(true); try { localStorage.setItem('notifPromptDismissed', '1'); } catch (e) {} }}
-                    className="text-gray-400 hover:text-white text-[11px] font-bold"
+                    className="text-gray-400 hover:text-white text-[12px] font-bold"
                 >
                     나중에
                 </button>

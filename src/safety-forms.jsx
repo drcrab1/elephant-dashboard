@@ -307,7 +307,7 @@ const FormCargoVehicle = ({ user, onSubmit, onCancel }) => {
                 <button onClick={downloadPDF} className="flex-1 py-3 rounded-xl border border-blue-200 text-blue-600 font-bold hover:bg-blue-50 transition-all flex items-center justify-center gap-1 active:scale-95 shadow-sm text-xs">
                     📥 PDF 다운로드
                 </button>
-                <button onClick={handleSubmit} className="flex-[2] py-3 rounded-xl bg-[#2E68ED] text-white font-extrabold hover:bg-blue-700 shadow-md text-xs">작업계획서 저장</button>
+                <button onClick={handleSubmit} className="flex-[2] py-3 rounded-xl bg-brand text-white font-extrabold hover:bg-blue-700 shadow-md text-xs">작업계획서 저장</button>
             </div>
         </div>
     );
@@ -595,7 +595,7 @@ const FormMusculoskeletal = ({ user, onSubmit, onCancel }) => {
         <div className="bg-white rounded-3xl shadow-lg border border-gray-100 p-6 md:p-8 max-w-4xl mx-auto animate-fade-in font-sans">
             <div className="border-b pb-4 mb-6 flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
                 <div>
-                    <h3 className="text-[22px] font-extrabold text-[#0F172A]">근골격계질환 증상조사표 작성</h3>
+                    <h3 className="text-[22px] font-extrabold text-ink">근골격계질환 증상조사표 작성</h3>
                     <p className="text-[13px] text-gray-500 font-medium mt-1">산업안전보건법에 의거하여 작업자의 신체 상태 조사를 실시합니다.</p>
                 </div>
                 <div className="flex gap-1.5 bg-gray-50 p-1 rounded-xl border">
@@ -608,11 +608,11 @@ const FormMusculoskeletal = ({ user, onSubmit, onCancel }) => {
             {/* STEP 1: DEMOGRAPHICS */}
             {step === 1 && (
                 <div className="space-y-6">
-                    <h4 className="font-extrabold text-[16px] text-[#1E3A8A] bg-blue-50/50 p-3.5 rounded-xl border border-blue-100">Ⅰ. 아래 사항을 직접 기입해 주시기 바랍니다.</h4>
+                    <h4 className="font-extrabold text-[16px] text-brand-dark bg-blue-50/50 p-3.5 rounded-xl border border-blue-100">Ⅰ. 아래 사항을 직접 기입해 주시기 바랍니다.</h4>
                     
                     <div className="grid grid-cols-1 md:grid-cols-4 gap-5">
                         <div className="flex flex-col gap-1.5">
-                            <label className="text-sm font-bold text-[#1E3A8A]">조사/작성일자 *</label>
+                            <label className="text-sm font-bold text-brand-dark">조사/작성일자 *</label>
                             <input type="date" value={date} onChange={e => setDate(e.target.value)} className="border border-gray-200 rounded-xl p-3 bg-white outline-none focus:border-blue-500 transition-all text-sm font-bold text-black cursor-pointer shadow-sm" />
                         </div>
                         <div className="flex flex-col gap-1.5">
@@ -718,7 +718,7 @@ const FormMusculoskeletal = ({ user, onSubmit, onCancel }) => {
             {/* STEP 2: MISCELLANEOUS */}
             {step === 2 && (
                 <div className="space-y-6">
-                    <h4 className="font-extrabold text-[16px] text-[#1E3A8A] bg-blue-50/50 p-3.5 rounded-xl border border-blue-100">Ⅱ. 기타 사항</h4>
+                    <h4 className="font-extrabold text-[16px] text-brand-dark bg-blue-50/50 p-3.5 rounded-xl border border-blue-100">Ⅱ. 기타 사항</h4>
                     
                     <div className="flex flex-col gap-2">
                         <label className="text-sm font-bold text-gray-700">1. 규칙적인 여가 및 취미 활동 (한번에 30분 이상, 1주일에 적어도 2-3회 이상) 취미가 있는 항목을 선택해 주십시오.</label>
@@ -1058,7 +1058,7 @@ const FormSafetyPlan = ({ user, onSubmit, onCancel }) => {
                 <button onClick={downloadPDF} className="flex-1 py-3 rounded-xl border border-blue-200 text-blue-600 font-bold hover:bg-blue-50 transition-all flex items-center justify-center gap-1 active:scale-95 shadow-sm text-xs">
                     📥 PDF 다운로드
                 </button>
-                <button onClick={() => onSubmit({ formType: 'agreement', date: new Date().toISOString().split('T')[0], status: '열람 및 동의', agreed: true, vehicles, workers, protectiveGear })} className="flex-[2] py-3 rounded-xl bg-[#2E68ED] text-white font-extrabold hover:bg-blue-700 shadow-md text-xs">계획서 확인 및 서명 제출</button>
+                <button onClick={() => onSubmit({ formType: 'agreement', date: new Date().toISOString().split('T')[0], status: '열람 및 동의', agreed: true, vehicles, workers, protectiveGear })} className="flex-[2] py-3 rounded-xl bg-brand text-white font-extrabold hover:bg-blue-700 shadow-md text-xs">계획서 확인 및 서명 제출</button>
             </div>
         </div>
     );
@@ -1622,7 +1622,7 @@ const FormHazardSurvey = ({ user, onSubmit, onCancel }) => {
 
     return (
         <div className="bg-white rounded-2xl shadow-sm border border-gray-200 p-6 max-w-[1100px] mx-auto animate-fade-in text-black font-sans">
-            <h3 className="text-xl font-extrabold mb-4 pb-2 border-b text-[#2E68ED]">유해요인조사표(제4조 관련) 작성</h3>
+            <h3 className="text-xl font-extrabold mb-4 pb-2 border-b text-brand">유해요인조사표(제4조 관련) 작성</h3>
             
             <div className="scroll-container bg-gray-50 border border-gray-200 rounded-xl p-3 mb-4">
                 <div id="printable-hazard-survey-creation" className="bg-white p-4 border border-gray-300 w-[1000px] mx-auto text-[7.5px] leading-tight font-sans shadow-sm flex gap-4">
@@ -1848,7 +1848,7 @@ const FormHazardSurvey = ({ user, onSubmit, onCancel }) => {
                 <button onClick={downloadPDF} className="flex-1 py-3 rounded-xl border border-blue-200 text-blue-600 font-bold hover:bg-blue-50 transition-all flex items-center justify-center gap-1 active:scale-95 shadow-sm text-xs">
                     📥 PDF 다운로드
                 </button>
-                <button onClick={handleSubmit} className="flex-[2] py-3 rounded-xl bg-[#2E68ED] text-white font-extrabold hover:bg-blue-700 shadow-md text-xs">조사표 저장</button>
+                <button onClick={handleSubmit} className="flex-[2] py-3 rounded-xl bg-brand text-white font-extrabold hover:bg-blue-700 shadow-md text-xs">조사표 저장</button>
             </div>
         </div>
     );
@@ -2080,7 +2080,7 @@ const FormMusculoChecklist = ({ user, onSubmit, onCancel }) => {
                 <button onClick={downloadPDF} className="flex-1 py-3 rounded-xl border border-blue-200 text-blue-600 font-bold hover:bg-blue-50 transition-all flex items-center justify-center gap-1 active:scale-95 shadow-sm text-xs">
                     📥 PDF 다운로드
                 </button>
-                <button onClick={handleSubmit} className="flex-[2] py-3 rounded-xl bg-[#2E68ED] text-white font-extrabold hover:bg-blue-700 shadow-md text-xs">체크리스트 저장</button>
+                <button onClick={handleSubmit} className="flex-[2] py-3 rounded-xl bg-brand text-white font-extrabold hover:bg-blue-700 shadow-md text-xs">체크리스트 저장</button>
             </div>
         </div>
     );
@@ -2258,7 +2258,7 @@ const FormSafetyEducationUpload = ({ user, onSubmit, onCancel }) => {
 
     return (
         <div className="bg-white rounded-3xl shadow-md border border-gray-100 p-8 max-w-xl mx-auto animate-fade-in">
-            <h3 className="text-2xl font-extrabold mb-6 pb-4 border-b text-[#0F172A]">최초 교육수료 파일 업로드</h3>
+            <h3 className="text-2xl font-extrabold mb-6 pb-4 border-b text-ink">최초 교육수료 파일 업로드</h3>
             
             <div className="space-y-6 mb-8">
                 <div className="flex flex-col gap-2">
@@ -2358,7 +2358,7 @@ const FormAccidentReport = ({ user, onSubmit, onCancel }) => {
 
     return (
         <div className="bg-white rounded-3xl shadow-md border border-red-100 p-8 max-w-xl mx-auto animate-fade-in">
-            <h3 className="text-2xl font-extrabold mb-2 text-[#0F172A]">🚨 사고 발생 보고</h3>
+            <h3 className="text-2xl font-extrabold mb-2 text-ink">🚨 사고 발생 보고</h3>
             <p className="text-sm text-gray-500 font-medium mb-6 pb-4 border-b">사고를 당한 본인이 직접 작성하거나, 어려운 경우 관리자가 대신 작성할 수 있어요. 제출하는 즉시 관리자에게 확인이 필요한 항목으로 표시됩니다.</p>
 
             <div className="space-y-5 mb-8">

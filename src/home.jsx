@@ -25,7 +25,7 @@ const CARD = 'bg-white rounded-2xl border border-gray-100 shadow-[0_2px_10px_rgb
 const TONE = {
     red: { box: 'bg-red-50', badge: 'bg-red-600 text-white' },
     amber: { box: 'bg-amber-50', badge: 'bg-amber-500 text-white' },
-    blue: { box: 'bg-blue-50', badge: 'bg-[#2E68ED] text-white' },
+    blue: { box: 'bg-blue-50', badge: 'bg-brand text-white' },
     green: { box: 'bg-emerald-50', badge: 'bg-emerald-100 text-emerald-700' },
     gray: { box: 'bg-gray-100', badge: 'bg-gray-100 text-gray-600' },
 };
@@ -36,7 +36,7 @@ const TodoRow = ({ icon, tone = 'blue', title, sub, badge, onClick }) => {
         <button type="button" onClick={onClick} className="w-full flex items-center gap-3.5 px-4 py-3.5 text-left hover:bg-gray-50 active:bg-gray-100 transition-colors">
             <span className={`shrink-0 w-11 h-11 rounded-xl flex items-center justify-center text-[20px] ${t.box}`} aria-hidden="true">{icon}</span>
             <span className="min-w-0 flex-1">
-                <span className="block text-[15.5px] font-extrabold text-[#0F172A] leading-snug">{title}</span>
+                <span className="block text-[15.5px] font-extrabold text-ink leading-snug">{title}</span>
                 {sub && <span className="block text-[13px] text-gray-500 font-medium mt-0.5 leading-snug">{sub}</span>}
             </span>
             {badge && <span className={`shrink-0 px-2.5 py-1 rounded-lg text-[12.5px] font-extrabold whitespace-nowrap ${t.badge}`}>{badge}</span>}
@@ -47,7 +47,7 @@ const TodoRow = ({ icon, tone = 'blue', title, sub, badge, onClick }) => {
 
 const SectionTitle = ({ children, right }) => (
     <div className="flex items-center justify-between mb-3 px-1">
-        <h3 className="text-[17px] font-extrabold text-[#0F172A] tracking-tight">{children}</h3>
+        <h3 className="text-[17px] font-extrabold text-ink tracking-tight">{children}</h3>
         {right}
     </div>
 );
@@ -106,15 +106,15 @@ const fmt = (iso) => { const d = new Date(iso); return isNaN(d.getTime()) ? '' :
 const NoticeCard = ({ notices, setActivePage }) => {
     return (
         <section>
-            <SectionTitle right={<button type="button" onClick={() => setActivePage('공지사항')} className="text-[13px] font-bold text-[#2E68ED] py-1 px-1">전체 보기</button>}>공지사항</SectionTitle>
+            <SectionTitle right={<button type="button" onClick={() => setActivePage('공지사항')} className="text-[13px] font-bold text-brand py-1 px-1">전체 보기</button>}>공지사항</SectionTitle>
             <div className={`${CARD} divide-y divide-gray-100 overflow-hidden`}>
                 {notices.length === 0 ? (
                     <p className="px-4 py-6 text-center text-[13.5px] text-gray-400 font-bold">새 공지가 없습니다.</p>
                 ) : notices.map((n) => (
                     <button key={n.id} type="button" onClick={() => setActivePage('공지사항')} className="w-full text-left px-4 py-3.5 hover:bg-gray-50 transition-colors">
                         <span className="flex items-center gap-2">
-                            {isNew(n.sentAt) && <span className="shrink-0 px-1.5 py-0.5 rounded bg-red-500 text-white text-[10.5px] font-extrabold">NEW</span>}
-                            <span className="min-w-0 flex-1 truncate text-[14.5px] font-extrabold text-[#0F172A]">{n.title}</span>
+                            {isNew(n.sentAt) && <span className="shrink-0 px-1.5 py-0.5 rounded bg-red-500 text-white text-[12px] font-extrabold">NEW</span>}
+                            <span className="min-w-0 flex-1 truncate text-[14.5px] font-extrabold text-ink">{n.title}</span>
                             <span className="shrink-0 text-[12px] font-bold text-gray-400">{fmt(n.sentAt)}</span>
                         </span>
                         {n.body && <span className="block mt-1 text-[13px] text-gray-500 font-medium line-clamp-2">{n.body}</span>}
@@ -137,7 +137,7 @@ const Greeting = ({ user, summary }) => {
     return (
         <header className="mb-6">
             <p className="text-[13.5px] font-bold text-gray-400">{now.getMonth() + 1}월 {now.getDate()}일 {DAY_NAMES[now.getDay()]}요일</p>
-            <h2 className="text-[24px] md:text-[28px] font-extrabold text-[#0F172A] tracking-tight mt-0.5">안녕하세요, {user.name}님</h2>
+            <h2 className="text-[24px] md:text-[28px] font-extrabold text-ink tracking-tight mt-0.5">안녕하세요, {user.name}님</h2>
             {summary && <p className="text-[14.5px] text-gray-500 font-medium mt-1">{summary}</p>}
         </header>
     );
@@ -214,7 +214,7 @@ const DriverHome = ({ user, setActivePage, contracts, vehicleDocs, workRecords }
                     <section>
                         <SectionTitle>오늘 배차</SectionTitle>
                         <button type="button" onClick={() => setActivePage('스케줄관리')} className={`${CARD} w-full text-left p-5 flex items-center gap-4 hover:border-blue-200 transition-colors`}>
-                            <span className="shrink-0 w-12 h-12 rounded-2xl bg-[#EFF5FF] text-[#2E68ED] flex items-center justify-center"><Icons.Truck /></span>
+                            <span className="shrink-0 w-12 h-12 rounded-2xl bg-brand-soft text-brand flex items-center justify-center"><Icons.Truck /></span>
                             <span className="min-w-0 flex-1">
                                 {schedule.status === 'loading' ? (
                                     <span className="flex items-center gap-2 text-[14px] font-bold text-gray-400"><Spinner className="!w-4 !h-4" /> 배차표를 불러오는 중...</span>
@@ -224,11 +224,11 @@ const DriverHome = ({ user, setActivePage, contracts, vehicleDocs, workRecords }
                                     <>
                                         <span className="block text-[13px] font-bold text-gray-400">오늘 내 노선</span>
                                         <span className="flex flex-wrap gap-1.5 mt-1">
-                                            {todayRoutes.map((r) => <span key={r} className="px-3 py-1 rounded-lg bg-[#2E68ED] text-white text-[15px] font-extrabold">{r}</span>)}
+                                            {todayRoutes.map((r) => <span key={r} className="px-3 py-1 rounded-lg bg-brand text-white text-[15px] font-extrabold">{r}</span>)}
                                         </span>
                                     </>
                                 ) : (
-                                    <span className="block text-[15.5px] font-extrabold text-[#0F172A]">오늘은 배차가 없습니다</span>
+                                    <span className="block text-[15.5px] font-extrabold text-ink">오늘은 배차가 없습니다</span>
                                 )}
                                 {schedule.status === 'ready' && schedule.linked && (
                                     <span className="block text-[13px] text-gray-500 font-medium mt-1.5">내일: {tomorrowRoutes.length > 0 ? tomorrowRoutes.join(', ') : '배차 없음'}</span>
@@ -246,7 +246,7 @@ const DriverHome = ({ user, setActivePage, contracts, vehicleDocs, workRecords }
                             ) : todos.length === 0 ? (
                                 <div className="px-5 py-9 text-center">
                                     <div className="text-[34px] mb-1" aria-hidden="true">👏</div>
-                                    <p className="text-[16px] font-extrabold text-[#0F172A]">오늘 할 일을 모두 마쳤습니다</p>
+                                    <p className="text-[16px] font-extrabold text-ink">오늘 할 일을 모두 마쳤습니다</p>
                                     <p className="text-[13.5px] text-gray-500 font-medium mt-1">안전 운행하세요.</p>
                                 </div>
                             ) : todos.map(({ key, ...row }) => <TodoRow key={key} {...row} />)}
@@ -357,7 +357,7 @@ const AdminHome = ({ user, setActivePage, contracts, vehicleDocs, contacts, safe
     const stat = (label, value, unit, onClick) => (
         <button type="button" onClick={onClick} className={`${CARD} text-left p-4 md:p-5 hover:border-blue-200 transition-colors`}>
             <span className="block text-[13px] font-bold text-gray-400">{label}</span>
-            <span className="block text-[24px] md:text-[26px] font-extrabold text-[#0F172A] tracking-tight mt-0.5">{value}<span className="text-[14px] font-bold text-gray-400 ml-1">{unit}</span></span>
+            <span className="block text-[24px] md:text-[26px] font-extrabold text-ink tracking-tight mt-0.5">{value}<span className="text-[14px] font-bold text-gray-400 ml-1">{unit}</span></span>
         </button>
     );
     const scheduleReady = schedule.status === 'ready' && schedule.linked;
@@ -381,7 +381,7 @@ const AdminHome = ({ user, setActivePage, contracts, vehicleDocs, contacts, safe
                             {todos.length === 0 ? (
                                 <div className="px-5 py-9 text-center">
                                     <div className="text-[34px] mb-1" aria-hidden="true">👍</div>
-                                    <p className="text-[16px] font-extrabold text-[#0F172A]">지금 처리할 일이 없습니다</p>
+                                    <p className="text-[16px] font-extrabold text-ink">지금 처리할 일이 없습니다</p>
                                     <p className="text-[13.5px] text-gray-500 font-medium mt-1">서류·계약·점검 모두 이상 없습니다.</p>
                                 </div>
                             ) : todos.map(({ key, ...row }) => <TodoRow key={key} {...row} />)}
@@ -401,14 +401,14 @@ const AdminHome = ({ user, setActivePage, contracts, vehicleDocs, contacts, safe
                                 <div className="divide-y divide-gray-100">
                                     {board.map((row) => (
                                         <div key={row.route} className="flex items-center gap-3 px-4 py-3">
-                                            <span className="shrink-0 w-[92px] text-[13.5px] font-extrabold text-[#0F172A]">{row.route}</span>
+                                            <span className="shrink-0 w-[92px] text-[13.5px] font-extrabold text-ink">{row.route}</span>
                                             <span className="flex flex-wrap gap-1.5 min-w-0">
                                                 {row.drivers.map((d, i) => {
                                                     const full = d.done !== null && d.done >= dailyTasks.length;
                                                     return (
                                                         <span key={i} className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg border text-[13px] font-bold ${full ? 'bg-emerald-50 border-emerald-200 text-emerald-700' : d.done === null ? 'bg-gray-50 border-gray-200 text-gray-500' : 'bg-red-50 border-red-200 text-red-600'}`}>
                                                             {d.label}
-                                                            <span className="text-[11.5px] font-extrabold opacity-80">{d.done === null ? '미가입' : full ? '✓ 점검' : `${d.done}/${dailyTasks.length}`}</span>
+                                                            <span className="text-[12px] font-extrabold opacity-80">{d.done === null ? '미가입' : full ? '✓ 점검' : `${d.done}/${dailyTasks.length}`}</span>
                                                         </span>
                                                     );
                                                 })}

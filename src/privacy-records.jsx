@@ -11,7 +11,7 @@ export const kindOf = (rec) => rec.kind || 'annual';
 
 const card = 'bg-white rounded-2xl border border-gray-100 shadow-sm';
 const btn = 'px-3.5 py-2 rounded-xl text-[13px] font-bold transition-colors disabled:opacity-50';
-const btnPrimary = `${btn} bg-[#2E68ED] text-white hover:bg-blue-700`;
+const btnPrimary = `${btn} bg-brand text-white hover:bg-blue-700`;
 const btnGhost = `${btn} bg-gray-100 text-gray-700 hover:bg-gray-200`;
 const inputCls = 'w-full border border-gray-200 rounded-xl px-3 py-2.5 text-[14px] font-medium outline-none focus:border-blue-500 bg-white';
 
@@ -220,7 +220,7 @@ export const ChecklistTab = ({ user, members, checks, initialKind = 'annual' }) 
                                 <button
                                     key={st}
                                     onClick={() => setForm((f) => { const arr = f.items.slice(); arr[i] = { ...arr[i], status: st }; return { ...f, items: arr }; })}
-                                    className={`px-3.5 py-1.5 rounded-xl border text-[13px] font-bold ${it.status === st ? 'bg-[#2E68ED] border-[#2E68ED] text-white' : 'bg-white border-gray-200 text-gray-600 hover:bg-gray-50'}`}
+                                    className={`px-3.5 py-1.5 rounded-xl border text-[13px] font-bold ${it.status === st ? 'bg-brand border-brand text-white' : 'bg-white border-gray-200 text-gray-600 hover:bg-gray-50'}`}
                                 >{st}</button>
                             ))}
                         </div>
@@ -248,7 +248,7 @@ export const ChecklistTab = ({ user, members, checks, initialKind = 'annual' }) 
                     const last = checks.find((r) => kindOf(r) === k);
                     const due = dueInfo(last && last.createdAt, CHECKLISTS[k].cadenceMonths);
                     return (
-                        <button key={k} onClick={() => setKind(k)} className={`px-3.5 py-2 rounded-xl border text-left transition-colors ${kind === k ? 'bg-[#0F172A] text-white border-[#0F172A]' : 'bg-white text-gray-700 border-gray-200 hover:bg-gray-50'}`}>
+                        <button key={k} onClick={() => setKind(k)} className={`px-3.5 py-2 rounded-xl border text-left transition-colors ${kind === k ? 'bg-ink text-white border-ink' : 'bg-white text-gray-700 border-gray-200 hover:bg-gray-50'}`}>
                             <div className="text-[13.5px] font-extrabold">{CHECKLISTS[k].label}</div>
                             <div className={`text-[11px] font-bold ${kind === k ? 'text-gray-300' : due.state === 'overdue' || due.state === 'none' ? 'text-red-500' : 'text-emerald-600'}`}>{due.label}</div>
                         </button>

@@ -31,7 +31,7 @@ const MemberManagement = ({ user }) => {
 
     if (!isAdmin) {
         return (
-            <main className="md:ml-[260px] ml-0 px-4 md:px-10 py-6 md:py-12 flex-1 relative bg-[#F4F7FB] min-h-[100vh] flex items-center justify-center">
+            <main className="md:ml-[260px] ml-0 px-4 md:px-10 py-6 md:py-12 flex-1 relative bg-page min-h-[100vh] flex items-center justify-center">
                 <p className="text-gray-400 font-bold">이 화면은 관리자 전용입니다.</p>
             </main>
         );
@@ -107,10 +107,10 @@ const MemberManagement = ({ user }) => {
     };
 
     return (
-        <main className="md:ml-[260px] ml-0 px-4 md:px-10 py-6 md:py-12 flex-1 relative bg-[#F4F7FB] min-h-[100vh]">
+        <main className="md:ml-[260px] ml-0 px-4 md:px-10 py-6 md:py-12 flex-1 relative bg-page min-h-[100vh]">
             <header className="mb-8 w-full flex flex-col md:flex-row justify-between md:items-end border-b pb-6 border-gray-200 gap-4">
                 <div>
-                    <h2 className="text-[28px] font-extrabold mb-2 text-[#1E293B] flex items-center gap-2"><Icons.Users /> 회원 관리</h2>
+                    <h2 className="text-[24px] md:text-[28px] tracking-tight font-extrabold mb-2 text-ink flex items-center gap-2"><Icons.Users /> 회원 관리</h2>
                     <p className="text-gray-500 text-[15px] font-medium">가입된 전체 회원 목록입니다. (관리자 전용)</p>
                 </div>
                 <div className="relative w-full md:w-[280px]">
@@ -128,15 +128,15 @@ const MemberManagement = ({ user }) => {
             <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-8 max-w-[1100px]">
                 <div className="bg-white rounded-2xl border border-gray-100 p-5 shadow-sm">
                     <p className="text-[13px] text-gray-400 font-bold mb-1">총 가입자</p>
-                    <p className="text-[26px] font-extrabold text-[#0F172A]">{members.length}<span className="text-[15px] font-bold text-gray-400 ml-1">명</span></p>
+                    <p className="text-[26px] font-extrabold text-ink">{members.length}<span className="text-[15px] font-bold text-gray-400 ml-1">명</span></p>
                 </div>
                 <div className="bg-white rounded-2xl border border-gray-100 p-5 shadow-sm">
                     <p className="text-[13px] text-gray-400 font-bold mb-1">관리자</p>
-                    <p className="text-[26px] font-extrabold text-[#0F172A]">{adminCount}<span className="text-[15px] font-bold text-gray-400 ml-1">명</span></p>
+                    <p className="text-[26px] font-extrabold text-ink">{adminCount}<span className="text-[15px] font-bold text-gray-400 ml-1">명</span></p>
                 </div>
                 <div className="bg-white rounded-2xl border border-gray-100 p-5 shadow-sm">
                     <p className="text-[13px] text-gray-400 font-bold mb-1">기사님</p>
-                    <p className="text-[26px] font-extrabold text-[#0F172A]">{members.length - adminCount}<span className="text-[15px] font-bold text-gray-400 ml-1">명</span></p>
+                    <p className="text-[26px] font-extrabold text-ink">{members.length - adminCount}<span className="text-[15px] font-bold text-gray-400 ml-1">명</span></p>
                 </div>
                 <div className="bg-white rounded-2xl border border-amber-100 bg-amber-50/40 p-5 shadow-sm">
                     <p className="text-[13px] text-amber-600 font-bold mb-1">최근 7일 신규가입</p>
@@ -146,7 +146,7 @@ const MemberManagement = ({ user }) => {
 
             <div className="scroll-container bg-white rounded-[20px] shadow-[0_2px_12px_rgba(0,0,0,0.03)] border border-gray-100">
                 <table className="min-w-[800px] w-full divide-y divide-gray-200 text-left">
-                    <thead className="bg-[#f8fafc]">
+                    <thead className="bg-soft">
                         <tr>
                             <th className="px-6 py-4 text-[14px] font-bold text-gray-500">이름</th>
                             <th className="px-6 py-4 text-[14px] font-bold text-gray-500">이메일</th>
@@ -202,9 +202,9 @@ const MemberManagement = ({ user }) => {
                                 <td className="px-6 py-4">
                                     {m.email === ADMIN_EMAIL || m.role === 'admin' ? <span className="text-gray-300 text-xs font-bold">-</span> : (
                                         <div className="flex flex-col gap-1 items-start">
-                                            {m.isActive === false && <span className="px-2 py-0.5 text-[11.5px] font-extrabold rounded-md bg-red-50 text-red-600 border border-red-200">퇴사</span>}
-                                            <span className={`px-2 py-0.5 text-[11.5px] font-extrabold rounded-md border ${m.joinPledgeSignedAt ? 'bg-emerald-50 text-emerald-700 border-emerald-200' : 'bg-amber-50 text-amber-700 border-amber-200'}`}>입사 {m.joinPledgeSignedAt ? '서명완료' : '미서명'}</span>
-                                            {m.leavePledgeRequired && <span className={`px-2 py-0.5 text-[11.5px] font-extrabold rounded-md border ${m.leavePledgeSignedAt ? 'bg-emerald-50 text-emerald-700 border-emerald-200' : 'bg-amber-50 text-amber-700 border-amber-200'}`}>퇴사 {m.leavePledgeSignedAt ? '서명완료' : '서명대기'}</span>}
+                                            {m.isActive === false && <span className="px-2 py-0.5 text-[12px] font-extrabold rounded-md bg-red-50 text-red-600 border border-red-200">퇴사</span>}
+                                            <span className={`px-2 py-0.5 text-[12px] font-extrabold rounded-md border ${m.joinPledgeSignedAt ? 'bg-emerald-50 text-emerald-700 border-emerald-200' : 'bg-amber-50 text-amber-700 border-amber-200'}`}>입사 {m.joinPledgeSignedAt ? '서명완료' : '미서명'}</span>
+                                            {m.leavePledgeRequired && <span className={`px-2 py-0.5 text-[12px] font-extrabold rounded-md border ${m.leavePledgeSignedAt ? 'bg-emerald-50 text-emerald-700 border-emerald-200' : 'bg-amber-50 text-amber-700 border-amber-200'}`}>퇴사 {m.leavePledgeSignedAt ? '서명완료' : '서명대기'}</span>}
                                         </div>
                                     )}
                                 </td>

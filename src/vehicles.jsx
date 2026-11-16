@@ -202,10 +202,10 @@ const VehicleDocumentManagement = ({ user, docs, setDocs, contacts = [] }) => {
     };
 
     return (
-        <main className="md:ml-[260px] ml-0 px-4 md:px-10 py-6 md:py-[50px] flex-1 animate-fade-in font-sans bg-[#F8FAFC] min-h-screen">
+        <main className="md:ml-[260px] ml-0 px-4 md:px-10 py-6 md:py-[50px] flex-1 animate-fade-in font-sans bg-page min-h-screen">
             <header className="mb-6 w-full max-w-[1100px] mx-auto">
-                <h2 className="text-[28px] font-extrabold text-[#1E293B] tracking-tight flex items-center gap-2"><Icons.Folder /> 서류관리</h2>
-                <p className="text-[#64748B] mt-1.5 font-medium text-[15px]">화물운송자격증, 운송사업허가증 등 서류를 업로드하고 관리합니다.</p>
+                <h2 className="text-[24px] md:text-[28px] tracking-tight font-extrabold text-ink flex items-center gap-2"><Icons.Folder /> 서류관리</h2>
+                <p className="text-slate-500 mt-1.5 font-medium text-[15px]">화물운송자격증, 운송사업허가증 등 서류를 업로드하고 관리합니다.</p>
             </header>
 
             <div className="max-w-[1100px] mx-auto space-y-6 flex flex-col min-h-[70vh]">
@@ -229,7 +229,7 @@ const VehicleDocumentManagement = ({ user, docs, setDocs, contacts = [] }) => {
                             {unsubmittedList.map(u => (
                                 <div key={u.name} className="bg-white border border-amber-100 rounded-xl px-4 py-2.5 text-xs shadow-sm flex items-center justify-between gap-3">
                                     <div>
-                                        <div className="font-bold text-gray-900">{u.name} 기사님 <span className="text-gray-400 font-medium text-[10px] ml-1">({u.team})</span></div>
+                                        <div className="font-bold text-gray-900">{u.name} 기사님 <span className="text-gray-400 font-medium text-[12px] ml-1">({u.team})</span></div>
                                         <div className="text-[9.5px] text-amber-600 mt-1 font-bold leading-tight">
                                             미제출: {u.missing.join(', ')}
                                         </div>
@@ -271,7 +271,7 @@ const VehicleDocumentManagement = ({ user, docs, setDocs, contacts = [] }) => {
                         </div>
                         {showNameSuggestions && (nameSuggestions.length > 0 || typeSuggestions.length > 0) && (
                             <div className="absolute left-0 right-0 top-[calc(100%+6px)] bg-white border border-gray-200 rounded-xl shadow-lg z-20 py-1.5 max-h-[280px] overflow-y-auto">
-                                {typeSuggestions.length > 0 && <p className="px-4 pt-1.5 pb-1 text-[11px] font-extrabold text-gray-400">서류 종류</p>}
+                                {typeSuggestions.length > 0 && <p className="px-4 pt-1.5 pb-1 text-[12px] font-extrabold text-gray-400">서류 종류</p>}
                                 {typeSuggestions.map(t => (
                                     <button
                                         key={t}
@@ -282,7 +282,7 @@ const VehicleDocumentManagement = ({ user, docs, setDocs, contacts = [] }) => {
                                         📄 {t}
                                     </button>
                                 ))}
-                                {nameSuggestions.length > 0 && <p className="px-4 pt-2 pb-1 text-[11px] font-extrabold text-gray-400">기사님</p>}
+                                {nameSuggestions.length > 0 && <p className="px-4 pt-2 pb-1 text-[12px] font-extrabold text-gray-400">기사님</p>}
                                 {nameSuggestions.map(name => (
                                     <button
                                         key={name}
@@ -326,13 +326,13 @@ const VehicleDocumentManagement = ({ user, docs, setDocs, contacts = [] }) => {
                                 <button
                                     key={tab}
                                     onClick={() => setActiveTab(tab)}
-                                    className={`px-5 py-2 rounded-lg text-[14px] font-bold transition-all border border-transparent whitespace-nowrap ${activeTab === tab ? 'bg-[#2E68ED] text-white shadow-md' : 'text-gray-500 hover:text-gray-900 hover:bg-gray-50'}`}
+                                    className={`px-5 py-2 rounded-lg text-[14px] font-bold transition-all border border-transparent whitespace-nowrap ${activeTab === tab ? 'bg-brand text-white shadow-md' : 'text-gray-500 hover:text-gray-900 hover:bg-gray-50'}`}
                                 >
                                     {tab}
                                 </button>
                             ))}
                         </div>
-                        <button onClick={() => setIsModalOpen(true)} className="flex items-center justify-center gap-1.5 bg-[#2E68ED] hover:bg-blue-700 text-white px-6 py-2.5 rounded-xl font-bold text-[14px] shadow-sm transition-transform hover:-translate-y-0.5 min-w-[130px]">
+                        <button onClick={() => setIsModalOpen(true)} className="flex items-center justify-center gap-1.5 bg-brand hover:bg-blue-700 text-white px-6 py-2.5 rounded-xl font-bold text-[14px] shadow-sm transition-transform hover:-translate-y-0.5 min-w-[130px]">
                             <Icons.Plus /> 서류 업로드
                         </button>
                     </div>
@@ -342,11 +342,11 @@ const VehicleDocumentManagement = ({ user, docs, setDocs, contacts = [] }) => {
                 {filteredDocs.length === 0 ? (
                     // Empty State (스크린샷과 완전히 동일한 감성 반영)
                     <div className="flex flex-col items-center justify-center pt-28 pb-32 text-center bg-transparent my-auto flex-1 h-full">
-                        <div className="text-[#94A3B8] mb-5 border-[3px] border-[#E2E8F0] p-6 rounded-3xl bg-white shadow-sm">
+                        <div className="text-slate-400 mb-5 border-[3px] border-slate-200 p-6 rounded-3xl bg-white shadow-sm">
                             <Icons.FileText />
                         </div>
-                        <h3 className="text-[20px] font-bold text-[#64748B] mb-2 tracking-tight">등록된 서류가 없습니다</h3>
-                        <p className="text-[15px] text-[#94A3B8] font-medium">서류 업로드 버튼을 눌러 등록해주세요</p>
+                        <h3 className="text-[20px] font-bold text-slate-500 mb-2 tracking-tight">등록된 서류가 없습니다</h3>
+                        <p className="text-[15px] text-slate-400 font-medium">서류 업로드 버튼을 눌러 등록해주세요</p>
                     </div>
                 ) : (
                     <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6 pb-20">
@@ -361,21 +361,21 @@ const VehicleDocumentManagement = ({ user, docs, setDocs, contacts = [] }) => {
                                         <div className="text-gray-300"><Icons.FileText /></div>
                                     )}
                                     {isAdmin && needsRrnReview(doc) && (
-                                        <span className="absolute top-2.5 left-2.5 px-2 py-1 text-[10.5px] font-extrabold rounded-md border shadow-sm bg-amber-50 text-amber-700 border-amber-200">주민번호 확인 필요</span>
+                                        <span className="absolute top-2.5 left-2.5 px-2 py-1 text-[12px] font-extrabold rounded-md border shadow-sm bg-amber-50 text-amber-700 border-amber-200">주민번호 확인 필요</span>
                                     )}
                                     {expiryStatus && (
-                                        <span className={`absolute top-2.5 right-2.5 px-2 py-1 text-[10.5px] font-extrabold rounded-md border shadow-sm ${expiryStatus.className}`}>{expiryStatus.label}</span>
+                                        <span className={`absolute top-2.5 right-2.5 px-2 py-1 text-[12px] font-extrabold rounded-md border shadow-sm ${expiryStatus.className}`}>{expiryStatus.label}</span>
                                     )}
-                                    <div className="absolute inset-0 bg-[#0F172A]/40 backdrop-blur-[1px] transition-colors flex flex-col items-center justify-center opacity-0 group-hover:opacity-100 duration-300">
-                                        <div className="bg-white text-[#0F172A] px-5 py-2.5 rounded-full text-sm font-extrabold shadow-md flex items-center gap-2">
+                                    <div className="absolute inset-0 bg-ink/40 backdrop-blur-[1px] transition-colors flex flex-col items-center justify-center opacity-0 group-hover:opacity-100 duration-300">
+                                        <div className="bg-white text-ink px-5 py-2.5 rounded-full text-sm font-extrabold shadow-md flex items-center gap-2">
                                             <Icons.Eye /> 상세 증빙 열람
                                         </div>
                                     </div>
                                 </div>
                                 <div className="p-5 flex flex-col justify-between flex-1">
                                     <div>
-                                        <span className="inline-block px-2.5 py-1 bg-blue-50 text-blue-700 text-[11px] font-extrabold rounded-md mb-2">{doc.docType}</span>
-                                        <h4 className="text-[16px] font-extrabold text-[#0F172A] truncate tracking-tight">{doc.name} 님의 {doc.docType}</h4>
+                                        <span className="inline-block px-2.5 py-1 bg-blue-50 text-blue-700 text-[12px] font-extrabold rounded-md mb-2">{doc.docType}</span>
+                                        <h4 className="text-[16px] font-extrabold text-ink truncate tracking-tight">{doc.name} 님의 {doc.docType}</h4>
                                     </div>
                                     <p className="text-[12.5px] text-gray-500 font-bold">제출일자: {doc.date}{doc.expiryDate ? ` · 만료일: ${doc.expiryDate}` : ''}</p>
                                     {doc.docNumber && <p className="text-[12px] text-blue-600 font-bold mt-0.5">번호: {doc.docNumber}</p>}
@@ -390,11 +390,11 @@ const VehicleDocumentManagement = ({ user, docs, setDocs, contacts = [] }) => {
 
             {/* 업로드 모달창 */}
             {isModalOpen && (
-                <div className="fixed inset-0 z-50 bg-[#0F172A]/60 backdrop-blur-sm flex justify-center items-center py-10 px-4">
+                <div className="fixed inset-0 z-50 ui-overlay">
                     <div className="bg-white rounded-[24px] w-full max-w-[460px] max-h-[92vh] overflow-hidden shadow-2xl animate-fade-in relative flex flex-col">
-                        <div className="px-8 py-5 border-b border-gray-100 flex justify-between items-center bg-[#f8fafc] shrink-0">
-                            <h3 className="text-[20px] font-extrabold text-[#0F172A] flex items-center gap-2 tracking-tight"><Icons.Plus /> 신규 서류 업로드</h3>
-                            <button onClick={() => setIsModalOpen(false)} className="text-gray-400 hover:text-black font-extrabold text-[26px] leading-none transition-colors">&times;</button>
+                        <div className="px-8 py-5 border-b border-gray-100 flex justify-between items-center bg-soft shrink-0">
+                            <h3 className="text-[20px] font-extrabold text-ink flex items-center gap-2 tracking-tight"><Icons.Plus /> 신규 서류 업로드</h3>
+                            <button type="button" aria-label="닫기" onClick={() => setIsModalOpen(false)} className="ui-close">&times;</button>
                         </div>
 
                         <div className="p-6 md:p-8 space-y-6 overflow-y-auto flex-1">
@@ -405,7 +405,7 @@ const VehicleDocumentManagement = ({ user, docs, setDocs, contacts = [] }) => {
 
                             <div>
                                 <label className="block text-[14px] font-bold text-gray-700 mb-2">서류 종류 구분 <span className="text-red-500">*</span></label>
-                                <select value={formData.docType} onChange={e => setFormData({ ...formData, docType: e.target.value })} className="w-full bg-white border border-gray-200 rounded-xl px-4 py-3 text-[15px] font-bold focus:outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500 transition-colors shadow-sm appearance-none cursor-pointer text-[#0F172A]">
+                                <select value={formData.docType} onChange={e => setFormData({ ...formData, docType: e.target.value })} className="w-full bg-white border border-gray-200 rounded-xl px-4 py-3 text-[15px] font-bold focus:outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500 transition-colors shadow-sm appearance-none cursor-pointer text-ink">
                                     <option value="화물운송자격증">화물운송자격증 (필수)</option>
                                     <option value="운송사업허가증">운송사업허가증</option>
                                     <option value="자동차등록증">자동차등록증</option>
@@ -417,14 +417,14 @@ const VehicleDocumentManagement = ({ user, docs, setDocs, contacts = [] }) => {
                             {DOC_NUMBER_FIELD[formData.docType] && (
                                 <div>
                                     <label className="block text-[14px] font-bold text-gray-700 mb-2">{DOC_NUMBER_FIELD[formData.docType].label}</label>
-                                    <input type="text" value={formData.docNumber || ''} onChange={e => setFormData({ ...formData, docNumber: e.target.value })} placeholder={DOC_NUMBER_FIELD[formData.docType].placeholder} className="w-full bg-white border border-gray-200 rounded-xl px-4 py-3 text-[15px] font-bold focus:outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500 transition-colors shadow-sm text-[#0F172A]" />
+                                    <input type="text" value={formData.docNumber || ''} onChange={e => setFormData({ ...formData, docNumber: e.target.value })} placeholder={DOC_NUMBER_FIELD[formData.docType].placeholder} className="w-full bg-white border border-gray-200 rounded-xl px-4 py-3 text-[15px] font-bold focus:outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500 transition-colors shadow-sm text-ink" />
                                     <p className="text-[12px] text-gray-400 font-medium mt-1.5">여기에 입력해두면, 나중에 계약서를 보낼 때 이 번호가 자동으로 채워져요.</p>
                                 </div>
                             )}
 
                             <div>
                                 <label className="block text-[14px] font-bold text-gray-700 mb-2">서류 유효기간 (만료일, 있는 경우)</label>
-                                <input type="date" value={formData.expiryDate || ''} onChange={e => setFormData({ ...formData, expiryDate: e.target.value })} className="w-full bg-white border border-gray-200 rounded-xl px-4 py-3 text-[15px] font-bold focus:outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500 transition-colors shadow-sm text-[#0F172A]" />
+                                <input type="date" value={formData.expiryDate || ''} onChange={e => setFormData({ ...formData, expiryDate: e.target.value })} className="w-full bg-white border border-gray-200 rounded-xl px-4 py-3 text-[15px] font-bold focus:outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500 transition-colors shadow-sm text-ink" />
                                 <p className="text-[12px] text-gray-400 font-medium mt-1.5">만료일을 입력하면, 만료 30일 전에 관리자에게 자동으로 알림이 가요.</p>
                             </div>
 
@@ -459,7 +459,7 @@ const VehicleDocumentManagement = ({ user, docs, setDocs, contacts = [] }) => {
 
                         <div className="p-6 md:p-8 pt-4 flex gap-3 bg-white border-t border-gray-100 shrink-0">
                             <button onClick={() => setIsModalOpen(false)} className="flex-[1] py-3.5 bg-white border border-gray-200 hover:bg-gray-50 text-gray-700 font-extrabold text-[15px] rounded-xl transition-colors shadow-sm">취소</button>
-                            <button onClick={handleSave} className="flex-[2] py-3.5 bg-[#2E68ED] hover:bg-blue-700 text-white font-extrabold text-[15px] rounded-xl shadow-[0_4px_12px_rgb(46,104,237,0.3)] transition-colors">보안 서버에 안전하게 업로드</button>
+                            <button onClick={handleSave} className="flex-[2] py-3.5 bg-brand hover:bg-blue-700 text-white font-extrabold text-[15px] rounded-xl shadow-[0_4px_12px_rgb(46,104,237,0.3)] transition-colors">보안 서버에 안전하게 업로드</button>
                         </div>
                     </div>
                 </div>
@@ -467,17 +467,17 @@ const VehicleDocumentManagement = ({ user, docs, setDocs, contacts = [] }) => {
 
             {/* 서류 상세 확대 / 관리 모달창 */}
             {viewingDoc && (
-                <div className="fixed inset-0 z-[60] bg-[#0F172A]/90 flex justify-center items-center py-6 px-4 backdrop-blur-sm">
+                <div className="fixed inset-0 z-[60] bg-ink/90 flex justify-center items-center py-6 px-4 backdrop-blur-sm">
                     <div className="bg-white rounded-3xl max-w-5xl w-full max-h-[92vh] flex flex-col shadow-2xl animate-fade-in relative overflow-hidden">
-                        <div className="p-5 border-b flex justify-between items-center bg-[#F8FAFC]">
+                        <div className="p-5 border-b flex justify-between items-center bg-soft">
                             <div className="flex flex-col ml-2">
-                                <h3 className="text-[22px] font-extrabold text-[#0F172A] tracking-tight">{viewingDoc.name} 기사님의 <span className="text-blue-600">{viewingDoc.docType}</span></h3>
+                                <h3 className="text-[22px] font-extrabold text-ink tracking-tight">{viewingDoc.name} 기사님의 <span className="text-blue-600">{viewingDoc.docType}</span></h3>
                                 <span className="text-[13px] text-gray-500 font-bold mt-1">서류 업로드 일자: {viewingDoc.date}{viewingDoc.expiryDate ? ` | 만료일: ${viewingDoc.expiryDate}` : ''}{viewingDoc.docNumber ? ` | 번호: ${viewingDoc.docNumber}` : ''} | 보안 계정 식별: {viewingDoc.email}</span>
                             </div>
                             <button onClick={() => setViewingDoc(null)} className="text-gray-400 hover:text-black font-extrabold text-[28px] w-12 h-12 flex items-center justify-center rounded-xl bg-white border border-gray-200 hover:bg-gray-100 transition-colors shadow-sm">&times;</button>
                         </div>
 
-                        <div className="flex-1 overflow-auto p-4 flex justify-center items-center bg-[#E2E8F0]">
+                        <div className="flex-1 overflow-auto p-4 flex justify-center items-center bg-slate-200">
                             {viewingDoc.file ? <img src={viewingDoc.file} alt="Full View" className="max-w-full h-auto object-contain shadow-md rounded-xl border border-gray-200 bg-white max-h-full" /> : <div className="text-gray-400 text-2xl font-bold">이미지 데이터가 없습니다.</div>}
                         </div>
 
@@ -500,7 +500,7 @@ const VehicleDocumentManagement = ({ user, docs, setDocs, contacts = [] }) => {
                         {(isAdmin || viewingDoc.email === user.email) && (
                             <div className="p-5 bg-white border-t flex justify-end items-center gap-4">
                                 <span className="text-[12.5px] font-medium text-gray-500">{isAdmin ? '관리자는 모든 보안 서류를 파기할 권한을 가집니다.' : '본인이 등록한 서류이므로 파기할 수 있습니다.'}</span>
-                                <button onClick={() => handleDelete(viewingDoc)} className="flex items-center gap-2 bg-[#FFF0F0] hover:bg-[#FFE0E0] border border-[#FFD6D6] text-[#D83232] px-6 py-3 rounded-xl font-extrabold text-[14.5px] transition-colors"><Icons.Trash2 />서류 영구 파기</button>
+                                <button onClick={() => handleDelete(viewingDoc)} className="flex items-center gap-2 bg-red-50 hover:bg-red-100 border border-red-200 text-red-600 px-6 py-3 rounded-xl font-extrabold text-[14.5px] transition-colors"><Icons.Trash2 />서류 영구 파기</button>
                             </div>
                         )}
                     </div>
@@ -604,15 +604,15 @@ const VehicleManagement = ({ user, docs = [], contacts = [], profiles = {} }) =>
     };
 
     return (
-        <main className="md:ml-[260px] ml-0 px-4 md:px-10 py-6 md:py-[50px] flex-1 animate-fade-in font-sans bg-[#F8FAFC] min-h-screen w-full max-w-[100vw] md:max-w-[calc(100vw-260px)] overflow-x-hidden">
+        <main className="md:ml-[260px] ml-0 px-4 md:px-10 py-6 md:py-[50px] flex-1 animate-fade-in font-sans bg-page min-h-screen w-full max-w-[100vw] md:max-w-[calc(100vw-260px)] overflow-x-hidden">
             <header className="mb-6 w-full max-w-[1100px] mx-auto">
-                <h2 className="text-[28px] font-extrabold text-[#1E293B] tracking-tight flex items-center gap-2"><Icons.Truck /> 차량관리</h2>
-                <p className="text-[#64748B] mt-1.5 font-medium text-[15px]">차량 현황을 한눈에 보고, 주유비·수리비 같은 유지비를 기록합니다.</p>
+                <h2 className="text-[24px] md:text-[28px] tracking-tight font-extrabold text-ink flex items-center gap-2"><Icons.Truck /> 차량관리</h2>
+                <p className="text-slate-500 mt-1.5 font-medium text-[15px]">차량 현황을 한눈에 보고, 주유비·수리비 같은 유지비를 기록합니다.</p>
             </header>
 
             <div className="max-w-[1100px] mx-auto mb-5 flex gap-2 bg-white p-1.5 rounded-2xl border border-gray-100 shadow-sm w-fit">
                 {[{ id: 'vehicles', label: '🚚 차량 현황' }, { id: 'costs', label: '🛢️ 유지비 기록' }].map(t => (
-                    <button key={t.id} onClick={() => setTab(t.id)} className={`px-5 py-2.5 rounded-xl text-[14px] font-bold transition-all ${tab === t.id ? 'bg-[#2E68ED] text-white shadow-sm' : 'text-gray-500 hover:bg-gray-100'}`}>{t.label}</button>
+                    <button key={t.id} onClick={() => setTab(t.id)} className={`px-5 py-2.5 rounded-xl text-[14px] font-bold transition-all ${tab === t.id ? 'bg-brand text-white shadow-sm' : 'text-gray-500 hover:bg-gray-100'}`}>{t.label}</button>
                 ))}
             </div>
 
@@ -626,16 +626,16 @@ const VehicleManagement = ({ user, docs = [], contacts = [], profiles = {} }) =>
                                 <div key={v.email} className="bg-white rounded-2xl border border-gray-100 shadow-sm p-5 flex flex-col gap-2">
                                     <div className="flex items-start justify-between gap-2">
                                         <div className="min-w-0">
-                                            <p className="text-[17px] font-extrabold text-[#0F172A] truncate">{v.number || <span className="text-gray-300">번호 미등록</span>}</p>
+                                            <p className="text-[17px] font-extrabold text-ink truncate">{v.number || <span className="text-gray-300">번호 미등록</span>}</p>
                                             <p className="text-[13px] text-gray-500 font-bold mt-0.5">{v.name}{v.team ? ` · ${v.team}` : ''}</p>
                                         </div>
-                                        {ex && <span className={`shrink-0 px-2 py-1 text-[10.5px] font-extrabold rounded-md border ${ex.cls}`}>{ex.label}</span>}
+                                        {ex && <span className={`shrink-0 px-2 py-1 text-[12px] font-extrabold rounded-md border ${ex.cls}`}>{ex.label}</span>}
                                     </div>
                                     <div className="flex items-center justify-between text-[12.5px] font-bold pt-2 border-t border-gray-50">
                                         <span className="text-gray-400">누적 유지비</span>
                                         <span className="text-gray-800">{v.total.toLocaleString()}원</span>
                                     </div>
-                                    {!v.hasRegDoc && <p className="text-[11px] text-amber-600 font-bold">자동차등록증 미제출</p>}
+                                    {!v.hasRegDoc && <p className="text-[12px] text-amber-600 font-bold">자동차등록증 미제출</p>}
                                     <button onClick={() => openAddFor(v.number)} className="mt-1 text-[12px] font-bold text-blue-600 hover:text-blue-800 text-left">+ 유지비 기록하기</button>
                                 </div>
                             );
@@ -649,8 +649,8 @@ const VehicleManagement = ({ user, docs = [], contacts = [], profiles = {} }) =>
                     <div className="flex flex-wrap items-end gap-3 bg-white rounded-2xl border border-gray-100 shadow-sm p-5">
                         <div>
                             <p className="text-[12.5px] text-gray-500 font-bold">{filterMonth ? `${filterMonth.replace('-', '년 ')}월` : '전체 기간'} 합계</p>
-                            <p className="text-[26px] font-extrabold text-[#0F172A]">{totalAmount.toLocaleString()}<span className="text-[15px] font-bold text-gray-400 ml-1">원</span></p>
-                            {byType.length > 0 && <p className="text-[11.5px] text-gray-400 font-bold mt-0.5">{byType.map(x => `${x.t} ${x.sum.toLocaleString()}`).join(' · ')}</p>}
+                            <p className="text-[26px] font-extrabold text-ink">{totalAmount.toLocaleString()}<span className="text-[15px] font-bold text-gray-400 ml-1">원</span></p>
+                            {byType.length > 0 && <p className="text-[12px] text-gray-400 font-bold mt-0.5">{byType.map(x => `${x.t} ${x.sum.toLocaleString()}`).join(' · ')}</p>}
                         </div>
                         <div className="flex flex-wrap items-center gap-2 ml-auto">
                             <input type="month" value={filterMonth} onChange={e => setFilterMonth(e.target.value)} className="border border-gray-200 rounded-xl px-3 py-2 text-sm font-bold bg-gray-50 outline-none focus:border-blue-500" />
@@ -664,7 +664,7 @@ const VehicleManagement = ({ user, docs = [], contacts = [], profiles = {} }) =>
                                     {contributors.map(u => <option key={u.email} value={u.email}>{u.name}</option>)}
                                 </select>
                             )}
-                            <button onClick={() => setIsModalOpen(true)} className="flex items-center gap-1.5 bg-[#2E68ED] hover:bg-blue-700 text-white px-5 py-2.5 rounded-xl font-bold text-sm shadow-sm"><Icons.Plus /> 비용 기록 추가</button>
+                            <button onClick={() => setIsModalOpen(true)} className="flex items-center gap-1.5 bg-brand hover:bg-blue-700 text-white px-5 py-2.5 rounded-xl font-bold text-sm shadow-sm"><Icons.Plus /> 비용 기록 추가</button>
                         </div>
                     </div>
 
@@ -677,14 +677,14 @@ const VehicleManagement = ({ user, docs = [], contacts = [], profiles = {} }) =>
                                     <div key={c.id} className="flex flex-wrap items-center justify-between gap-3 px-5 py-4">
                                         <div className="min-w-0">
                                             <div className="flex flex-wrap items-center gap-2">
-                                                <span className={`px-2 py-0.5 rounded-md text-[11px] font-extrabold border ${COST_TYPE_COLOR[c.costType] || COST_TYPE_COLOR['보험/기타']}`}>{c.costType}</span>
+                                                <span className={`px-2 py-0.5 rounded-md text-[12px] font-extrabold border ${COST_TYPE_COLOR[c.costType] || COST_TYPE_COLOR['보험/기타']}`}>{c.costType}</span>
                                                 <span className="text-[14px] font-bold text-gray-800">{c.vehicleNumber}</span>
                                                 {isAdmin && <span className="text-[12px] text-gray-400 font-bold">· {c.name}</span>}
                                             </div>
                                             <p className="text-[12px] text-gray-400 font-medium mt-1">{c.date}{c.memo ? ` · ${c.memo}` : ''}</p>
                                         </div>
                                         <div className="flex items-center gap-3 shrink-0">
-                                            <span className="text-[17px] font-extrabold text-[#0F172A]">{Number(c.amount).toLocaleString()}원</span>
+                                            <span className="text-[17px] font-extrabold text-ink">{Number(c.amount).toLocaleString()}원</span>
                                             {(isAdmin || c.email === user.email) && <button onClick={() => handleDelete(c.id)} className="text-gray-300 hover:text-red-500 transition-colors"><Icons.X /></button>}
                                         </div>
                                     </div>
@@ -699,11 +699,11 @@ const VehicleManagement = ({ user, docs = [], contacts = [], profiles = {} }) =>
             )}
 
             {isModalOpen && (
-                <div className="fixed inset-0 z-50 bg-[#0F172A]/60 backdrop-blur-sm flex justify-center items-center p-4">
+                <div className="fixed inset-0 z-50 ui-overlay">
                     <div className="bg-white rounded-[24px] w-full max-w-[420px] max-h-[92vh] overflow-hidden shadow-2xl animate-fade-in flex flex-col">
-                        <div className="px-7 py-5 border-b border-gray-100 flex justify-between items-center bg-[#f8fafc] shrink-0">
-                            <h3 className="text-[18px] font-extrabold text-[#0F172A]">🛢️ 유지비 기록 추가</h3>
-                            <button onClick={() => setIsModalOpen(false)} className="text-gray-400 hover:text-black font-extrabold text-[24px] leading-none">&times;</button>
+                        <div className="px-7 py-5 border-b border-gray-100 flex justify-between items-center bg-soft shrink-0">
+                            <h3 className="text-[18px] font-extrabold text-ink">🛢️ 유지비 기록 추가</h3>
+                            <button type="button" aria-label="닫기" onClick={() => setIsModalOpen(false)} className="ui-close">&times;</button>
                         </div>
                         <div className="p-7 space-y-4 overflow-y-auto">
                             <div className="grid grid-cols-2 gap-3">
@@ -724,7 +724,7 @@ const VehicleManagement = ({ user, docs = [], contacts = [], profiles = {} }) =>
                                 <label className="block text-[13px] font-bold text-gray-700 mb-1.5">종류</label>
                                 <div className="flex flex-wrap gap-2">
                                     {COST_TYPES.map(t => (
-                                        <button key={t} type="button" onClick={() => setForm({ ...form, costType: t })} className={`px-3 py-1.5 rounded-lg text-[12.5px] font-bold border transition-colors ${form.costType === t ? 'bg-[#2E68ED] text-white border-[#2E68ED]' : 'bg-white text-gray-600 border-gray-200 hover:bg-gray-50'}`}>{t}</button>
+                                        <button key={t} type="button" onClick={() => setForm({ ...form, costType: t })} className={`px-3 py-1.5 rounded-lg text-[12.5px] font-bold border transition-colors ${form.costType === t ? 'bg-brand text-white border-brand' : 'bg-white text-gray-600 border-gray-200 hover:bg-gray-50'}`}>{t}</button>
                                     ))}
                                 </div>
                             </div>
@@ -735,7 +735,7 @@ const VehicleManagement = ({ user, docs = [], contacts = [], profiles = {} }) =>
                         </div>
                         <div className="p-5 border-t border-gray-100 flex gap-3 shrink-0">
                             <button onClick={() => setIsModalOpen(false)} className="flex-1 py-3 bg-white border border-gray-200 hover:bg-gray-50 text-gray-700 font-extrabold rounded-xl text-sm">취소</button>
-                            <button onClick={handleSave} className="flex-[2] py-3 bg-[#2E68ED] hover:bg-blue-700 text-white font-extrabold rounded-xl text-sm shadow-sm">저장</button>
+                            <button onClick={handleSave} className="flex-[2] py-3 bg-brand hover:bg-blue-700 text-white font-extrabold rounded-xl text-sm shadow-sm">저장</button>
                         </div>
                     </div>
                 </div>

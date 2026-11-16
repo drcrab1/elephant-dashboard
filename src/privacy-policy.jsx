@@ -89,7 +89,7 @@ const SECTIONS = [
 export const PrivacyPolicyContent = () => (
     <div className="space-y-6">
         <div>
-            <h1 className="text-[24px] md:text-[28px] font-extrabold text-[#0F172A]">개인정보 처리방침</h1>
+            <h1 className="text-[24px] md:text-[28px] font-extrabold text-ink">개인정보 처리방침</h1>
             <p className="text-[14px] text-gray-500 font-medium mt-1.5">코끼리물류 · 시행일 {POLICY_EFFECTIVE}</p>
         </div>
         <p className="text-[14.5px] leading-relaxed text-gray-700 font-medium">
@@ -97,7 +97,7 @@ export const PrivacyPolicyContent = () => (
         </p>
         {SECTIONS.map((s) => (
             <section key={s.title}>
-                <h2 className="text-[17px] font-extrabold text-[#0F172A] mb-2">{s.title}</h2>
+                <h2 className="text-[17px] font-extrabold text-ink mb-2">{s.title}</h2>
                 <p className="whitespace-pre-wrap text-[14.5px] leading-[1.8] text-gray-700">{s.body}</p>
             </section>
         ))}
@@ -106,7 +106,7 @@ export const PrivacyPolicyContent = () => (
 
 // 로그인 없이 열리는 공개 페이지
 export const PrivacyPolicyPublicPage = () => (
-    <div className="min-h-screen bg-[#F8FAFC] py-8 px-4 font-sans">
+    <div className="min-h-screen bg-soft py-8 px-4 font-sans">
         <div className="max-w-[760px] mx-auto bg-white rounded-2xl border border-gray-100 shadow-sm p-6 md:p-10">
             <PrivacyPolicyContent />
             <a href="/" className="inline-block mt-8 text-[14px] font-bold text-blue-600">← 앱으로 돌아가기</a>
@@ -116,7 +116,7 @@ export const PrivacyPolicyPublicPage = () => (
 
 // 앱 안(사이드바 메뉴)에서 보는 페이지
 export const PrivacyPolicyPage = () => (
-    <main className="md:ml-[260px] ml-0 px-4 md:px-10 py-6 md:py-12 flex-1 relative bg-[#F4F7FB] min-h-[100vh] w-full max-w-[100vw] md:max-w-[calc(100vw-260px)] overflow-x-hidden">
+    <main className="md:ml-[260px] ml-0 px-4 md:px-10 py-6 md:py-12 flex-1 relative bg-page min-h-[100vh] w-full max-w-[100vw] md:max-w-[calc(100vw-260px)] overflow-x-hidden">
         <div className="max-w-[760px] bg-white rounded-2xl border border-gray-100 shadow-sm p-6 md:p-10">
             <PrivacyPolicyContent />
         </div>

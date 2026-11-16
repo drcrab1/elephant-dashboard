@@ -88,7 +88,7 @@ const PerUserTaskRow = ({ task, user, allLogs, onLogged }) => {
                     <button
                         onClick={handleCheck}
                         disabled={!!myLog || saving}
-                        className={`px-3.5 py-2.5 rounded-xl text-[13.5px] font-extrabold shadow-sm min-w-[84px] transition-colors ${myLog ? 'bg-green-100 text-green-700 cursor-default' : 'bg-[#2E68ED] text-white hover:bg-blue-700'}`}
+                        className={`px-3.5 py-2.5 rounded-xl text-[13.5px] font-extrabold shadow-sm min-w-[84px] transition-colors ${myLog ? 'bg-green-100 text-green-700 cursor-default' : 'bg-brand text-white hover:bg-blue-700'}`}
                     >
                         {myLog ? '✓ 완료' : (saving ? '저장중...' : '완료 체크')}
                     </button>
@@ -148,14 +148,14 @@ const VehicleInspectionModal = ({ user, defaultVehicleNumber, onClose, onSubmit 
     };
 
     return (
-        <div className="fixed inset-0 z-50 bg-[#0F172A]/50 backdrop-blur-sm flex justify-center items-center py-8 px-4">
+        <div className="fixed inset-0 z-50 ui-overlay">
             <div className="bg-white rounded-[24px] w-full max-w-[520px] max-h-[90vh] overflow-hidden shadow-2xl animate-fade-in flex flex-col">
-                <div className="px-6 py-5 border-b border-gray-100 bg-[#f8fafc] flex justify-between items-start shrink-0">
+                <div className="px-6 py-5 border-b border-gray-100 bg-soft flex justify-between items-start shrink-0">
                     <div>
-                        <h3 className="text-[18px] font-extrabold text-[#0F172A]">일일 자동차 안전점검표</h3>
+                        <h3 className="text-[18px] font-extrabold text-ink">일일 자동차 안전점검표</h3>
                         <p className="text-[13.5px] text-gray-500 font-medium mt-1">기본값은 전부 "양호"예요. 문제 있는 항목만 눌러서 바꿔주세요.</p>
                     </div>
-                    <button onClick={onClose} className="text-gray-400 hover:text-black font-extrabold text-2xl leading-none">&times;</button>
+                    <button type="button" aria-label="닫기" onClick={onClose} className="ui-close">&times;</button>
                 </div>
 
                 <div className="px-6 py-4 border-b border-gray-100 shrink-0">
@@ -165,7 +165,7 @@ const VehicleInspectionModal = ({ user, defaultVehicleNumber, onClose, onSubmit 
 
                 <div className="flex-1 overflow-y-auto px-6 py-4 space-y-2.5">
                     {VEHICLE_INSPECTION_ITEMS.map((item, idx) => (
-                        <div key={idx} className={`rounded-xl border p-3 ${results[idx] === 'X' ? 'bg-red-50/60 border-red-200' : 'bg-[#FAFBFC] border-gray-100'}`}>
+                        <div key={idx} className={`rounded-xl border p-3 ${results[idx] === 'X' ? 'bg-red-50/60 border-red-200' : 'bg-soft border-gray-100'}`}>
                             <div className="flex items-center justify-between gap-3">
                                 <div className="min-w-0">
                                     <span className="text-[12px] font-extrabold text-gray-400">{item.category}</span>
@@ -194,9 +194,9 @@ const VehicleInspectionModal = ({ user, defaultVehicleNumber, onClose, onSubmit 
                     )}
                 </div>
 
-                <div className="p-5 border-t border-gray-100 bg-[#f8fafc] shrink-0 flex gap-3">
+                <div className="p-5 border-t border-gray-100 bg-soft shrink-0 flex gap-3">
                     <button onClick={onClose} className="flex-1 py-3 bg-white border border-gray-200 hover:bg-gray-50 text-gray-700 font-bold rounded-xl text-sm">취소</button>
-                    <button onClick={handleSubmit} disabled={saving} className="flex-[2] py-3 bg-[#2E68ED] hover:bg-blue-700 disabled:opacity-50 text-white font-extrabold rounded-xl text-sm shadow-sm transition-colors">
+                    <button onClick={handleSubmit} disabled={saving} className="flex-[2] py-3 bg-brand hover:bg-blue-700 disabled:opacity-50 text-white font-extrabold rounded-xl text-sm shadow-sm transition-colors">
                         {saving ? '저장 중...' : `점검 완료 제출 (양호 ${okCount} · 불량 ${defectCount} · 미운행 ${skipCount})`}
                     </button>
                 </div>
@@ -275,7 +275,7 @@ const VehicleInspectionTaskRow = ({ task, user, allLogs, onLogged }) => {
                 <button
                     onClick={() => setShowModal(true)}
                     disabled={!!myLog}
-                    className={`shrink-0 px-3.5 py-2.5 rounded-xl text-[13.5px] font-extrabold shadow-sm min-w-[84px] transition-colors ${myLog ? 'bg-green-100 text-green-700 cursor-default' : 'bg-[#2E68ED] text-white hover:bg-blue-700'}`}
+                    className={`shrink-0 px-3.5 py-2.5 rounded-xl text-[13.5px] font-extrabold shadow-sm min-w-[84px] transition-colors ${myLog ? 'bg-green-100 text-green-700 cursor-default' : 'bg-brand text-white hover:bg-blue-700'}`}
                 >
                     {myLog ? '✓ 완료' : '점검하기'}
                 </button>
@@ -387,7 +387,7 @@ const SafetyRecurringChecklist = ({ user }) => {
     return (
         <div className="mb-8 bg-white rounded-[20px] border border-gray-100 shadow-[0_2px_12px_rgba(0,0,0,0.03)] p-4 md:p-6">
             <div className="mb-3">
-                <h3 className="text-[18px] font-extrabold text-[#0F172A]">정기 안전보건 체크리스트</h3>
+                <h3 className="text-[18px] font-extrabold text-ink">정기 안전보건 체크리스트</h3>
                 <p className="text-[14px] text-gray-500 font-medium mt-0.5">해야 할 점검을 주기별로 모았습니다. 끝낸 것은 초록색으로 바뀝니다.</p>
             </div>
             {/* 매일 쓰는 화면이라 점검 항목이 먼저 보이도록, 안내 글은 한 줄로 줄이고 눌러서 펼칩니다 */}
@@ -404,7 +404,7 @@ const SafetyRecurringChecklist = ({ user }) => {
                     const tasks = SAFETY_RECURRING_TASKS.filter(t => t.freq === freq);
                     const meta = FREQ_META[freq];
                     return (
-                        <div key={freq} className="border border-gray-100 rounded-2xl p-4 bg-[#FAFBFC]">
+                        <div key={freq} className="border border-gray-100 rounded-2xl p-4 bg-soft">
                             <span className={`inline-block px-2.5 py-1 rounded-lg text-[13px] font-extrabold border ${meta.color} mb-3`}>{meta.label}</span>
                             <div className="space-y-3">
                                 {tasks.filter(t => t.perUser).map(task => (
@@ -432,7 +432,7 @@ const SafetyRecurringChecklist = ({ user }) => {
                                                     <button
                                                         onClick={() => markDone(task.id)}
                                                         disabled={isDone}
-                                                        className={`px-3.5 py-2.5 rounded-xl text-[13.5px] font-extrabold shadow-sm min-w-[84px] transition-colors ${isDone ? 'bg-green-100 text-green-700 cursor-default' : 'bg-[#2E68ED] text-white hover:bg-blue-700'}`}
+                                                        className={`px-3.5 py-2.5 rounded-xl text-[13.5px] font-extrabold shadow-sm min-w-[84px] transition-colors ${isDone ? 'bg-green-100 text-green-700 cursor-default' : 'bg-brand text-white hover:bg-blue-700'}`}
                                                     >
                                                         {isDone ? '✓ 완료' : '완료 체크'}
                                                     </button>
@@ -459,7 +459,7 @@ const SafetyRecurringChecklist = ({ user }) => {
                 const healthNotCompleted = allUsers.filter(u => !healthCompletedEmails.has(u.email));
                 return (
                     <div className="mt-6 pt-6 border-t border-gray-100">
-                        <h4 className="text-[15px] font-extrabold text-[#0F172A] mb-3">{healthYearKey}년 건강검진 현황 (관리자)</h4>
+                        <h4 className="text-[15px] font-extrabold text-ink mb-3">{healthYearKey}년 건강검진 현황 (관리자)</h4>
                         <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                             <div className="rounded-2xl border border-green-100 bg-green-50/50 p-4">
                                 <p className="text-[14px] font-extrabold text-green-700 mb-2">✅ 완료자 ({healthCompleted.length}명)</p>
@@ -483,7 +483,7 @@ const SafetyRecurringChecklist = ({ user }) => {
             {isAdmin && (
                 <div className="mt-6 pt-6 border-t border-gray-100">
                     <div className="flex items-center justify-between mb-3 flex-wrap gap-2">
-                        <h4 className="text-[15px] font-extrabold text-[#0F172A]">지난 체크 기록 (관리자)</h4>
+                        <h4 className="text-[15px] font-extrabold text-ink">지난 체크 기록 (관리자)</h4>
                         <select value={historyTaskFilter} onChange={e => { setHistoryTaskFilter(e.target.value); setHistoryVisible(10); }} className="border border-gray-200 rounded-lg px-3 py-1.5 text-[13.5px] font-bold bg-gray-50 outline-none focus:border-blue-500">
                             <option value="all">전체 항목</option>
                             {SAFETY_RECURRING_TASKS.filter(t => t.perUser).map(t => (
@@ -493,7 +493,7 @@ const SafetyRecurringChecklist = ({ user }) => {
                     </div>
                     <div className="border border-gray-100 rounded-2xl overflow-hidden">
                         <table className="w-full text-left">
-                            <thead className="bg-[#f8fafc]">
+                            <thead className="bg-soft">
                                 <tr>
                                     <th className="px-4 py-2.5 text-[13px] font-bold text-gray-500">날짜/시각</th>
                                     <th className="px-4 py-2.5 text-[13px] font-bold text-gray-500">항목</th>

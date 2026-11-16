@@ -19,6 +19,7 @@ React 19 + Vite + Tailwind, Firebase(Auth/Firestore/Storage/Functions/FCM). 사�
 - `App.jsx` 라우팅·로그인 게이트(퇴사/서약서 서명 전 차단)·접속기록·자동 로그아웃
 - `app-shell.jsx` 화면 틀(묶음형 사이드바·폰 상단 바·하단 탭), `home.jsx` 홈(기사 "오늘 할 일" / 대표 "처리할 일"), `icons.jsx` 아이콘
 - `ui-feedback.js` + `ui-kit.jsx` 알림 메시지·확인 창. **브라우저 `alert`/`confirm`을 쓰지 말고 `notify()` / `await confirmDialog()`를 씁니다.**
+- 색·팝업 기준은 `src/index.css`에 있습니다. 색은 `brand`/`brand-dark`/`brand-soft`/`ink`/`page`/`soft`(예: `bg-brand`, `text-ink`)를 쓰고 `bg-[#2E68ED]`처럼 색상값을 직접 적지 않습니다. 팝업 바탕은 `fixed inset-0 z-50 ui-overlay`(길게 읽고 서명하는 창은 `ui-sheet` 추가), 닫기 버튼은 `ui-close`를 씁니다
 - `contracts.jsx` 계약관리(전자서명·동의서 별지 발송), `ui-components.jsx` 계약서 문구/PDF(`CONTRACT_ARTICLES` v1, `CONTRACT_ARTICLES_V2`) — 무거우니 첫 화면 파일(App·app-shell·home)에서 import하지 않습니다
 - `consent-forms.js` 개인정보 동의서 3종, `privacy-*.jsx` 개인정보 관리(점검·서약·교육·접속기록·사고·파기·실태점검 대응)
 - 안전보건: `safety.jsx` 본체(탭: 오늘 점검/제출 기록/문서·양식), `safety-checklist.jsx` 매일 점검, `safety-forms.jsx` 양식 11종(작성할 때만 로드), `safety-detail.jsx` 기록 상세·PDF(열 때만 로드), `safety-constants.js` 상수

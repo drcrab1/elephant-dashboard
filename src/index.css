@@ -2,9 +2,36 @@
 
 @import "tailwindcss";
 
+/* ── 기준색 (색을 바꾸려면 여기 한 곳만 고치면 전 화면에 반영됩니다) ──
+   bg-brand / text-brand / border-brand 처럼 씁니다. */
+@theme {
+  --color-brand: #2E68ED;        /* 대표 파란색: 주요 버튼, 강조 글자 */
+  --color-brand-dark: #1D4FC4;   /* 버튼에 마우스를 올렸을 때, 진한 강조 */
+  --color-brand-soft: #EBF2FF;   /* 옅은 파란 바탕 */
+  --color-ink: #0F172A;          /* 제목·본문 글자, 진한 바탕 */
+  --color-page: #F4F7FB;         /* 화면 바탕 */
+  --color-soft: #F8FAFC;         /* 표 머리·팝업 머리 같은 옅은 바탕 */
+
+  /* blue-600/700으로 적힌 버튼·글자도 대표색을 따르게 합니다 */
+  --color-blue-600: #2E68ED;
+  --color-blue-700: #1D4FC4;
+
+  /* 초록 계열(green / emerald)은 한 가지 색조로 통일 */
+  --color-green-50: #ECFDF5; --color-emerald-50: #ECFDF5;
+  --color-green-100: #D1FAE5; --color-emerald-100: #D1FAE5;
+  --color-green-200: #A7F3D0; --color-emerald-200: #A7F3D0;
+  --color-green-300: #6EE7B7; --color-emerald-300: #6EE7B7;
+  --color-green-400: #34D399; --color-emerald-400: #34D399;
+  --color-green-500: #10B981; --color-emerald-500: #10B981;
+  --color-green-600: #059669; --color-emerald-600: #059669;
+  --color-green-700: #047857; --color-emerald-700: #047857;
+  --color-green-800: #065F46; --color-emerald-800: #065F46;
+  --color-green-900: #064E3B; --color-emerald-900: #064E3B;
+}
+
 body {
   font-family: 'Pretendard', sans-serif;
-  background-color: #f8fafc;
+  background-color: #F4F7FB;
   word-break: keep-all;
   overflow-wrap: break-word;
 }
@@ -38,4 +65,53 @@ details > summary::-webkit-details-marker { display: none; }
 /* 움직임 줄이기를 켠 기기에서는 화면 전환 효과를 끕니다 */
 @media (prefers-reduced-motion: reduce) {
   .animate-fade-in, .ui-toast, .ui-pop { animation: none; }
+}
+
+/* ── 팝업창 공통 모양 ──
+   바탕(overlay)에 ui-overlay를 주면 안쪽 창이 가운데 오고, 모서리·그림자·나타나는 움직임이 같아집니다.
+   내용이 화면보다 길면 잘리지 않고 스크롤됩니다. 팝업이 떠 있는 동안 뒤 화면은 움직이지 않습니다. */
+.ui-overlay {
+  display: flex;
+  padding: 16px;
+  overflow-y: auto;
+  background: rgba(15, 23, 42, 0.55);
+  -webkit-backdrop-filter: blur(3px);
+  backdrop-filter: blur(3px);
+  animation: uiFade 0.15s ease-out;
+}
+.ui-overlay > * {
+  margin: auto;
+  border-radius: 22px;
+  box-shadow: 0 24px 60px rgba(15, 23, 42, 0.28);
+  animation: uiPopIn 0.2s ease-out;
+}
+/* 길게 읽고 서명하는 창(계약서·서약서)은 폰에서 아래에서 올라오는 모양 */
+.ui-overlay.ui-sheet { padding: 0; }
+.ui-overlay.ui-sheet > * { margin: auto auto 0; border-radius: 22px 22px 0 0; }
+@media (min-width: 768px) {
+  .ui-overlay.ui-sheet { padding: 24px; }
+  .ui-overlay.ui-sheet > * { margin: auto; border-radius: 22px; }
+}
+body:has(.ui-overlay) { overflow: hidden; }
+@keyframes uiFade { from { opacity: 0; } to { opacity: 1; } }
+
+/* 팝업 닫기(×) 버튼 */
+.ui-close {
+  flex: none;
+  width: 40px;
+  height: 40px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 9999px;
+  color: #94A3B8;
+  font-size: 26px;
+  font-weight: 800;
+  line-height: 1;
+  transition: background-color 0.15s, color 0.15s;
+}
+.ui-close:hover { background: #F1F5F9; color: #0F172A; }
+
+@media (prefers-reduced-motion: reduce) {
+  .ui-overlay, .ui-overlay > * { animation: none; }
 }

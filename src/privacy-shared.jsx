@@ -108,11 +108,11 @@ export const reactToPdfBlob = async (element) => {
 // ───────────────────────── 공통 UI ─────────────────────────
 
 export const PrivacyModal = ({ title, onClose, children, wide }) => (
-    <div className="fixed inset-0 z-[60] bg-black/50 flex items-start md:items-center justify-center p-3 md:p-6 overflow-y-auto" onClick={onClose}>
+    <div className="fixed inset-0 z-[60] ui-overlay" onClick={onClose}>
         <div className={`bg-white rounded-2xl shadow-xl w-full ${wide ? 'max-w-[900px]' : 'max-w-[560px]'} max-h-[92vh] flex flex-col my-auto`} onClick={(e) => e.stopPropagation()}>
             <div className="flex items-center justify-between px-5 py-4 border-b border-gray-100 shrink-0">
                 <h3 className="font-extrabold text-[17px] text-gray-900">{title}</h3>
-                <button onClick={onClose} className="text-gray-400 hover:text-gray-700 text-xl leading-none px-2">✕</button>
+                <button type="button" aria-label="닫기" onClick={onClose} className="ui-close">&times;</button>
             </div>
             <div className="p-5 overflow-y-auto">{children}</div>
         </div>

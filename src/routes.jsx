@@ -108,13 +108,13 @@ export const RouteManagement = ({ user, appRoutes = [], setAppRoutes }) => {
     };
 
     return (
-        <main className="md:ml-[260px] ml-0 px-4 md:px-10 py-6 md:py-12 flex-1 relative bg-[#F4F7FB] min-h-[100vh] w-full max-w-[100vw] md:max-w-[calc(100vw-260px)] overflow-x-hidden">
+        <main className="md:ml-[260px] ml-0 px-4 md:px-10 py-6 md:py-12 flex-1 relative bg-page min-h-[100vh] w-full max-w-[100vw] md:max-w-[calc(100vw-260px)] overflow-x-hidden">
             <header className="mb-8 w-full flex flex-col md:flex-row justify-between items-start md:items-end border-b pb-6 border-gray-200 gap-4">
                 <div>
-                    <h2 className="text-[28px] font-extrabold mb-2 text-[#1E293B]">노선(라우트) 관리 및 투입 꿀팁</h2>
+                    <h2 className="text-[24px] md:text-[28px] tracking-tight font-extrabold mb-2 text-ink">노선(라우트) 관리 및 투입 꿀팁</h2>
                     <p className="text-gray-500 text-[15px] font-medium">캠프별, 구간별 하차/주차 꿀팁과 지도를 서로 공유하는 위키 공간입니다. 기사님 누구나 노선을 추가할 수 있습니다.</p>
                 </div>
-                <button onClick={() => setIsAddOpen(true)} className="flex items-center gap-2 bg-[#1BC271] hover:bg-green-600 text-white px-6 py-3.5 rounded-[12px] font-bold text-[15px] shadow-sm transition-transform hover:-translate-y-0.5 shrink-0">
+                <button onClick={() => setIsAddOpen(true)} className="flex items-center gap-2 bg-emerald-600 hover:bg-emerald-700 text-white px-6 py-3.5 rounded-[12px] font-bold text-[15px] shadow-sm transition-transform hover:-translate-y-0.5 shrink-0">
                     <Icons.Plus /> 새 배송노선(라우트) 추가하기
                 </button>
             </header>
@@ -122,7 +122,7 @@ export const RouteManagement = ({ user, appRoutes = [], setAppRoutes }) => {
             {/* Sub-view: Active Route Info */}
             {selectedRoute ? (
                 <div className="bg-white rounded-3xl shadow-sm border border-gray-200 overflow-hidden min-h-[600px] flex flex-col md:flex-row animate-fade-in relative">
-                    <button onClick={() => setSelectedRoute(null)} className="absolute top-6 right-6 text-gray-400 hover:text-black font-extrabold text-2xl z-20">&times;</button>
+                    <button type="button" aria-label="닫기" onClick={() => setSelectedRoute(null)} className="ui-close absolute top-4 right-4 z-20">&times;</button>
                     
                     {/* Left Panel: MAP */}
                     <div className="w-full md:w-1/2 bg-gray-50 border-b md:border-b-0 md:border-r border-gray-200 flex flex-col relative min-h-[350px]">
@@ -131,12 +131,12 @@ export const RouteManagement = ({ user, appRoutes = [], setAppRoutes }) => {
                                 <span className="inline-block bg-blue-100 text-blue-700 font-bold px-3 py-1 rounded-lg text-[13px] mb-2">{selectedRoute.camp}</span>
                                 {isEditingName ? (
                                     <div className="flex items-center gap-2 mt-1">
-                                        <input type="text" value={editRouteName} onChange={e => setEditRouteName(e.target.value)} className="border-b-2 border-blue-500 font-extrabold text-2xl text-[#0F172A] focus:outline-none bg-transparent" autoFocus />
+                                        <input type="text" value={editRouteName} onChange={e => setEditRouteName(e.target.value)} className="border-b-2 border-blue-500 font-extrabold text-2xl text-ink focus:outline-none bg-transparent" autoFocus />
                                         <button onClick={handleSaveRouteName} className="px-3 py-1 bg-green-500 text-white text-sm font-bold rounded-lg hover:bg-green-600">저장</button>
                                         <button onClick={() => setIsEditingName(false)} className="px-3 py-1 bg-gray-200 text-gray-700 text-sm font-bold rounded-lg hover:bg-gray-300">취소</button>
                                     </div>
                                 ) : (
-                                    <h3 className="text-2xl font-extrabold text-[#0F172A] flex items-center gap-2 mt-1">
+                                    <h3 className="text-2xl font-extrabold text-ink flex items-center gap-2 mt-1">
                                         {selectedRoute.name} 노선도
                                         <button onClick={() => setIsEditingName(true)} className="text-sm font-medium text-gray-400 hover:text-blue-500 flex items-center gap-1"><Icons.Edit2 /> 수정</button>
                                     </h3>
@@ -170,11 +170,11 @@ export const RouteManagement = ({ user, appRoutes = [], setAppRoutes }) => {
                                 value={editTips} 
                                 onChange={e => setEditTips(e.target.value)} 
                                 placeholder="예) 푸르지오 아파트 진입 시 우측 2번째 게이트가 빠릅니다. 101동 공동현관 번호 *1234# 입니다."
-                                className="flex-1 w-full bg-[#f8fafc] border border-gray-200 rounded-2xl p-6 text-[15px] text-gray-800 leading-relaxed font-medium focus:outline-none focus:ring-2 focus:ring-blue-500 transition-all resize-none shadow-inner mb-4 min-h-[160px]"
+                                className="flex-1 w-full bg-soft border border-gray-200 rounded-2xl p-6 text-[15px] text-gray-800 leading-relaxed font-medium focus:outline-none focus:ring-2 focus:ring-blue-500 transition-all resize-none shadow-inner mb-4 min-h-[160px]"
                             />
                             <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
                                 <p className="text-[13px] text-gray-400 font-bold">마지막 수정: {selectedRoute.lastUpdatedBy ? `${selectedRoute.lastUpdatedBy} (${new Date(selectedRoute.updatedAt).toLocaleDateString()})` : '기록 없음'}</p>
-                                <button onClick={handleSaveTips} className="w-full sm:w-auto px-8 py-3 bg-[#2E68ED] hover:bg-blue-700 text-white font-extrabold rounded-xl shadow-md transition-transform hover:-translate-y-0.5 text-sm">꿀팁 즉시 보존 (저장)</button>
+                                <button onClick={handleSaveTips} className="w-full sm:w-auto px-8 py-3 bg-brand hover:bg-blue-700 text-white font-extrabold rounded-xl shadow-md transition-transform hover:-translate-y-0.5 text-sm">꿀팁 즉시 보존 (저장)</button>
                             </div>
                         </div>
                     </div>
@@ -197,7 +197,7 @@ export const RouteManagement = ({ user, appRoutes = [], setAppRoutes }) => {
                                         <div className="absolute top-0 right-0 w-24 h-24 bg-blue-50 rounded-bl-full -z-0 opacity-50 group-hover:scale-110 transition-transform"></div>
                                         <div className="relative z-10 flex flex-col h-full">
                                             <div className="flex justify-between items-start mb-4">
-                                                <h4 className="text-[18px] font-extrabold text-[#0F172A]">{r.name}</h4>
+                                                <h4 className="text-[18px] font-extrabold text-ink">{r.name}</h4>
                                                 {r.mapUrl ? <span className="text-xl">🗺️</span> : <span className="text-xl grayscale opacity-30">🗺️</span>}
                                             </div>
                                             <p className="text-[14px] text-gray-500 font-medium mb-6 line-clamp-3">
@@ -218,9 +218,9 @@ export const RouteManagement = ({ user, appRoutes = [], setAppRoutes }) => {
 
             {/* ADD MODAL */}
             {isAddOpen && (
-                <div className="fixed inset-0 z-50 bg-[#0F172A]/50 backdrop-blur-sm flex justify-center items-center py-10 px-4">
+                <div className="fixed inset-0 z-50 ui-overlay">
                     <div className="bg-white rounded-[24px] w-full max-w-md p-8 shadow-2xl animate-fade-in relative">
-                        <button onClick={() => setIsAddOpen(false)} className="absolute top-6 right-6 text-gray-400 hover:text-black font-extrabold text-2xl">&times;</button>
+                        <button type="button" aria-label="닫기" onClick={() => setIsAddOpen(false)} className="ui-close absolute top-4 right-4">&times;</button>
                         <h2 className="text-2xl font-extrabold mb-6">➕ 신규 배송 노선 추가</h2>
                         
                         <div className="space-y-5">
@@ -241,7 +241,7 @@ export const RouteManagement = ({ user, appRoutes = [], setAppRoutes }) => {
                         </div>
 
                         <div className="mt-8">
-                            <button onClick={handleCreateRoute} className="w-full py-4 bg-[#2E68ED] hover:bg-blue-700 text-white font-extrabold text-[16px] rounded-xl shadow-md transition-colors">새로운 라우트 방 만들기</button>
+                            <button onClick={handleCreateRoute} className="w-full py-4 bg-brand hover:bg-blue-700 text-white font-extrabold text-[16px] rounded-xl shadow-md transition-colors">새로운 라우트 방 만들기</button>
                         </div>
                     </div>
                 </div>

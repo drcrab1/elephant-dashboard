@@ -155,7 +155,7 @@ export const ComplianceTab = ({ user, members, metas, checks, pledges, trainings
             </div>
             <div className="flex flex-wrap items-center gap-2">
                 {[['all', `전체 ${items.length}`], ['ok', `충족 ${counts.ok || 0}`], ['warn', `조치 필요 ${counts.warn || 0}`], ['manual', `직접 확인 ${counts.manual || 0}`], ['na', `해당 없음 가능 ${counts.na || 0}`]].map(([k, l]) => (
-                    <button key={k} onClick={() => setFilter(k)} className={`px-3.5 py-1.5 rounded-full border text-[13px] font-bold ${filter === k ? 'bg-[#0F172A] text-white border-[#0F172A]' : 'bg-white text-gray-600 border-gray-200'}`}>{l}</button>
+                    <button key={k} onClick={() => setFilter(k)} className={`px-3.5 py-1.5 rounded-full border text-[13px] font-bold ${filter === k ? 'bg-ink text-white border-ink' : 'bg-white text-gray-600 border-gray-200'}`}>{l}</button>
                 ))}
                 <button className={`${btnGhost} ml-auto`} onClick={exportAll}>📥 현황 엑셀</button>
             </div>

@@ -157,11 +157,11 @@ const getLocalDateString = (d) => {
     };
 
     return (
-        <main className="md:ml-[260px] ml-0 px-4 md:px-10 py-8 md:py-[60px] flex-1 min-w-0 w-full max-w-[100vw] md:max-w-[calc(100vw-260px)] overflow-x-hidden animate-fade-in bg-[#F8FAFC] min-h-screen font-sans">
+        <main className="md:ml-[260px] ml-0 px-4 md:px-10 py-8 md:py-[60px] flex-1 min-w-0 w-full max-w-[100vw] md:max-w-[calc(100vw-260px)] overflow-x-hidden animate-fade-in bg-page min-h-screen font-sans">
             
             {/* 상단 타이틀 */}
             <div className="mb-8 w-full max-w-[1200px]">
-                <h2 className="text-[28px] font-extrabold text-[#0F172A] mb-2 tracking-tight">배차 및 스케줄 관리</h2>
+                <h2 className="text-[24px] md:text-[28px] tracking-tight font-extrabold text-ink mb-2">배차 및 스케줄 관리</h2>
                 <p className="text-[15px] text-gray-500 font-medium tracking-tight">기사님들의 일일 근무 노선 일정을 조회하고 동기화 상태를 확인합니다.</p>
             </div>
 
@@ -171,7 +171,7 @@ const getLocalDateString = (d) => {
                     <button onClick={() => changeWeek(-1)} className="shrink-0 w-11 h-11 border border-gray-100 rounded-2xl bg-white hover:bg-gray-50 text-gray-600 flex items-center justify-center shadow-sm hover:scale-105 active:scale-95 transition-all"><Icons.ChevronLeft /></button>
                     <div className="text-left min-w-0">
                         <span className="text-xs text-gray-400 font-bold uppercase tracking-wider block">선택된 일정 기간</span>
-                        <h2 className="text-[16px] sm:text-[20px] md:text-[22px] font-extrabold text-[#0F172A] tracking-tight">
+                        <h2 className="text-[16px] sm:text-[20px] md:text-[22px] font-extrabold text-ink tracking-tight">
                             {formatDateLong(startOfWeek)} <span className="text-gray-300 font-normal">~</span> {formatDateLong(endOfWeek)}
                         </h2>
                     </div>
@@ -195,7 +195,7 @@ const getLocalDateString = (d) => {
             {isAdmin && (
                 <div className="w-full max-w-[1200px] mb-8 p-6 bg-gradient-to-r from-blue-50/50 to-indigo-50/30 border border-blue-100 rounded-3xl shadow-sm flex flex-col gap-4">
                     <div className="flex flex-wrap items-center justify-between gap-2">
-                        <h3 className="font-extrabold text-[#1E3A8A] flex items-center gap-2.5 text-[16px]"><Icons.Settings /> 구글 시트 배차표 연동 설정</h3>
+                        <h3 className="font-extrabold text-brand-dark flex items-center gap-2.5 text-[16px]"><Icons.Settings /> 구글 시트 배차표 연동 설정</h3>
                         <button onClick={() => setIsEditingUrl(!isEditingUrl)} className="shrink-0 whitespace-nowrap text-sm font-bold text-blue-600 hover:text-blue-700 transition-colors">{isEditingUrl ? '수정 취소' : '연동 주소 변경'}</button>
                     </div>
                     {isEditingUrl ? (
@@ -214,7 +214,7 @@ const getLocalDateString = (d) => {
                 <div className="w-full max-w-[1200px] mb-8 p-6 bg-white border border-gray-100 rounded-3xl shadow-sm flex flex-col gap-4">
                     <div className="flex flex-wrap items-center justify-between gap-2">
                         <div>
-                            <h3 className="font-extrabold text-[#1E293B] flex items-center gap-2.5 text-[16px]"><Icons.Map /> 노선 이름 관리</h3>
+                            <h3 className="font-extrabold text-ink flex items-center gap-2.5 text-[16px]"><Icons.Map /> 노선 이름 관리</h3>
                             <p className="text-[13px] text-gray-400 font-medium mt-1">표 맨 위에 표시되는 노선 이름이 바뀌면 여기서 직접 수정하세요. 코드 수정 없이 바로 반영됩니다.</p>
                         </div>
                         <button
@@ -262,7 +262,7 @@ const getLocalDateString = (d) => {
             <div className="scroll-container bg-white rounded-3xl border border-gray-100 shadow-[0_8px_30px_rgb(0,0,0,0.02)]">
                     <table className="w-full text-center table-fixed min-w-[1000px] border-collapse">
                         <thead>
-                            <tr className="bg-[#0F172A] text-white select-none border-b border-gray-800">
+                            <tr className="bg-ink text-white select-none border-b border-gray-800">
                                 <th className="w-[90px] py-4.5 text-[13.5px] font-bold tracking-wider uppercase opacity-85">날짜</th>
                                 <th className="w-[70px] py-4.5 text-[13.5px] font-bold tracking-wider uppercase opacity-85">요일</th>
                                 {routeColumns.map((route) => (

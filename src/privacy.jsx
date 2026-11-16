@@ -13,7 +13,7 @@ import { ComplianceTab } from './privacy-compliance';
 
 const card = 'bg-white rounded-2xl border border-gray-100 shadow-sm';
 const btn = 'px-3.5 py-2 rounded-xl text-[13px] font-bold transition-colors disabled:opacity-50';
-const btnPrimary = `${btn} bg-[#2E68ED] text-white hover:bg-blue-700`;
+const btnPrimary = `${btn} bg-brand text-white hover:bg-blue-700`;
 const btnGhost = `${btn} bg-gray-100 text-gray-700 hover:bg-gray-200`;
 const inputCls = 'w-full border border-gray-200 rounded-xl px-3 py-2.5 text-[14px] font-medium outline-none focus:border-blue-500 bg-white';
 
@@ -332,7 +332,7 @@ const HandlersTab = ({ members }) => {
             <div className="flex flex-wrap items-center justify-between gap-2">
                 <div className="flex gap-1.5">
                     {['전체', '취급자', '퇴사'].map((f) => (
-                        <button key={f} onClick={() => setFilter(f)} className={`px-3.5 py-1.5 rounded-full border text-[13px] font-bold ${filter === f ? 'bg-[#0F172A] text-white border-[#0F172A]' : 'bg-white text-gray-600 border-gray-200'}`}>{f}</button>
+                        <button key={f} onClick={() => setFilter(f)} className={`px-3.5 py-1.5 rounded-full border text-[13px] font-bold ${filter === f ? 'bg-ink text-white border-ink' : 'bg-white text-gray-600 border-gray-200'}`}>{f}</button>
                     ))}
                 </div>
                 <div className="flex gap-2">
@@ -521,7 +521,7 @@ const TrainingTab = ({ user, members }) => {
                 </div>
                 <div className="flex gap-2">
                     {[['text', '텍스트'], ['pdf', 'PDF']].map(([k, l]) => (
-                        <button key={k} onClick={() => setForm({ ...form, kind: k })} className={`px-4 py-1.5 rounded-full border text-[13px] font-bold ${form.kind === k ? 'bg-[#0F172A] text-white border-[#0F172A]' : 'bg-white text-gray-600 border-gray-200'}`}>{l}</button>
+                        <button key={k} onClick={() => setForm({ ...form, kind: k })} className={`px-4 py-1.5 rounded-full border text-[13px] font-bold ${form.kind === k ? 'bg-ink text-white border-ink' : 'bg-white text-gray-600 border-gray-200'}`}>{l}</button>
                     ))}
                     {form.kind === 'text' && <button className={`${btnGhost} ml-auto`} onClick={() => setForm({ ...form, title: DEFAULT_TRAINING.title, content: DEFAULT_TRAINING.content, durationMin: DEFAULT_TRAINING.durationMin, minSeconds: DEFAULT_TRAINING.minSeconds })}>기본 교육자료 초안 불러오기</button>}
                 </div>
@@ -621,21 +621,21 @@ const PrivacyManagement = ({ user, contacts = [], contracts = [], setActivePage 
 
     if (!isAdmin) {
         return (
-            <main className="md:ml-[260px] ml-0 px-4 md:px-10 py-6 md:py-12 flex-1 relative bg-[#F4F7FB] min-h-[100vh] flex items-center justify-center">
+            <main className="md:ml-[260px] ml-0 px-4 md:px-10 py-6 md:py-12 flex-1 relative bg-page min-h-[100vh] flex items-center justify-center">
                 <p className="text-gray-400 font-bold">이 화면은 대표자(관리자) 전용입니다.</p>
             </main>
         );
     }
 
     return (
-        <main className="md:ml-[260px] ml-0 px-4 md:px-10 py-6 md:py-12 flex-1 relative bg-[#F4F7FB] min-h-[100vh] w-full max-w-[100vw] md:max-w-[calc(100vw-260px)] overflow-x-hidden">
+        <main className="md:ml-[260px] ml-0 px-4 md:px-10 py-6 md:py-12 flex-1 relative bg-page min-h-[100vh] w-full max-w-[100vw] md:max-w-[calc(100vw-260px)] overflow-x-hidden">
             <header className="mb-6 border-b pb-5 border-gray-200">
-                <h2 className="text-[28px] font-extrabold mb-1.5 text-[#1E293B]">🔒 개인정보 관리</h2>
+                <h2 className="text-[24px] md:text-[28px] tracking-tight font-extrabold mb-1.5 text-ink">🔒 개인정보 관리</h2>
                 <p className="text-gray-500 text-[15px] font-medium">쿠팡 수탁사 개인정보 처리 실태 점검 대응 · 대표자 전용</p>
             </header>
             <div className="flex gap-1.5 overflow-x-auto pb-2 mb-5">
                 {TABS.map(([k, l]) => (
-                    <button key={k} onClick={() => setTab(k)} className={`shrink-0 px-4 py-2 rounded-xl text-[14px] font-bold border transition-colors ${tab === k ? 'bg-[#2E68ED] text-white border-[#2E68ED]' : 'bg-white text-gray-600 border-gray-200 hover:bg-gray-50'}`}>{l}</button>
+                    <button key={k} onClick={() => setTab(k)} className={`shrink-0 px-4 py-2 rounded-xl text-[14px] font-bold border transition-colors ${tab === k ? 'bg-brand text-white border-brand' : 'bg-white text-gray-600 border-gray-200 hover:bg-gray-50'}`}>{l}</button>
                 ))}
             </div>
             <div className="max-w-[1100px]">

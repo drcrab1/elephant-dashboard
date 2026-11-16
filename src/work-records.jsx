@@ -161,10 +161,10 @@ const WorkRecordManagement = ({ user, records, setRecords }) => {
     };
 
     return (
-        <main className="md:ml-[260px] ml-0 px-4 md:px-10 py-6 md:py-[50px] flex-1 animate-fade-in font-sans bg-[#F8FAFC] min-h-screen w-full max-w-[100vw] md:max-w-[calc(100vw-260px)] overflow-x-hidden">
+        <main className="md:ml-[260px] ml-0 px-4 md:px-10 py-6 md:py-[50px] flex-1 animate-fade-in font-sans bg-page min-h-screen w-full max-w-[100vw] md:max-w-[calc(100vw-260px)] overflow-x-hidden">
             <header className="mb-6 w-full max-w-[1000px] mx-auto">
-                <h2 className="text-[28px] font-extrabold text-[#1E293B] tracking-tight flex items-center gap-2"><Icons.Clipboard /> 업무내역입력</h2>
-                <p className="text-[#64748B] mt-1.5 font-medium text-[15px]">일일 배송 완료 수량을 기록하고 정산 내역을 확인합니다.</p>
+                <h2 className="text-[24px] md:text-[28px] tracking-tight font-extrabold text-ink flex items-center gap-2"><Icons.Clipboard /> 업무내역입력</h2>
+                <p className="text-slate-500 mt-1.5 font-medium text-[15px]">일일 배송 완료 수량을 기록하고 정산 내역을 확인합니다.</p>
             </header>
 
             <div className="max-w-[1000px] mx-auto space-y-6">
@@ -195,7 +195,7 @@ const WorkRecordManagement = ({ user, records, setRecords }) => {
                     <div className="flex items-center gap-6">
                         <button onClick={() => changeMonth(-1)} className="w-[40px] h-[40px] border border-gray-200 rounded-xl bg-white hover:bg-gray-50 flex items-center justify-center text-gray-400 transition-colors"><Icons.ChevronLeft /></button>
                         <div className="text-center">
-                            <h3 className="text-[22px] font-extrabold text-[#0F172A] tracking-tight">{targetYear}년 {targetMonthStr}월 정산</h3>
+                            <h3 className="text-[22px] font-extrabold text-ink tracking-tight">{targetYear}년 {targetMonthStr}월 정산</h3>
                             <p className="text-[14px] font-bold text-gray-400 mt-1">{displayStartStr} ~ {displayEndStr}</p>
                         </div>
                         <button onClick={() => changeMonth(1)} className="w-[40px] h-[40px] border border-gray-200 rounded-xl bg-white hover:bg-gray-50 flex items-center justify-center text-gray-400 transition-colors"><Icons.ChevronRight /></button>
@@ -204,17 +204,17 @@ const WorkRecordManagement = ({ user, records, setRecords }) => {
 
                 {/* 3단 대시보드 요약 카드 */}
                 <div className="grid grid-cols-1 md:grid-cols-3 gap-5">
-                    <div className="bg-[#2E68ED] rounded-2xl p-6 shadow-md flex flex-col items-center justify-center text-white min-h-[140px] transition-transform hover:-translate-y-1">
+                    <div className="bg-brand rounded-2xl p-6 shadow-md flex flex-col items-center justify-center text-white min-h-[140px] transition-transform hover:-translate-y-1">
                         <span className="inline-block text-white/80 font-bold mb-2 text-[15px]">이번 정산 총 배송</span>
                         <h2 className="text-[36px] font-extrabold tracking-tight">{totalQuantity.toLocaleString()}<span className="text-[20px] font-bold font-normal ml-1">건</span></h2>
                     </div>
                     <div className="bg-white rounded-2xl border border-gray-100 p-6 shadow-[0_2px_12px_rgba(0,0,0,0.02)] flex flex-col items-center justify-center min-h-[140px] transition-transform hover:-translate-y-1">
                         <span className="inline-block text-gray-500 font-bold mb-2 text-[15px]">근무일수</span>
-                        <h2 className="text-[36px] font-extrabold tracking-tight text-[#0F172A]">{uniqueWorkDays.toLocaleString()}<span className="text-[20px] font-bold text-gray-500 font-normal ml-1">일</span></h2>
+                        <h2 className="text-[36px] font-extrabold tracking-tight text-ink">{uniqueWorkDays.toLocaleString()}<span className="text-[20px] font-bold text-gray-500 font-normal ml-1">일</span></h2>
                     </div>
                     <div className="bg-white rounded-2xl border border-gray-100 p-6 shadow-[0_2px_12px_rgba(0,0,0,0.02)] flex flex-col items-center justify-center min-h-[140px] transition-transform hover:-translate-y-1">
                         <span className="inline-block text-gray-500 font-bold mb-2 text-[15px]">일평균</span>
-                        <h2 className="text-[36px] font-extrabold tracking-tight text-[#0F172A]">{averageDaily.toLocaleString()}<span className="text-[20px] font-bold text-gray-500 font-normal ml-1">건</span></h2>
+                        <h2 className="text-[36px] font-extrabold tracking-tight text-ink">{averageDaily.toLocaleString()}<span className="text-[20px] font-bold text-gray-500 font-normal ml-1">건</span></h2>
                     </div>
                 </div>
 
@@ -229,11 +229,11 @@ const WorkRecordManagement = ({ user, records, setRecords }) => {
                     </button>
                     {isAdmin ? (
                         // 관리자는 지금 어떤 화면(전체보기/다른 기사님 보기)을 보고 있어도, 이 버튼으로 항상 본인 배송건수를 입력할 수 있음
-                        <button onClick={openSelfModal} className="flex items-center gap-2 bg-[#2E68ED] hover:bg-blue-700 text-white px-7 py-3 rounded-xl font-bold text-[15px] shadow-sm transition-colors">
+                        <button onClick={openSelfModal} className="flex items-center gap-2 bg-brand hover:bg-blue-700 text-white px-7 py-3 rounded-xl font-bold text-[15px] shadow-sm transition-colors">
                             <Icons.Plus /> 내 배송건수 입력
                         </button>
                     ) : (
-                        <button onClick={() => openModal()} className="flex items-center gap-2 bg-[#2E68ED] hover:bg-blue-700 text-white px-7 py-3 rounded-xl font-bold text-[15px] shadow-sm transition-colors">
+                        <button onClick={() => openModal()} className="flex items-center gap-2 bg-brand hover:bg-blue-700 text-white px-7 py-3 rounded-xl font-bold text-[15px] shadow-sm transition-colors">
                             <Icons.Plus /> 수량 입력
                         </button>
                     )}
@@ -250,7 +250,7 @@ const WorkRecordManagement = ({ user, records, setRecords }) => {
                             <div className="flex flex-col gap-3 min-w-0">
                                 <div className="flex flex-wrap items-center gap-2.5">
                                     <span className="text-gray-400 shrink-0"><Icons.Schedule /></span>
-                                    <span className="text-[16px] font-extrabold text-[#0F172A] whitespace-nowrap shrink-0">{formatRecordDate(record.date)} ({getDayName(record.date)})</span>
+                                    <span className="text-[16px] font-extrabold text-ink whitespace-nowrap shrink-0">{formatRecordDate(record.date)} ({getDayName(record.date)})</span>
                                     <span className="shrink-0 whitespace-nowrap px-2 py-0.5 bg-gray-100 text-gray-500 rounded text-[13px] font-bold">{record.route}</span>
                                     {isAdmin && targetEmailFilter === 'all' && <span className="shrink-0 whitespace-nowrap text-xs bg-blue-50 text-blue-600 px-2 py-0.5 rounded font-bold">{record.name}</span>}
                                 </div>
@@ -262,8 +262,8 @@ const WorkRecordManagement = ({ user, records, setRecords }) => {
                                 </div>
                             </div>
                             <div className="flex items-baseline gap-1 shrink-0">
-                                <span className="text-[24px] font-extrabold text-[#2E68ED]">{Number(record.quantity).toLocaleString()}</span>
-                                <span className="font-bold text-[#2E68ED]">건</span>
+                                <span className="text-[24px] font-extrabold text-brand">{Number(record.quantity).toLocaleString()}</span>
+                                <span className="font-bold text-brand">건</span>
                             </div>
                         </div>
                     ))}
@@ -273,17 +273,17 @@ const WorkRecordManagement = ({ user, records, setRecords }) => {
 
             {/* 수량 입력 / 수정 모달 */}
             {isModalOpen && (
-                <div className="fixed inset-0 z-50 bg-[#0F172A]/40 backdrop-blur-sm flex justify-center items-center py-10 px-4">
+                <div className="fixed inset-0 z-50 ui-overlay">
                     <div className="bg-white rounded-[24px] w-full max-w-[400px] overflow-hidden shadow-2xl animate-fade-in relative flex flex-col">
-                        <div className="px-7 py-6 border-b border-gray-100 flex justify-between items-center bg-[#f8fafc]">
-                            <h3 className="text-[20px] font-extrabold text-[#0F172A] flex items-center gap-2"><Icons.Clipboard /> {editingId ? '업무내역 수정' : '배송 수량 입력'}</h3>
-                            <button onClick={() => setIsModalOpen(false)} className="text-gray-400 hover:text-black font-extrabold text-[26px] leading-none transition-colors">&times;</button>
+                        <div className="px-7 py-6 border-b border-gray-100 flex justify-between items-center bg-soft">
+                            <h3 className="text-[20px] font-extrabold text-ink flex items-center gap-2"><Icons.Clipboard /> {editingId ? '업무내역 수정' : '배송 수량 입력'}</h3>
+                            <button type="button" aria-label="닫기" onClick={() => setIsModalOpen(false)} className="ui-close">&times;</button>
                         </div>
 
                         <div className="p-7 space-y-5">
                             <div className="flex flex-col gap-2">
                                 <label className="text-[14px] font-bold text-gray-700">배송 날짜 <span className="text-red-500">*</span></label>
-                                <input type="date" value={formData.date} onChange={e => setFormData({ ...formData, date: e.target.value })} className="w-full bg-white border border-gray-200 rounded-xl px-4 py-3 text-[15px] font-bold focus:outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500 transition-colors cursor-pointer text-[#0F172A]" />
+                                <input type="date" value={formData.date} onChange={e => setFormData({ ...formData, date: e.target.value })} className="w-full bg-white border border-gray-200 rounded-xl px-4 py-3 text-[15px] font-bold focus:outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500 transition-colors cursor-pointer text-ink" />
                             </div>
 
                             <div className="flex flex-col gap-2">
@@ -294,15 +294,15 @@ const WorkRecordManagement = ({ user, records, setRecords }) => {
                             <div className="flex flex-col gap-2">
                                 <label className="text-[14px] font-bold text-gray-700">완료 수량 <span className="text-red-500">*</span></label>
                                 <div className="relative">
-                                    <input type="number" placeholder="0" value={formData.quantity} onChange={e => setFormData({ ...formData, quantity: e.target.value })} className="w-full bg-white border border-gray-200 rounded-xl px-4 py-3 text-[18px] font-extrabold text-[#2E68ED] focus:outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500 transition-colors text-right pr-12 track-wider" />
+                                    <input type="number" placeholder="0" value={formData.quantity} onChange={e => setFormData({ ...formData, quantity: e.target.value })} className="w-full bg-white border border-gray-200 rounded-xl px-4 py-3 text-[18px] font-extrabold text-brand focus:outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500 transition-colors text-right pr-12 track-wider" />
                                     <span className="absolute right-4 top-1/2 -translate-y-1/2 text-gray-500 font-bold text-[16px]">건</span>
                                 </div>
                             </div>
                         </div>
 
-                        <div className="p-7 pt-2 flex gap-3 bg-[#f8fafc]">
+                        <div className="p-7 pt-2 flex gap-3 bg-soft">
                             <button onClick={() => setIsModalOpen(false)} className="flex-[1] py-3.5 bg-white border border-gray-200 hover:bg-gray-50 text-gray-700 font-extrabold text-[15px] rounded-xl transition-colors shadow-sm">취소</button>
-                            <button onClick={handleSave} className="flex-[2] py-3.5 bg-[#2E68ED] hover:bg-blue-700 text-white font-extrabold text-[15px] rounded-xl shadow-[0_4px_12px_rgb(46,104,237,0.3)] transition-colors">{editingId ? '수정 완료' : '등록 완료'}</button>
+                            <button onClick={handleSave} className="flex-[2] py-3.5 bg-brand hover:bg-blue-700 text-white font-extrabold text-[15px] rounded-xl shadow-[0_4px_12px_rgb(46,104,237,0.3)] transition-colors">{editingId ? '수정 완료' : '등록 완료'}</button>
                         </div>
                     </div>
                 </div>

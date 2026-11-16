@@ -46,7 +46,7 @@ const NotificationManagement = ({ user }) => {
 
     if (!isAdmin) {
         return (
-            <main className="md:ml-[260px] ml-0 px-4 md:px-10 py-6 md:py-12 flex-1 relative bg-[#F4F7FB] min-h-[100vh] flex items-center justify-center">
+            <main className="md:ml-[260px] ml-0 px-4 md:px-10 py-6 md:py-12 flex-1 relative bg-page min-h-[100vh] flex items-center justify-center">
                 <p className="text-gray-400 font-bold">이 화면은 관리자 전용입니다.</p>
             </main>
         );
@@ -130,9 +130,9 @@ const NotificationManagement = ({ user }) => {
     const filteredMembers = members.filter(m => !memberSearch.trim() || m.name.toLowerCase().includes(memberSearch.trim().toLowerCase()) || m.email.toLowerCase().includes(memberSearch.trim().toLowerCase()));
 
     return (
-        <main className="md:ml-[260px] ml-0 px-4 md:px-10 py-6 md:py-12 flex-1 relative bg-[#F4F7FB] min-h-[100vh]">
+        <main className="md:ml-[260px] ml-0 px-4 md:px-10 py-6 md:py-12 flex-1 relative bg-page min-h-[100vh]">
             <header className="mb-8 w-full border-b pb-6 border-gray-200">
-                <h2 className="text-[28px] font-extrabold mb-2 text-[#1E293B] flex items-center gap-2">🔔 알림 관리</h2>
+                <h2 className="text-[24px] md:text-[28px] tracking-tight font-extrabold mb-2 text-ink flex items-center gap-2">🔔 알림 관리</h2>
                 <p className="text-gray-500 text-[15px] font-medium">
                     출근일 기사님께 자동으로 가는 TBM 알림 시각을 설정하고, 중요 공지를 전체 가입자에게 보낼 수 있어요.
                     {tokenCount !== null && <span className="ml-2 text-blue-600 font-bold">(알림 등록된 인원: {tokenCount}명)</span>}
@@ -142,7 +142,7 @@ const NotificationManagement = ({ user }) => {
             <div className="max-w-[720px] space-y-8">
                 {/* TBM 알림 시각 설정 */}
                 <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-6">
-                    <h3 className="font-extrabold text-[16px] text-[#0F172A] mb-1">매일 자동 TBM 알림 시각</h3>
+                    <h3 className="font-extrabold text-[16px] text-ink mb-1">매일 자동 TBM 알림 시각</h3>
                     <p className="text-[13px] text-gray-500 font-medium mb-4">이 시각이 되면, 오늘 스케줄에 배차된 기사님께만 자동으로 TBM 체크 알림이 갑니다.</p>
                     <div className="flex flex-wrap items-center gap-3">
                         <select value={tbmHour} onChange={e => setTbmHour(e.target.value)} className="border border-gray-200 rounded-xl px-4 py-2.5 font-bold bg-gray-50 outline-none focus:border-blue-500">
@@ -151,7 +151,7 @@ const NotificationManagement = ({ user }) => {
                         <select value={tbmMinute} onChange={e => setTbmMinute(e.target.value)} className="border border-gray-200 rounded-xl px-4 py-2.5 font-bold bg-gray-50 outline-none focus:border-blue-500">
                             {[0, 10, 20, 30, 40, 50].map(m => <option key={m} value={m}>{String(m).padStart(2, '0')}분</option>)}
                         </select>
-                        <button onClick={saveTbmTime} disabled={savingTime} className="bg-[#2E68ED] hover:bg-blue-700 text-white font-bold px-5 py-2.5 rounded-xl shadow-sm transition-colors">
+                        <button onClick={saveTbmTime} disabled={savingTime} className="bg-brand hover:bg-blue-700 text-white font-bold px-5 py-2.5 rounded-xl shadow-sm transition-colors">
                             {savingTime ? '저장 중...' : '저장'}
                         </button>
                     </div>
@@ -159,7 +159,7 @@ const NotificationManagement = ({ user }) => {
 
                 {/* 중요 공지 템플릿 */}
                 <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-6">
-                    <h3 className="font-extrabold text-[16px] text-[#0F172A] mb-1">중요 공지 템플릿</h3>
+                    <h3 className="font-extrabold text-[16px] text-ink mb-1">중요 공지 템플릿</h3>
                     <p className="text-[13px] text-gray-500 font-medium mb-4">자주 쓰는 공지를 미리 저장해두고, 필요할 때 눌러서 전체 가입자에게 즉시 발송하세요.</p>
 
                     <div className="space-y-3 mb-5">
@@ -172,7 +172,7 @@ const NotificationManagement = ({ user }) => {
                         {templates.length === 0 ? (
                             <p className="text-center text-gray-400 font-bold text-sm py-8">저장된 템플릿이 없습니다.</p>
                         ) : templates.map(tpl => (
-                            <div key={tpl.id} className="border border-gray-100 rounded-xl p-4 flex items-start justify-between gap-3 bg-[#FAFBFC]">
+                            <div key={tpl.id} className="border border-gray-100 rounded-xl p-4 flex items-start justify-between gap-3 bg-soft">
                                 <div className="min-w-0">
                                     <p className="font-bold text-[14px] text-gray-900">{tpl.title}</p>
                                     <p className="text-[12.5px] text-gray-500 mt-1 leading-snug whitespace-pre-line">{tpl.body}</p>
@@ -193,14 +193,14 @@ const NotificationManagement = ({ user }) => {
             </div>
 
             {pickerTemplate && (
-                <div className="fixed inset-0 z-50 bg-[#0F172A]/40 backdrop-blur-sm flex justify-center items-center py-10 px-4">
+                <div className="fixed inset-0 z-50 ui-overlay">
                     <div className="bg-white rounded-[24px] w-full max-w-[440px] max-h-[85vh] overflow-hidden shadow-2xl animate-fade-in flex flex-col">
-                        <div className="px-6 py-5 border-b border-gray-100 flex justify-between items-start bg-[#f8fafc] shrink-0">
+                        <div className="px-6 py-5 border-b border-gray-100 flex justify-between items-start bg-soft shrink-0">
                             <div>
-                                <h3 className="text-[17px] font-extrabold text-[#0F172A]">받을 사람 선택</h3>
+                                <h3 className="text-[17px] font-extrabold text-ink">받을 사람 선택</h3>
                                 <p className="text-[12.5px] text-gray-500 font-medium mt-1">"{pickerTemplate.title}" 공지를 보낼 사람을 골라주세요.</p>
                             </div>
-                            <button onClick={() => setPickerTemplate(null)} className="text-gray-400 hover:text-black font-extrabold text-2xl leading-none">&times;</button>
+                            <button type="button" aria-label="닫기" onClick={() => setPickerTemplate(null)} className="ui-close">&times;</button>
                         </div>
                         <div className="px-6 py-3 border-b border-gray-100 shrink-0">
                             <input
@@ -218,8 +218,8 @@ const NotificationManagement = ({ user }) => {
                                 <label key={m.email} className="flex items-center gap-3 px-3 py-2.5 rounded-xl hover:bg-gray-50 cursor-pointer">
                                     <input type="checkbox" checked={selectedEmails.has(m.email)} onChange={() => toggleMember(m.email)} className="w-4 h-4 accent-blue-600" />
                                     <span className="font-bold text-[14px] text-gray-800">{m.name}</span>
-                                    <span className="text-[11.5px] text-gray-400 truncate">{m.email}</span>
-                                    {!m.hasToken && <span className="ml-auto text-[10px] text-amber-600 font-bold shrink-0">알림 미등록</span>}
+                                    <span className="text-[12px] text-gray-400 truncate">{m.email}</span>
+                                    {!m.hasToken && <span className="ml-auto text-[12px] text-amber-600 font-bold shrink-0">알림 미등록</span>}
                                 </label>
                             ))}
                         </div>
@@ -265,9 +265,9 @@ const NoticeBoard = ({ user }) => {
     };
 
     return (
-        <main className="md:ml-[260px] ml-0 px-4 md:px-10 py-6 md:py-12 flex-1 relative bg-[#F4F7FB] min-h-[100vh] w-full max-w-[100vw] md:max-w-[calc(100vw-260px)] overflow-x-hidden">
+        <main className="md:ml-[260px] ml-0 px-4 md:px-10 py-6 md:py-12 flex-1 relative bg-page min-h-[100vh] w-full max-w-[100vw] md:max-w-[calc(100vw-260px)] overflow-x-hidden">
             <header className="mb-8 w-full max-w-[720px]">
-                <h2 className="text-[28px] font-extrabold mb-2 text-[#1E293B] flex items-center gap-2">📋 공지사항</h2>
+                <h2 className="text-[24px] md:text-[28px] tracking-tight font-extrabold mb-2 text-ink flex items-center gap-2">📋 공지사항</h2>
                 <p className="text-gray-500 text-[15px] font-medium">그동안 발송된 중요 공지를 다시 확인할 수 있습니다.</p>
             </header>
 
@@ -288,8 +288,8 @@ const NoticeBoard = ({ user }) => {
                             )}
                         </div>
                         <div className="flex flex-wrap items-center gap-2 mt-3 pt-3 border-t border-gray-50">
-                            <span className="text-[11.5px] text-gray-400 font-bold">{formatDate(n.sentAt)} · {n.sentBy}</span>
-                            <span className="text-[10.5px] text-gray-400 font-bold bg-gray-50 px-2 py-0.5 rounded">{n.targetType === 'selected' ? `선택 발송 · ${n.recipientCount}명` : `전체 발송 · ${n.recipientCount}명`}</span>
+                            <span className="text-[12px] text-gray-400 font-bold">{formatDate(n.sentAt)} · {n.sentBy}</span>
+                            <span className="text-[12px] text-gray-400 font-bold bg-gray-50 px-2 py-0.5 rounded">{n.targetType === 'selected' ? `선택 발송 · ${n.recipientCount}명` : `전체 발송 · ${n.recipientCount}명`}</span>
                         </div>
                     </div>
                 ))}

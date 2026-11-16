@@ -341,7 +341,7 @@ const App = () => {
     if (activePage === '개인정보 서약·교육') content = <PrivacyPortal user={user} setUser={setUser} />;
 
     return (
-        <div className="min-h-screen bg-[#F8FAFC] relative overflow-x-hidden font-sans text-[#1E293B]">
+        <div className="min-h-screen bg-page relative overflow-x-hidden font-sans text-ink">
             <MobileTopBar setActivePage={(page) => { setActivePage(page); setIsSidebarOpen(false); }} onOpenMenu={() => setIsSidebarOpen(true)} />
 
             <div className="flex w-full max-w-full overflow-x-hidden min-h-screen pt-[60px] md:pt-0 pb-[74px] md:pb-0">

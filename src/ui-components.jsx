@@ -83,7 +83,7 @@ const SignaturePadModal = ({ onSave, onClose }) => {
     const handleSave = () => onSave(canvasRef.current.toDataURL('image/png'));
 
     return (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60">
+        <div className="fixed inset-0 z-50 ui-overlay">
             <div className="bg-white p-6 rounded-2xl shadow-xl w-[500px]">
                 <h3 className="font-bold mb-4">서명 그리기</h3>
                 <canvas ref={canvasRef} width={450} height={200} className="border border-gray-300 w-full bg-gray-50 mb-4 touch-none" onMouseDown={start} onMouseMove={move} onMouseUp={stop} onMouseOut={stop} onTouchStart={start} onTouchMove={move} onTouchEnd={stop} />

@@ -403,15 +403,15 @@ export const DispatchConverter = ({ user }) => {
     const displayEndStr = `${weekDates[6].getMonth() + 1}/${weekDates[6].getDate()}`;
 
     return (
-        <main className="md:ml-[260px] ml-0 px-4 md:px-10 py-6 md:py-12 flex-1 relative bg-[#F4F7FB] min-h-[100vh] w-full max-w-[100vw] md:max-w-[calc(100vw-260px)] overflow-x-hidden">
+        <main className="md:ml-[260px] ml-0 px-4 md:px-10 py-6 md:py-12 flex-1 relative bg-page min-h-[100vh] w-full max-w-[100vw] md:max-w-[calc(100vw-260px)] overflow-x-hidden">
             <header className="mb-8 w-full">
-                <h2 className="text-[28px] font-extrabold mb-2 text-[#1E293B] flex items-center gap-2"><Icons.Table /> 배차 변환기</h2>
+                <h2 className="text-[24px] md:text-[28px] tracking-tight font-extrabold mb-2 text-ink flex items-center gap-2"><Icons.Table /> 배차 변환기</h2>
                 <p className="text-gray-500 text-[15px] font-medium">주간 배차표를 입력하면 쿠팡 업로드용 XLSX 파일을 자동으로 만들어줍니다. (관리자 전용)</p>
             </header>
 
             <div className="flex flex-wrap gap-2 mb-6 bg-white p-1.5 rounded-2xl border border-gray-100 shadow-sm w-fit">
                 {[{ id: 'input', label: '📋 배차 입력' }, { id: 'output', label: `📤 업로드용 (${outputRows ? outputRows.length : 0}건)` }, { id: 'manage', label: '👤 기사·노선 관리' }].map(t => (
-                    <button key={t.id} onClick={() => setActiveTab(t.id)} className={`px-5 py-2.5 rounded-xl text-[14px] font-bold transition-all ${activeTab === t.id ? 'bg-[#2E68ED] text-white shadow-sm' : 'text-gray-500 hover:bg-gray-100'}`}>
+                    <button key={t.id} onClick={() => setActiveTab(t.id)} className={`px-5 py-2.5 rounded-xl text-[14px] font-bold transition-all ${activeTab === t.id ? 'bg-brand text-white shadow-sm' : 'text-gray-500 hover:bg-gray-100'}`}>
                         {t.label}
                     </button>
                 ))}
@@ -427,7 +427,7 @@ export const DispatchConverter = ({ user }) => {
                             📎 XLSX 파일로 불러오기
                             <input ref={fileInputRef} type="file" accept=".xlsx,.xls" className="hidden" onChange={handleImportSchedule} />
                         </label>
-                        <button onClick={generateUpload} className="px-6 py-2.5 rounded-xl bg-[#2E68ED] hover:bg-blue-700 text-white text-sm font-extrabold shadow-sm ml-auto">⚡ 변환 생성</button>
+                        <button onClick={generateUpload} className="px-6 py-2.5 rounded-xl bg-brand hover:bg-blue-700 text-white text-sm font-extrabold shadow-sm ml-auto">⚡ 변환 생성</button>
                     </div>
 
                     <div className="flex flex-wrap items-center gap-2">
@@ -452,13 +452,13 @@ export const DispatchConverter = ({ user }) => {
                     <div ref={tableWrapRef} onPaste={handlePaste} className="scroll-container bg-white rounded-2xl border border-gray-100 shadow-sm">
                         <table className="w-full text-center border-collapse min-w-[1100px]">
                             <thead>
-                                <tr className="bg-[#0F172A] text-white">
+                                <tr className="bg-ink text-white">
                                     <th className="py-3 px-2 text-[12px] font-bold">출근일</th>
                                     <th className="py-3 px-2 text-[12px] font-bold">요일</th>
                                     {routes.map(r => (
                                         <th key={r.key} className="py-3 px-2 text-[12px] font-extrabold">
                                             <div>{r.key}</div>
-                                            <div className="text-[10px] font-medium opacity-60">{r.camp}</div>
+                                            <div className="text-[12px] font-medium opacity-60">{r.camp}</div>
                                         </th>
                                     ))}
                                 </tr>
@@ -529,7 +529,7 @@ export const DispatchConverter = ({ user }) => {
                             <div className="scroll-container bg-white rounded-2xl border border-gray-100 shadow-sm">
                                 <table className="w-full text-center border-collapse min-w-[800px]">
                                     <thead>
-                                        <tr className="bg-[#f8fafc] text-gray-500">
+                                        <tr className="bg-soft text-gray-500">
                                             {['업무일', '캠프명', '이름', '아이디', '업무상태', '회전', '업무라우트'].map(h => <th key={h} className="py-3 px-3 text-[12px] font-bold">{h}</th>)}
                                         </tr>
                                     </thead>
@@ -581,7 +581,7 @@ export const DispatchConverter = ({ user }) => {
                                     ))}
                                 </div>
                             </div>
-                            <button onClick={handleAddDriver} className="px-5 py-2.5 bg-[#2E68ED] hover:bg-blue-700 text-white rounded-lg text-sm font-bold">추가</button>
+                            <button onClick={handleAddDriver} className="px-5 py-2.5 bg-brand hover:bg-blue-700 text-white rounded-lg text-sm font-bold">추가</button>
                         </div>
                     </div>
 
@@ -632,7 +632,7 @@ export const DispatchConverter = ({ user }) => {
                                 <label className="text-xs font-bold text-gray-500">전체코드 (휴무시, 선택)</label>
                                 <input value={routeForm.full} onChange={e => setRouteForm({ ...routeForm, full: e.target.value })} placeholder="452A,452B,452C,452D" className="px-3 py-2 border border-gray-200 rounded-lg text-sm font-bold w-44 outline-none focus:border-blue-500" />
                             </div>
-                            <button onClick={handleSubmitRoute} className="px-5 py-2.5 bg-[#2E68ED] hover:bg-blue-700 text-white rounded-lg text-sm font-bold">{routeEditIdx === null ? '추가' : '수정 완료'}</button>
+                            <button onClick={handleSubmitRoute} className="px-5 py-2.5 bg-brand hover:bg-blue-700 text-white rounded-lg text-sm font-bold">{routeEditIdx === null ? '추가' : '수정 완료'}</button>
                             {routeEditIdx !== null && <button onClick={handleCancelRouteEdit} className="px-5 py-2.5 bg-gray-100 hover:bg-gray-200 text-gray-600 rounded-lg text-sm font-bold">취소</button>}
                         </div>
                         <div className="scroll-container">

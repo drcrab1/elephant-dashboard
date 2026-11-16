@@ -31,11 +31,11 @@ const ContractSignView = ({ contract, onClose, onSubmit }) => {
     };
 
     return (
-        <div className="fixed inset-0 z-50 bg-black/50 flex items-end md:items-center justify-center md:p-6">
+        <div className="fixed inset-0 z-50 ui-overlay ui-sheet">
             <div className="bg-white w-full md:max-w-[900px] max-h-[94vh] flex flex-col rounded-t-2xl md:rounded-2xl overflow-hidden">
                 <div className="flex items-center justify-between px-5 py-4 border-b border-gray-100 shrink-0">
                     <h3 className="font-extrabold text-[16px]">{contract.title} — 내용 확인 및 서명</h3>
-                    <button onClick={onClose} className="text-gray-400 hover:text-gray-700 text-2xl leading-none px-2">&times;</button>
+                    <button type="button" aria-label="닫기" onClick={onClose} className="ui-close">&times;</button>
                 </div>
                 <div className="overflow-y-auto flex-1">
                     <div className="bg-gray-100 p-3 md:p-6">
@@ -51,7 +51,7 @@ const ContractSignView = ({ contract, onClose, onSubmit }) => {
                                         <div className="flex gap-2">
                                             {[['agree', '동의함'], ['disagree', '동의하지 않음']].map(([v, l]) => (
                                                 <button key={v} type="button" onClick={() => setAnswers((a) => ({ ...a, [b.key]: v }))}
-                                                    className={`flex-1 py-2.5 rounded-lg border text-[14px] font-extrabold ${answers[b.key] === v ? (v === 'agree' ? 'bg-[#2E68ED] border-[#2E68ED] text-white' : 'bg-red-500 border-red-500 text-white') : 'bg-white border-gray-200 text-gray-600'}`}>{l}</button>
+                                                    className={`flex-1 py-2.5 rounded-lg border text-[14px] font-extrabold ${answers[b.key] === v ? (v === 'agree' ? 'bg-brand border-brand text-white' : 'bg-red-500 border-red-500 text-white') : 'bg-white border-gray-200 text-gray-600'}`}>{l}</button>
                                             ))}
                                         </div>
                                     </div>
@@ -68,9 +68,9 @@ const ContractSignView = ({ contract, onClose, onSubmit }) => {
                         </div>
                     </div>
                 </div>
-                <div className="px-5 py-4 border-t border-gray-100 flex gap-3 shrink-0 bg-[#f8fafc]">
+                <div className="px-5 py-4 border-t border-gray-100 flex gap-3 shrink-0 bg-soft">
                     <button onClick={onClose} className="flex-1 py-3 bg-white border border-gray-200 rounded-xl font-extrabold text-gray-700">취소</button>
-                    <button onClick={submit} disabled={busy} className="flex-[2] py-3 bg-[#2E68ED] text-white rounded-xl font-extrabold disabled:opacity-50">{busy ? '제출 중...' : '서명 제출'}</button>
+                    <button onClick={submit} disabled={busy} className="flex-[2] py-3 bg-brand text-white rounded-xl font-extrabold disabled:opacity-50">{busy ? '제출 중...' : '서명 제출'}</button>
                 </div>
             </div>
         </div>
@@ -137,7 +137,7 @@ const DocumentBuilder = ({ user, onClose, onSaveContract }) => {
     };
 
     return (
-        <div className="fixed inset-0 z-40 bg-[#f1f5f9] flex flex-col overflow-hidden animate-fade-in">
+        <div className="fixed inset-0 z-40 bg-slate-100 flex flex-col overflow-hidden animate-fade-in">
             {/* Toolbar */}
             <div className="h-[70px] bg-white border-b border-gray-200 px-6 flex items-center justify-between shadow-sm shrink-0">
                 <h2 className="text-xl font-bold flex items-center gap-2"><Icons.Contract /> 에디터: {contractTitle}</h2>
@@ -539,10 +539,10 @@ const ContractManagement = ({ user, contracts, setContracts, contacts, profiles 
     const availableDrivers = (contacts || []).filter(c => c.email && c.email !== ADMIN_EMAIL);
 
     return (
-        <main className="md:ml-[260px] ml-0 px-4 md:px-10 py-6 md:py-12 flex-1 animate-fade-in relative bg-[#F4F7FB] min-h-[100vh]">
+        <main className="md:ml-[260px] ml-0 px-4 md:px-10 py-6 md:py-12 flex-1 animate-fade-in relative bg-page min-h-[100vh]">
             <header className="mb-10 w-full flex flex-col md:flex-row md:justify-between md:items-end gap-4 border-b pb-6 border-gray-200">
                 <div className="min-w-0">
-                    <h2 className="text-[22px] md:text-[28px] font-extrabold mb-2 text-[#1E293B]">계약관리 (문서 작성 / 조회)</h2>
+                    <h2 className="text-[24px] md:text-[28px] tracking-tight font-extrabold mb-2 text-ink">계약관리 (문서 작성 / 조회)</h2>
                     <p className="text-gray-500 text-[15px] font-medium">관리자는 스마트 서명 요청을 보낼 수 있고, 기사님은 원격에서 전자서명을 진행할 수 있습니다.</p>
                 </div>
                 {isAdmin && (
@@ -550,10 +550,10 @@ const ContractManagement = ({ user, contracts, setContracts, contacts, profiles 
                         <button onClick={() => setShowBuilder(true)} className="flex items-center gap-1.5 whitespace-nowrap bg-white border border-gray-300 hover:bg-gray-50 text-gray-700 px-5 py-2.5 rounded-xl font-bold shadow-sm transition-colors text-[14px]">
                             <Icons.Plus /> 스캔 양식 문서 생성
                         </button>
-                        <button onClick={() => setShowTemplateModal(true)} className="flex items-center gap-1.5 whitespace-nowrap bg-[#2E68ED] hover:bg-blue-700 text-white px-5 py-2.5 rounded-xl font-bold shadow-[0_4px_12px_rgb(46,104,237,0.3)] transition-colors text-[14px]">
+                        <button onClick={() => setShowTemplateModal(true)} className="flex items-center gap-1.5 whitespace-nowrap bg-brand hover:bg-blue-700 text-white px-5 py-2.5 rounded-xl font-bold shadow-[0_4px_12px_rgb(46,104,237,0.3)] transition-colors text-[14px]">
                             <Icons.FileText /> 빠른 계약서(템플릿) 전송
                         </button>
-                        <button onClick={() => { setTemplateData({ ...templateData, templateType: 'standard_supplementary' }); setShowTemplateModal(true); }} className="flex items-center gap-1.5 whitespace-nowrap bg-[#2E68ED] hover:bg-blue-700 text-white px-5 py-2.5 rounded-xl font-bold shadow-[0_4px_12px_rgb(46,104,237,0.3)] transition-colors text-[14px]">
+                        <button onClick={() => { setTemplateData({ ...templateData, templateType: 'standard_supplementary' }); setShowTemplateModal(true); }} className="flex items-center gap-1.5 whitespace-nowrap bg-brand hover:bg-blue-700 text-white px-5 py-2.5 rounded-xl font-bold shadow-[0_4px_12px_rgb(46,104,237,0.3)] transition-colors text-[14px]">
                             <Icons.FileText /> 부속합의서 즉시 등록
                         </button>
                         <button onClick={() => { setTemplateData({ ...templateData, templateType: 'consent_collect' }); setConsentTargets(new Set()); setShowTemplateModal(true); }} className="flex items-center gap-1.5 whitespace-nowrap bg-emerald-600 hover:bg-emerald-700 text-white px-5 py-2.5 rounded-xl font-bold shadow-[0_4px_12px_rgba(5,150,105,0.3)] transition-colors text-[14px]">
@@ -575,7 +575,7 @@ const ContractManagement = ({ user, contracts, setContracts, contacts, profiles 
                     <button
                         key={t.id}
                         onClick={() => { setStatusFilter(t.id); setContractVisible(15); }}
-                        className={`px-4 py-2 rounded-xl text-[13.5px] font-bold transition-colors ${statusFilter === t.id ? 'bg-[#2E68ED] text-white shadow-sm' : 'bg-white border border-gray-200 text-gray-600 hover:bg-gray-50'}`}
+                        className={`px-4 py-2 rounded-xl text-[13.5px] font-bold transition-colors ${statusFilter === t.id ? 'bg-brand text-white shadow-sm' : 'bg-white border border-gray-200 text-gray-600 hover:bg-gray-50'}`}
                     >
                         {t.label}
                     </button>
@@ -607,7 +607,7 @@ const ContractManagement = ({ user, contracts, setContracts, contacts, profiles 
 
             <div className="scroll-container bg-white rounded-[20px] shadow-[0_2px_12px_rgba(0,0,0,0.03)] border border-gray-100">
                 <table className="min-w-[650px] w-full divide-y divide-gray-200">
-                    <thead className="bg-[#f8fafc]">
+                    <thead className="bg-soft">
                         <tr>
                             <th className="px-6 py-4 text-left text-[14px] font-bold text-gray-500">기사 성함 (제목)</th>
                             <th className="px-6 py-4 text-left text-[14px] font-bold text-gray-500">양식 유형</th>
@@ -666,11 +666,11 @@ const ContractManagement = ({ user, contracts, setContracts, contacts, profiles 
                 const consentCandidates = (contacts || []).filter(d => d.email && d.email !== ADMIN_EMAIL && (!consentSearch.trim() || (d.name || '').includes(consentSearch.trim())));
                 const set = (patch) => setTemplateData({ ...templateData, ...patch });
                 return (
-                <div className="fixed inset-0 z-50 bg-[#0F172A]/40 backdrop-blur-sm flex justify-center items-center p-3 sm:p-6">
+                <div className="fixed inset-0 z-50 ui-overlay">
                     <div className={`bg-white rounded-[24px] w-full ${isAccident ? 'max-w-[680px]' : 'max-w-[580px]'} max-h-[94vh] overflow-hidden shadow-2xl animate-fade-in relative flex flex-col`}>
-                        <div className="px-6 py-4 border-b border-gray-100 flex justify-between items-center bg-[#f8fafc] shrink-0">
-                            <h3 className="text-[18px] font-extrabold text-[#0F172A] flex items-center gap-2"><Icons.FileText /> 스마트 계약서 발송</h3>
-                            <button onClick={() => setShowTemplateModal(false)} className="text-gray-400 hover:text-black font-extrabold text-[26px] leading-none transition-colors">&times;</button>
+                        <div className="px-6 py-4 border-b border-gray-100 flex justify-between items-center bg-soft shrink-0">
+                            <h3 className="text-[18px] font-extrabold text-ink flex items-center gap-2"><Icons.FileText /> 스마트 계약서 발송</h3>
+                            <button type="button" aria-label="닫기" onClick={() => setShowTemplateModal(false)} className="ui-close">&times;</button>
                         </div>
 
                         <div className="p-6 space-y-5 overflow-y-auto flex-1">
@@ -711,12 +711,12 @@ const ContractManagement = ({ user, contracts, setContracts, contacts, profiles 
                                                     <input type="checkbox" className="w-4 h-4 accent-blue-600" checked={consentTargets.has(d.email)} onChange={e => { const n = new Set(consentTargets); if (e.target.checked) n.add(d.email); else n.delete(d.email); setConsentTargets(n); }} />
                                                     <span className="text-[14px] font-bold">{d.name}</span>
                                                     <span className="text-[12px] text-gray-400">{d.tag || ''}</span>
-                                                    {already && <span className="ml-auto text-[11.5px] font-bold text-amber-600">이미 발송됨</span>}
+                                                    {already && <span className="ml-auto text-[12px] font-bold text-amber-600">이미 발송됨</span>}
                                                 </label>
                                             );
                                         })}
                                     </div>
-                                    <p className="text-[11.5px] text-gray-400 font-bold">동의일은 기사님이 서명하는 실제 날짜로 자동 기록됩니다. 이미 발송된 기사님은 건너뜁니다.</p>
+                                    <p className="text-[12px] text-gray-400 font-bold">동의일은 기사님이 서명하는 실제 날짜로 자동 기록됩니다. 이미 발송된 기사님은 건너뜁니다.</p>
                                 </div>
                                 )}
                                 {!isConsent && (
@@ -737,7 +737,7 @@ const ContractManagement = ({ user, contracts, setContracts, contacts, profiles 
                                             <option key={d.id} value={d.email}>{d.name} 기사님 ({d.tag || '미지정'})</option>
                                         ))}
                                     </select>
-                                    {isConsign && <p className="text-[11.5px] text-gray-400 font-bold">서류관리에서 자격증·차량번호를 등록해둔 기사님은 아래 번호가 자동으로 채워집니다.</p>}
+                                    {isConsign && <p className="text-[12px] text-gray-400 font-bold">서류관리에서 자격증·차량번호를 등록해둔 기사님은 아래 번호가 자동으로 채워집니다.</p>}
                                 </div>
                                 )}
                             </div>
@@ -771,7 +771,7 @@ const ContractManagement = ({ user, contracts, setContracts, contacts, profiles 
                                     <div className="space-y-2">
                                         <div className="flex items-center justify-between gap-2">
                                             <label className={lc}>담당구역 · 수수료 단가 <span className="text-red-500">*</span></label>
-                                            <button type="button" onClick={handleAddRouteFee} className="shrink-0 whitespace-nowrap text-xs bg-[#2E68ED] hover:bg-blue-700 text-white font-bold px-3 py-1.5 rounded-lg shadow-sm">+ 구역 추가</button>
+                                            <button type="button" onClick={handleAddRouteFee} className="shrink-0 whitespace-nowrap text-xs bg-brand hover:bg-blue-700 text-white font-bold px-3 py-1.5 rounded-lg shadow-sm">+ 구역 추가</button>
                                         </div>
                                         <div className="space-y-2 max-h-[190px] overflow-y-auto pr-1">
                                             {templateData.routeFees.map((rf, idx) => (
@@ -779,7 +779,7 @@ const ContractManagement = ({ user, contracts, setContracts, contacts, profiles 
                                                     <span className="shrink-0 w-6 text-center text-[12px] font-extrabold text-gray-400">{idx + 1}</span>
                                                     <input type="text" placeholder="구역 (예: 남양주4 A-01)" value={rf.route} onChange={e => handleRouteFeeChange(idx, 'route', e.target.value)} className="flex-1 min-w-0 bg-white border border-gray-200 rounded-lg px-2.5 py-2 text-[13.5px] font-medium focus:outline-none focus:border-blue-500" />
                                                     <div className="relative w-[110px] shrink-0">
-                                                        <input type="number" placeholder="단가" value={rf.unitPrice} onChange={e => handleRouteFeeChange(idx, 'unitPrice', e.target.value)} className="w-full bg-white border border-gray-200 rounded-lg px-2.5 py-2 pr-7 text-[13.5px] font-extrabold text-[#2E68ED] text-right focus:outline-none focus:border-blue-500" />
+                                                        <input type="number" placeholder="단가" value={rf.unitPrice} onChange={e => handleRouteFeeChange(idx, 'unitPrice', e.target.value)} className="w-full bg-white border border-gray-200 rounded-lg px-2.5 py-2 pr-7 text-[13.5px] font-extrabold text-brand text-right focus:outline-none focus:border-blue-500" />
                                                         <span className="absolute right-2.5 top-1/2 -translate-y-1/2 text-gray-400 font-bold text-[12px]">원</span>
                                                     </div>
                                                     {templateData.routeFees.length > 1 && (
@@ -869,9 +869,9 @@ const ContractManagement = ({ user, contracts, setContracts, contacts, profiles 
                             )}
                         </div>
 
-                        <div className="px-6 py-4 flex gap-3 bg-[#f8fafc] border-t border-gray-100 shrink-0">
+                        <div className="px-6 py-4 flex gap-3 bg-soft border-t border-gray-100 shrink-0">
                             <button onClick={() => setShowTemplateModal(false)} className="flex-[1] py-3 bg-white border border-gray-200 hover:bg-gray-50 text-gray-700 font-extrabold text-[15px] rounded-xl transition-colors shadow-sm">취소</button>
-                            <button onClick={handlePreviewTemplate} className="flex-[2] py-3 bg-[#2E68ED] hover:bg-blue-700 text-white font-extrabold text-[15px] rounded-xl shadow-[0_4px_12px_rgb(46,104,237,0.3)] transition-colors flex items-center justify-center gap-1.5">
+                            <button onClick={handlePreviewTemplate} className="flex-[2] py-3 bg-brand hover:bg-blue-700 text-white font-extrabold text-[15px] rounded-xl shadow-[0_4px_12px_rgb(46,104,237,0.3)] transition-colors flex items-center justify-center gap-1.5">
                                 <Icons.Edit2 /> 미리보기
                             </button>
                         </div>
@@ -880,23 +880,23 @@ const ContractManagement = ({ user, contracts, setContracts, contacts, profiles 
                 );
             })()}
             {previewContract && (
-                <div className="fixed inset-0 z-[60] bg-[#0F172A]/60 backdrop-blur-sm flex justify-center items-center py-8 px-4">
+                <div className="fixed inset-0 z-[60] ui-overlay">
                     <div className="bg-white rounded-[24px] w-full max-w-[900px] max-h-[92vh] overflow-hidden shadow-2xl animate-fade-in flex flex-col">
-                        <div className="px-7 py-5 border-b border-gray-100 flex justify-between items-center bg-[#f8fafc] shrink-0">
+                        <div className="px-7 py-5 border-b border-gray-100 flex justify-between items-center bg-soft shrink-0">
                             <div>
-                                <h3 className="text-[18px] font-extrabold text-[#0F172A] flex items-center gap-2"><Icons.FileText /> 계약서 미리보기</h3>
+                                <h3 className="text-[18px] font-extrabold text-ink flex items-center gap-2"><Icons.FileText /> 계약서 미리보기</h3>
                                 <p className="text-[13px] text-gray-500 font-medium mt-1">내용을 확인하고, 필요하면 수정 후 다시 미리보기 해주세요. 이 화면에서는 아직 발송되지 않습니다.</p>
                             </div>
-                            <button onClick={() => setPreviewContract(null)} className="text-gray-400 hover:text-black font-extrabold text-[26px] leading-none transition-colors shrink-0 ml-4">&times;</button>
+                            <button type="button" aria-label="닫기" onClick={() => setPreviewContract(null)} className="ui-close ml-4">&times;</button>
                         </div>
                         <div className="flex-1 overflow-y-auto bg-gray-100 py-8 px-4">
                             <PdfTemplate contract={previewContract} preview />
                         </div>
-                        <div className="p-6 flex gap-3 bg-[#f8fafc] border-t border-gray-100 shrink-0">
+                        <div className="p-6 flex gap-3 bg-soft border-t border-gray-100 shrink-0">
                             <button onClick={() => setPreviewContract(null)} className="flex-[1] py-3.5 bg-white border border-gray-200 hover:bg-gray-50 text-gray-700 font-extrabold text-[15px] rounded-xl transition-colors shadow-sm break-keep">
                                 돌아가서 수정
                             </button>
-                            <button onClick={handleSendTemplate} className="flex-[2] py-3.5 bg-[#2E68ED] hover:bg-blue-700 text-white font-extrabold text-[15px] rounded-xl shadow-[0_4px_12px_rgb(46,104,237,0.3)] transition-colors break-keep">
+                            <button onClick={handleSendTemplate} className="flex-[2] py-3.5 bg-brand hover:bg-blue-700 text-white font-extrabold text-[15px] rounded-xl shadow-[0_4px_12px_rgb(46,104,237,0.3)] transition-colors break-keep">
                                 이 내용으로 서명 요청 발송하기
                             </button>
                         </div>

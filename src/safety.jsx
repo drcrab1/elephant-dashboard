@@ -34,9 +34,9 @@ const FormCard = ({ form, onOpen }) => (
         onClick={() => onOpen(form.path)}
         className={`text-left rounded-2xl border p-4 flex items-start gap-3.5 transition-all hover:-translate-y-0.5 hover:shadow-md ${form.tone === 'red' ? 'bg-red-50 border-red-200 hover:border-red-300' : 'bg-white border-gray-100 hover:border-blue-200'}`}
     >
-        <span className={`shrink-0 w-11 h-11 rounded-xl flex items-center justify-center text-[20px] ${form.tone === 'red' ? 'bg-white' : 'bg-[#F4F7FB]'}`} aria-hidden="true">{form.icon}</span>
+        <span className={`shrink-0 w-11 h-11 rounded-xl flex items-center justify-center text-[20px] ${form.tone === 'red' ? 'bg-white' : 'bg-page'}`} aria-hidden="true">{form.icon}</span>
         <span className="min-w-0">
-            <span className={`block text-[15px] font-extrabold ${form.tone === 'red' ? 'text-red-700' : 'text-[#0F172A]'}`}>{form.title}</span>
+            <span className={`block text-[15px] font-extrabold ${form.tone === 'red' ? 'text-red-700' : 'text-ink'}`}>{form.title}</span>
             <span className="block text-[13px] text-gray-500 font-medium mt-0.5 leading-snug">{form.desc}</span>
         </span>
     </button>
@@ -117,7 +117,7 @@ const SafetyManagement = ({ user, records, setRecords }) => {
 
     if (writeFormPath) {
         return (
-            <main className="md:ml-[260px] ml-0 px-4 md:px-10 py-6 md:py-12 flex-1 relative bg-[#F4F7FB] min-h-[100vh] w-full max-w-[100vw] md:max-w-[calc(100vw-260px)] overflow-x-hidden">
+            <main className="md:ml-[260px] ml-0 px-4 md:px-10 py-6 md:py-12 flex-1 relative bg-page min-h-[100vh] w-full max-w-[100vw] md:max-w-[calc(100vw-260px)] overflow-x-hidden">
                 <button onClick={() => setWriteFormPath(null)} className="mb-6 text-gray-500 hover:text-black font-bold flex items-center gap-2 py-2">&larr; 안전보건으로 돌아가기</button>
                 <Suspense fallback={<LoadingBlock />}>
                     <SafetyFormHost path={writeFormPath} user={user} onSubmit={submitDocument} onCancel={() => setWriteFormPath(null)} />
@@ -135,10 +135,10 @@ const SafetyManagement = ({ user, records, setRecords }) => {
     const adminForms = SAFETY_FORMS.filter(f => f.adminOnly);
 
     return (
-        <main className="md:ml-[260px] ml-0 px-4 md:px-10 py-6 md:py-12 flex-1 relative bg-[#F4F7FB] min-h-[100vh] w-full max-w-[100vw] md:max-w-[calc(100vw-260px)] overflow-x-hidden">
+        <main className="md:ml-[260px] ml-0 px-4 md:px-10 py-6 md:py-12 flex-1 relative bg-page min-h-[100vh] w-full max-w-[100vw] md:max-w-[calc(100vw-260px)] overflow-x-hidden">
             <header className="mb-5 w-full flex flex-col sm:flex-row sm:items-end justify-between gap-4">
                 <div>
-                    <h2 className="text-[24px] md:text-[28px] font-extrabold text-[#0F172A] tracking-tight">안전보건</h2>
+                    <h2 className="text-[24px] md:text-[28px] font-extrabold text-ink tracking-tight">안전보건</h2>
                     <p className="text-gray-500 text-[14px] md:text-[15px] font-medium mt-1">오늘 점검은 1분이면 끝납니다. 사고가 나면 빨간 버튼으로 바로 알려주세요.</p>
                 </div>
                 <button onClick={() => setWriteFormPath('accident')} className="shrink-0 bg-red-600 hover:bg-red-700 text-white font-extrabold px-5 py-3 rounded-xl text-[15px] shadow-sm transition-colors">🚨 사고 발생 보고</button>
@@ -152,7 +152,7 @@ const SafetyManagement = ({ user, records, setRecords }) => {
                         role="tab"
                         aria-selected={tab === t.id}
                         onClick={() => setTab(t.id)}
-                        className={`flex-1 sm:flex-none px-4 py-2.5 rounded-xl text-[14px] font-bold whitespace-nowrap transition-colors ${tab === t.id ? 'bg-[#2E68ED] text-white shadow-sm' : 'text-gray-500 hover:bg-gray-50'}`}
+                        className={`flex-1 sm:flex-none px-4 py-2.5 rounded-xl text-[14px] font-bold whitespace-nowrap transition-colors ${tab === t.id ? 'bg-brand text-white shadow-sm' : 'text-gray-500 hover:bg-gray-50'}`}
                     >
                         {t.label}
                     </button>
@@ -164,14 +164,14 @@ const SafetyManagement = ({ user, records, setRecords }) => {
             {tab === 'forms' && (
                 <div className="space-y-8 max-w-[1100px]">
                     <section>
-                        <h3 className="text-[16px] font-extrabold text-[#0F172A] mb-3">기사님이 제출하는 서류</h3>
+                        <h3 className="text-[16px] font-extrabold text-ink mb-3">기사님이 제출하는 서류</h3>
                         <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                             {driverForms.map(f => <FormCard key={f.path} form={f} onOpen={setWriteFormPath} />)}
                         </div>
                     </section>
                     {isAdmin && (
                         <section>
-                            <h3 className="text-[16px] font-extrabold text-[#0F172A] mb-1">관리자가 작성하는 문서</h3>
+                            <h3 className="text-[16px] font-extrabold text-ink mb-1">관리자가 작성하는 문서</h3>
                             <p className="text-[13px] text-gray-400 font-medium mb-3">기사님 화면에는 보이지 않습니다.</p>
                             <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-3">
                                 {adminForms.map(f => <FormCard key={f.path} form={f} onOpen={setWriteFormPath} />)}
@@ -184,7 +184,7 @@ const SafetyManagement = ({ user, records, setRecords }) => {
             {tab === 'list' && (
                 <>
                     <div className="mb-3 flex flex-wrap items-center justify-between gap-3">
-                        <h3 className="text-[18px] font-extrabold text-[#0F172A]">제출 문서 기록 <span className="text-[14px] font-bold text-gray-400">({filteredRecords.length}건)</span></h3>
+                        <h3 className="text-[18px] font-extrabold text-ink">제출 문서 기록 <span className="text-[14px] font-bold text-gray-400">({filteredRecords.length}건)</span></h3>
                         <input
                             type="text"
                             value={recSearch}
@@ -220,7 +220,7 @@ const SafetyManagement = ({ user, records, setRecords }) => {
         
                     <div className="scroll-container bg-white rounded-[20px] shadow-[0_2px_12px_rgba(0,0,0,0.03)] border border-gray-100">
                         <table className="min-w-[700px] w-full divide-y divide-gray-200 text-left">
-                            <thead className="bg-[#f8fafc]">
+                            <thead className="bg-soft">
                                 <tr>
                                     <th className="px-6 py-4 text-[14px] font-bold text-gray-500">실시/작성일자</th>
                                     <th className="px-6 py-4 text-[14px] font-bold text-gray-500">작성자</th>
@@ -268,7 +268,7 @@ const SafetyManagement = ({ user, records, setRecords }) => {
             )}
 
             {activeItem && (
-                <Suspense fallback={<div className="fixed inset-0 z-50 bg-[#0F172A]/40 flex items-center justify-center"><div className="bg-white rounded-2xl px-8 py-6"><LoadingBlock /></div></div>}>
+                <Suspense fallback={<div className="fixed inset-0 z-50 ui-overlay"><div className="bg-white rounded-2xl px-8 py-6"><LoadingBlock /></div></div>}>
                     <SafetyDetailModal activeItem={activeItem} setActiveItem={setActiveItem} isAdmin={isAdmin} deleteRecord={deleteRecord} />
                 </Suspense>
             )}
