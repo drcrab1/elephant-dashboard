@@ -1,6 +1,7 @@
+import { notify, confirmDialog } from './ui-feedback';
 import React, { useState, useEffect, useRef, useMemo } from 'react';
 import { db } from './firebase';
-import { Icons } from './ui-components';
+import { Icons } from './icons';
 import * as XLSX from 'xlsx';
 
 const ADMIN_EMAIL = 's01025144826@gmail.com';
@@ -123,10 +124,10 @@ export const DispatchConverter = ({ user }) => {
             });
             setSchedule(prev => ({ ...prev, ...updates }));
             setLastSyncedAt(new Date());
-            if (!silent) alert(`스케줄관리에서 ${Object.keys(updates).length}개 셀을 불러왔습니다.`);
+            if (!silent) notify(`스케줄관리에서 ${Object.keys(updates).length}개 셀을 불러왔습니다.`);
         } catch (e) {
             console.error(e);
-            if (!silent) alert('스케줄 연동 실패: ' + e.message);
+            if (!silent) notify('스케줄 연동 실패: ' + e.message);
         } finally {
             setIsSyncingSchedule(false);
         }
@@ -149,7 +150,7 @@ export const DispatchConverter = ({ user }) => {
                 updatedAt: new Date().toISOString(),
                 updatedBy: user.name
             }, { merge: true });
-        } catch (e) { alert('설정 저장 실패: ' + e.message); }
+        } catch (e) { notify('설정 저장 실패: ' + e.message); }
     };
 
     const weekDates = useMemo(() => Array.from({ length: 7 }, (_, i) => addDays(startDate, i)), [startDate]);
@@ -316,9 +317,9 @@ export const DispatchConverter = ({ user }) => {
                         }
                     }
                 }
-                if (count > 0) { setSchedule(prev => ({ ...prev, ...updates })); alert(`${count}개 셀 가져오기 완료!`); }
-                else alert('데이터를 찾을 수 없습니다.');
-            } catch (err) { alert('파일 읽기 실패: ' + err.message); }
+                if (count > 0) { setSchedule(prev => ({ ...prev, ...updates })); notify(`${count}개 셀 가져오기 완료!`); }
+                else notify('데이터를 찾을 수 없습니다.');
+            } catch (err) { notify('파일 읽기 실패: ' + err.message); }
         };
         reader.readAsArrayBuffer(file);
         e.target.value = '';
@@ -332,8 +333,8 @@ export const DispatchConverter = ({ user }) => {
 
     const handleAddDriver = () => {
         const name = newDriverName.trim(), id = newDriverId.trim(), ab = newDriverAbbrev.trim();
-        if (!name || !id) return alert('이름과 아이디를 입력하세요.');
-        if (drivers.find(d => d.name === name)) return alert('이미 등록된 기사입니다.');
+        if (!name || !id) return notify('이름과 아이디를 입력하세요.');
+        if (drivers.find(d => d.name === name)) return notify('이미 등록된 기사입니다.');
         const nextDrivers = [...drivers, { name, id }];
         const nextAbbrev = { ...abbrev };
         if (ab) nextAbbrev[ab] = name;
@@ -346,9 +347,9 @@ export const DispatchConverter = ({ user }) => {
         saveConfig({ drivers: nextDrivers, abbrev: nextAbbrev, campDrivers: nextCampDrivers });
         setNewDriverName(''); setNewDriverId(''); setNewDriverAbbrev(''); setNewDriverCamps([]);
     };
-    const handleRemoveDriver = (idx) => {
+    const handleRemoveDriver = async (idx) => {
         const d = drivers[idx];
-        if (!window.confirm(`${d.name} 기사를 삭제하시겠습니까?`)) return;
+        if (!await confirmDialog(`${d.name} 기사를 삭제하시겠습니까?`)) return;
         const nextDrivers = drivers.filter((_, i) => i !== idx);
         const nextCampDrivers = {};
         for (const c of Object.keys(campDrivers)) nextCampDrivers[c] = campDrivers[c].filter(n => n !== d.name);
@@ -363,9 +364,9 @@ export const DispatchConverter = ({ user }) => {
 
     const handleSubmitRoute = () => {
         const { key, camp, code, split, full } = routeForm;
-        if (!key.trim() || !code.trim()) return alert('노선 키와 라우트 코드를 입력하세요.');
+        if (!key.trim() || !code.trim()) return notify('노선 키와 라우트 코드를 입력하세요.');
         const dup = routes.some((r, i) => r.key === key.trim() && i !== routeEditIdx);
-        if (dup) return alert('이미 존재하는 노선 키입니다.');
+        if (dup) return notify('이미 존재하는 노선 키입니다.');
         const route = { key: key.trim(), camp, code: code.trim() };
         if (split.trim()) route.splitCodes = split.split(',').map(s => s.trim()).filter(Boolean);
         if (full.trim()) route.fullCode = full.trim();
@@ -382,9 +383,9 @@ export const DispatchConverter = ({ user }) => {
         setRouteForm({ key: r.key, camp: r.camp, code: r.code, split: r.splitCodes ? r.splitCodes.join(',') : '', full: r.fullCode || '' });
     };
     const handleCancelRouteEdit = () => { setRouteEditIdx(null); setRouteForm({ key: '', camp: CAMP_NAMES[0], code: '', split: '', full: '' }); };
-    const handleDeleteRoute = (idx) => {
+    const handleDeleteRoute = async (idx) => {
         const r = routes[idx];
-        if (!window.confirm(`${r.key} 노선을 삭제하시겠습니까?\n(이미 입력된 스케줄 데이터는 남아있지만 표에서 사라집니다)`)) return;
+        if (!await confirmDialog(`${r.key} 노선을 삭제하시겠습니까?\n(이미 입력된 스케줄 데이터는 남아있지만 표에서 사라집니다)`)) return;
         if (routeEditIdx === idx) handleCancelRouteEdit();
         const nextRoutes = routes.filter((_, i) => i !== idx);
         setRoutes(nextRoutes);

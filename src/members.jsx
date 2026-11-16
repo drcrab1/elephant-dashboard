@@ -1,6 +1,7 @@
+import { notify, confirmDialog } from './ui-feedback';
 import React, { useState, useEffect } from 'react';
 import { db, ADMIN_EMAIL } from './firebase';
-import { Icons } from './ui-components';
+import { Icons } from './icons';
 import { logAccess } from './audit';
 
 // --- Member Management (가입자 전체 조회, 관리자 전용) ---
@@ -71,7 +72,7 @@ const MemberManagement = ({ user }) => {
 
     const saveName = async (member) => {
         const newName = editingName.trim();
-        if (!newName) return alert('이름을 입력해주세요.');
+        if (!newName) return notify('이름을 입력해주세요.');
         setSavingName(true);
         try {
             await db.collection('users').doc(member.email).set({ name: newName }, { merge: true });
@@ -81,7 +82,7 @@ const MemberManagement = ({ user }) => {
             setEditingEmail(null);
             setEditingName('');
         } catch (e) {
-            alert('이름 수정 실패: ' + e.message);
+            notify('이름 수정 실패: ' + e.message);
         } finally {
             setSavingName(false);
         }
@@ -90,16 +91,16 @@ const MemberManagement = ({ user }) => {
     const forceWithdrawMember = async (member) => {
         if (member.email === ADMIN_EMAIL) return;
         const confirmMsg = `정말로 '${member.name || member.email}'님을 탈퇴시키겠습니까?\n\n※ 등록된 회원 정보와 비상연락망 데이터가 영구적으로 삭제됩니다.\n※ 구글 계정 자체는 남아있어서, 다시 로그인하면 신규 가입자로 다시 나타날 수 있어요.`;
-        if (!window.confirm(confirmMsg)) return;
+        if (!await confirmDialog(confirmMsg)) return;
         setProcessingEmail(member.email);
         try {
             await db.collection('users').doc(member.email).delete();
             const contactQuery = await db.collection('contacts').where('email', '==', member.email).get();
             await Promise.all(contactQuery.docs.map(d => db.collection('contacts').doc(d.id).delete()));
             logAccess('member_delete', `강제 탈퇴: ${member.email}`, member.email);
-            alert(`'${member.name || member.email}'님을 탈퇴 처리했습니다.`);
+            notify(`'${member.name || member.email}'님을 탈퇴 처리했습니다.`);
         } catch (e) {
-            alert('탈퇴 처리 실패: ' + e.message);
+            notify('탈퇴 처리 실패: ' + e.message);
         } finally {
             setProcessingEmail(null);
         }

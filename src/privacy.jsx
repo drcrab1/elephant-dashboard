@@ -1,3 +1,4 @@
+import { notify, confirmDialog } from './ui-feedback';
 import React, { useState, useEffect } from 'react';
 import { db, storage, functions, ADMIN_EMAIL } from './firebase';
 import {
@@ -95,7 +96,7 @@ const DocsTab = ({ user, contacts, setActivePage }) => {
     };
 
     const save = async () => {
-        if (!window.confirm('새 버전으로 저장할까요?\n저장하면 수정·삭제할 수 없고, 작성일은 오늘(실제 작성일)로 자동 기록됩니다.')) return;
+        if (!await confirmDialog('새 버전으로 저장할까요?\n저장하면 수정·삭제할 수 없고, 작성일은 오늘(실제 작성일)로 자동 기록됩니다.')) return;
         setSaving(true);
         try {
             const ref = db.collection('privacyDocs').doc(openType);
@@ -114,7 +115,7 @@ const DocsTab = ({ user, contacts, setActivePage }) => {
             logAccess('privacy_record_save', `${DOC_TYPES[openType].label} v${next} 저장`);
             setEditing(null);
         } catch (e) {
-            alert('저장 실패: ' + e.message);
+            notify('저장 실패: ' + e.message);
         } finally {
             setSaving(false);
         }
@@ -127,7 +128,7 @@ const DocsTab = ({ user, contacts, setActivePage }) => {
             const blob = await reactToPdfBlob(<DocPaper type={openType} version={v} sections={sections} contacts={v.contactsSnapshot || snapshotContacts(contacts)} />);
             downloadBlob(blob, `${DOC_TYPES[openType].label}_v${v.version}.pdf`);
         } catch (e) {
-            alert('PDF 생성 실패: ' + e.message);
+            notify('PDF 생성 실패: ' + e.message);
         } finally {
             setBusyPdf(false);
         }
@@ -260,7 +261,7 @@ const HandlersTab = ({ members }) => {
         setBusy(m.email);
         try {
             if (m.isHandler) {
-                if (!window.confirm(`'${m.name}'님의 개인정보취급자 지정을 해제할까요?\n해제일이 기록됩니다.`)) return;
+                if (!await confirmDialog(`'${m.name}'님의 개인정보취급자 지정을 해제할까요?\n해제일이 기록됩니다.`)) return;
                 await db.collection('users').doc(m.email).set({ isHandler: false, handlerReleasedAt: serverTs() }, { merge: true });
                 logAccess('permission_change', `개인정보취급자 해제: ${m.name || m.email}`, m.email);
             } else {
@@ -268,7 +269,7 @@ const HandlersTab = ({ members }) => {
                 logAccess('permission_change', `개인정보취급자 지정: ${m.name || m.email}`, m.email);
             }
         } catch (e) {
-            alert('처리 실패: ' + e.message);
+            notify('처리 실패: ' + e.message);
         } finally {
             setBusy(null);
         }
@@ -277,7 +278,7 @@ const HandlersTab = ({ members }) => {
     const resign = async (m) => {
         const leaveSigned = !!m.leavePledgeSignedAt;
         const warn = leaveSigned ? '' : '\n\n⚠ 퇴사 서약서가 아직 서명되지 않았습니다. 계정을 비활성화하면 이후 서명할 수 없습니다.\n(먼저 [전자 서약서] 탭에서 "퇴사 서약 요청"을 보내고 서명을 받는 것을 권장합니다.)';
-        if (!window.confirm(`'${m.name}'님을 퇴사 처리할까요?\n\n- 계정이 즉시 비활성화되어 로그인할 수 없게 됩니다.\n- 개인정보취급자였다면 해제일이 기록됩니다.${warn}`)) return;
+        if (!await confirmDialog(`'${m.name}'님을 퇴사 처리할까요?\n\n- 계정이 즉시 비활성화되어 로그인할 수 없게 됩니다.\n- 개인정보취급자였다면 해제일이 기록됩니다.${warn}`)) return;
         setBusy(m.email);
         try {
             const patch = { isActive: false, status: '퇴사', resignedAt: serverTs() };
@@ -287,31 +288,31 @@ const HandlersTab = ({ members }) => {
             try {
                 await functions.httpsCallable('setAccountDisabled')({ email: m.email, disabled: true });
             } catch (fe) {
-                alert('퇴사 처리는 완료되어 앱 접근이 차단되었습니다.\n다만 구글 계정 차단(서버 함수) 호출은 실패했습니다: ' + fe.message);
+                notify('퇴사 처리는 완료되어 앱 접근이 차단되었습니다.\n다만 구글 계정 차단(서버 함수) 호출은 실패했습니다: ' + fe.message);
             }
         } catch (e) {
-            alert('퇴사 처리 실패: ' + e.message);
+            notify('퇴사 처리 실패: ' + e.message);
         } finally {
             setBusy(null);
         }
     };
 
     const reactivate = async (m) => {
-        if (!window.confirm(`'${m.name}'님의 계정을 다시 활성화할까요?`)) return;
+        if (!await confirmDialog(`'${m.name}'님의 계정을 다시 활성화할까요?`)) return;
         setBusy(m.email);
         try {
             await db.collection('users').doc(m.email).set({ isActive: true, status: '재직', reactivatedAt: serverTs() }, { merge: true });
             logAccess('permission_change', `계정 재활성화: ${m.name || m.email}`, m.email);
             try { await functions.httpsCallable('setAccountDisabled')({ email: m.email, disabled: false }); } catch (fe) { console.warn(fe); }
         } catch (e) {
-            alert('처리 실패: ' + e.message);
+            notify('처리 실패: ' + e.message);
         } finally {
             setBusy(null);
         }
     };
 
-    const exportList = (masked = true) => {
-        if (!masked && !window.confirm('이메일·연락처를 가리지 않고 내보냅니다. 업무상 꼭 필요한 경우에만 진행하세요. (이 내보내기도 접속기록에 남습니다)')) return;
+    const exportList = async (masked = true) => {
+        if (!masked && !await confirmDialog('이메일·연락처를 가리지 않고 내보냅니다. 업무상 꼭 필요한 경우에만 진행하세요. (이 내보내기도 접속기록에 남습니다)')) return;
         exportXlsx(people.map((m) => ({
             이름: m.name || '',
             이메일: masked ? maskEmail(m.email) : m.email,
@@ -384,15 +385,15 @@ const PledgeTab = ({ members, pledges }) => {
     const unsignedJoin = people.filter((m) => !latest(m.email, 'join') && !m.joinPledgeSignedAt);
 
     const copy = async (text, okMsg) => {
-        try { await navigator.clipboard.writeText(text); alert(okMsg); } catch { window.prompt('아래 내용을 복사해서 카톡으로 보내세요.', text); }
+        try { await navigator.clipboard.writeText(text); notify(okMsg); } catch { window.prompt('아래 내용을 복사해서 카톡으로 보내세요.', text); }
     };
 
     const requestLeave = async (m) => {
-        if (!window.confirm(`'${m.name}'님에게 퇴사 서약서 서명을 요청할까요?\n해당 기사가 다음에 앱을 열면 서명 화면이 먼저 표시됩니다.`)) return;
+        if (!await confirmDialog(`'${m.name}'님에게 퇴사 서약서 서명을 요청할까요?\n해당 기사가 다음에 앱을 열면 서명 화면이 먼저 표시됩니다.`)) return;
         setBusy(m.email);
         try {
             await db.collection('users').doc(m.email).set({ leavePledgeRequired: true, leavePledgeRequestedAt: serverTs() }, { merge: true });
-        } catch (e) { alert('요청 실패: ' + e.message); } finally { setBusy(null); }
+        } catch (e) { notify('요청 실패: ' + e.message); } finally { setBusy(null); }
     };
 
     const cell = (m, type) => {
@@ -468,9 +469,9 @@ const TrainingTab = ({ user, members }) => {
     const people = [{ email: ADMIN_EMAIL, name: `${user.name || '대표자'} (보호책임자)` }, ...members.filter((m) => m.email !== ADMIN_EMAIL && m.role !== 'admin' && m.isActive !== false)];
 
     const save = async () => {
-        if (!form.title.trim()) return alert('교육 제목을 입력해주세요.');
-        if (form.kind === 'text' && !form.content.trim()) return alert('교육 내용을 입력해주세요.');
-        if (form.kind === 'pdf' && !form.file) return alert('PDF 파일을 선택해주세요.');
+        if (!form.title.trim()) return notify('교육 제목을 입력해주세요.');
+        if (form.kind === 'text' && !form.content.trim()) return notify('교육 내용을 입력해주세요.');
+        if (form.kind === 'pdf' && !form.file) return notify('PDF 파일을 선택해주세요.');
         setSaving(true);
         try {
             const ref = db.collection('privacyTrainings').doc();
@@ -486,14 +487,14 @@ const TrainingTab = ({ user, members }) => {
             await ref.set(data);
             setForm(null);
         } catch (e) {
-            alert('저장 실패: ' + e.message);
+            notify('저장 실패: ' + e.message);
         } finally {
             setSaving(false);
         }
     };
 
     const toggleActive = async (t) => {
-        try { await db.collection('privacyTrainings').doc(t.id).update({ active: !t.active }); } catch (e) { alert('실패: ' + e.message); }
+        try { await db.collection('privacyTrainings').doc(t.id).update({ active: !t.active }); } catch (e) { notify('실패: ' + e.message); }
     };
 
     const statusRows = (t) => people.map((m) => {

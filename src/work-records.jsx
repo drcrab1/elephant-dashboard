@@ -1,6 +1,7 @@
+import { notify, confirmDialog } from './ui-feedback';
 import React, { useState, useMemo, useRef } from 'react';
 import { db, ADMIN_EMAIL } from './firebase';
-import { Icons } from './ui-components';
+import { Icons } from './icons';
 import { toJpeg } from 'html-to-image';
 import { jsPDF } from 'jspdf';
 
@@ -68,7 +69,7 @@ const WorkRecordManagement = ({ user, records, setRecords }) => {
     const [isGeneratingSettlement, setIsGeneratingSettlement] = useState(false);
 
     const handleDownloadSettlement = async () => {
-        if (currentPeriodRecords.length === 0) return alert('해당 정산 기간에 내역이 없습니다.');
+        if (currentPeriodRecords.length === 0) return notify('해당 정산 기간에 내역이 없습니다.');
         setIsGeneratingSettlement(true);
         try {
             await new Promise(res => setTimeout(res, 100)); // DOM 렌더 대기
@@ -90,7 +91,7 @@ const WorkRecordManagement = ({ user, records, setRecords }) => {
             pdf.save(`정산서_${settlementRecipientName}_${targetYear}${String(targetMonthStr).padStart(2, '0')}.pdf`);
         } catch (e) {
             console.error(e);
-            alert('정산서 생성 실패: ' + e.message);
+            notify('정산서 생성 실패: ' + e.message);
         } finally {
             setIsGeneratingSettlement(false);
         }
@@ -118,7 +119,7 @@ const WorkRecordManagement = ({ user, records, setRecords }) => {
     };
 
     const handleSave = async () => {
-        if (!formData.date || !formData.route || !formData.quantity) return alert('모든 항목을 입력해주세요.');
+        if (!formData.date || !formData.route || !formData.quantity) return notify('모든 항목을 입력해주세요.');
 
         try {
             if (editingId) {
@@ -138,12 +139,12 @@ const WorkRecordManagement = ({ user, records, setRecords }) => {
             }
             setIsModalOpen(false);
         } catch (e) {
-            console.error(e); alert('저장 실패: ' + e.message);
+            console.error(e); notify('저장 실패: ' + e.message);
         }
     };
 
     const handleDelete = async (id) => {
-        if (window.confirm('기록을 정말 삭제하시겠습니까?')) {
+        if (await confirmDialog('기록을 정말 삭제하시겠습니까?')) {
             try {
                 await db.collection('workRecords').doc(id).delete();
             } catch (e) { console.error(e); }

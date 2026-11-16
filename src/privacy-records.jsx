@@ -1,3 +1,4 @@
+import { notify, confirmDialog } from './ui-feedback';
 import React, { useState, useEffect, useMemo } from 'react';
 import { db, ADMIN_EMAIL } from './firebase';
 import { logAccess } from './audit';
@@ -132,18 +133,18 @@ export const ChecklistTab = ({ user, members, checks, initialKind = 'annual' }) 
             const snapshot = cfg.snapshot ? await buildSnapshot(cfg.snapshot, members, user) : null;
             setForm({ items: emptyItems(cfg.items), inspector: user.name || '', signature: null, subject: '', snapshot });
         } catch (e) {
-            alert('점검 시작 실패: ' + e.message);
+            notify('점검 시작 실패: ' + e.message);
         } finally {
             setStarting(false);
         }
     };
 
     const submit = async () => {
-        if (form.items.some((i) => !i.status)) return alert(`${cfg.items.length}개 항목의 이행 여부를 모두 선택해주세요.`);
-        if (cfg.subjectLabel && !form.subject.trim()) return alert('점검 대상을 입력해주세요.');
-        if (!form.inspector.trim()) return alert('점검자 이름을 입력해주세요.');
-        if (!form.signature) return alert('점검자 서명을 입력해주세요.');
-        if (!window.confirm('점검 결과를 확정 저장할까요?\n저장하면 수정·삭제할 수 없고, 점검일은 오늘(실제 날짜)로 자동 기록됩니다.')) return;
+        if (form.items.some((i) => !i.status)) return notify(`${cfg.items.length}개 항목의 이행 여부를 모두 선택해주세요.`);
+        if (cfg.subjectLabel && !form.subject.trim()) return notify('점검 대상을 입력해주세요.');
+        if (!form.inspector.trim()) return notify('점검자 이름을 입력해주세요.');
+        if (!form.signature) return notify('점검자 서명을 입력해주세요.');
+        if (!await confirmDialog('점검 결과를 확정 저장할까요?\n저장하면 수정·삭제할 수 없고, 점검일은 오늘(실제 날짜)로 자동 기록됩니다.')) return;
         setSaving(true);
         try {
             await db.collection('privacyChecks').add({
@@ -160,7 +161,7 @@ export const ChecklistTab = ({ user, members, checks, initialKind = 'annual' }) 
             setYear(String(new Date().getFullYear()));
             setForm(null);
         } catch (e) {
-            alert('저장 실패: ' + e.message);
+            notify('저장 실패: ' + e.message);
         } finally {
             setSaving(false);
         }
@@ -172,7 +173,7 @@ export const ChecklistTab = ({ user, members, checks, initialKind = 'annual' }) 
             logAccess('export', `${CHECKLISTS[kindOf(rec)].label} PDF`);
             downloadBlob(await reactToPdfBlob(<RecordPaper rec={rec} />), `${CHECKLISTS[kindOf(rec)].label}_${rec.year}_${fmtDate(rec.createdAt).replace(/\./g, '')}.pdf`);
         } catch (e) {
-            alert('PDF 생성 실패: ' + e.message);
+            notify('PDF 생성 실패: ' + e.message);
         } finally {
             setBusyPdf(false);
         }

@@ -1,3 +1,4 @@
+import { notify } from './ui-feedback';
 const formatPhoneNumber = (value) => {
     if (!value) return '';
     const raw = value.replace(/[^0-9]/g, '');
@@ -8,7 +9,7 @@ const formatPhoneNumber = (value) => {
 };
 import React, { useState } from 'react';
 import firebase, { auth, db } from './firebase';
-import { Icons } from './ui-components';
+import { Icons } from './icons';
 
 const ADMIN_EMAIL = 's01025144826@gmail.com';
 
@@ -20,7 +21,7 @@ const ADMIN_EMAIL = 's01025144826@gmail.com';
             const [isLoading, setIsLoading] = useState(false);
 
             const handleGoogleAuth = async () => {
-                if (mode === 'signup' && (!name || !phone)) return alert('직원 등록을 위해 실명과 휴대폰 번호를 모두 입력해주세요.');
+                if (mode === 'signup' && (!name || !phone)) return notify('직원 등록을 위해 실명과 휴대폰 번호를 모두 입력해주세요.');
 
                 setIsLoading(true);
                 try {
@@ -57,7 +58,7 @@ const ADMIN_EMAIL = 's01025144826@gmail.com';
                     onLogin({ email: userEmail, name: finalName, phone: finalPhone });
                 } catch (error) {
                     console.error(error);
-                    alert('구글 로그인 중 에러가 발생했습니다:\n' + error.message);
+                    notify('구글 로그인 중 에러가 발생했습니다:\n' + error.message);
                     auth.signOut();
                 } finally {
                     setIsLoading(false);

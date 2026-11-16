@@ -1,68 +1,7 @@
+import { notify, confirmDialog } from './ui-feedback';
 import React, { useState, useEffect } from 'react';
-import firebase, { db, messaging, functions, VAPID_KEY, ADMIN_EMAIL } from './firebase';
-import { Icons } from './ui-components';
-
-// --- 알림 권한 요청 배너 (모든 사용자) ---
-const NotificationPermissionPrompt = ({ user }) => {
-    const [status, setStatus] = useState('idle'); // idle | asking | granted | denied | unsupported | dismissed
-    const [dismissed, setDismissed] = useState(() => {
-        try { return localStorage.getItem('notifPromptDismissed') === '1'; } catch (e) { return false; }
-    });
-
-    useEffect(() => {
-        if (!messaging || typeof Notification === 'undefined') { setStatus('unsupported'); return; }
-        if (Notification.permission === 'granted') setStatus('granted');
-        else if (Notification.permission === 'denied') setStatus('denied');
-    }, []);
-
-    const registerToken = async () => {
-        if (!messaging) return;
-        setStatus('asking');
-        try {
-            const permission = await Notification.requestPermission();
-            if (permission !== 'granted') { setStatus('denied'); return; }
-            if (!VAPID_KEY) {
-                console.warn('VITE_FIREBASE_VAPID_KEY가 설정되지 않아 알림 등록을 건너뜁니다.');
-                setStatus('granted');
-                return;
-            }
-            const registration = await navigator.serviceWorker.register('/firebase-messaging-sw.js');
-            const token = await messaging.getToken({ vapidKey: VAPID_KEY, serviceWorkerRegistration: registration });
-            if (token) {
-                await db.collection('users').doc(user.email).set({
-                    fcmTokens: firebase.firestore.FieldValue.arrayUnion(token)
-                }, { merge: true });
-            }
-            setStatus('granted');
-        } catch (e) {
-            console.error('알림 등록 실패', e);
-            setStatus('denied');
-        }
-    };
-
-    if (dismissed || status === 'granted' || status === 'unsupported') return null;
-
-    return (
-        <div className="fixed bottom-[80px] md:bottom-6 left-1/2 -translate-x-1/2 z-30 bg-[#0F172A] text-white rounded-2xl shadow-xl px-5 py-4 flex items-center gap-4 max-w-[92vw] w-[420px] animate-fade-in">
-            <span className="text-2xl shrink-0">🔔</span>
-            <div className="flex-1 min-w-0">
-                <p className="font-extrabold text-[14px]">알림을 받아보시겠어요?</p>
-                <p className="text-[12px] text-gray-300 mt-0.5 leading-snug">TBM 체크 시간, 사고 보고, 중요 공지를 폰으로 바로 받을 수 있어요.</p>
-            </div>
-            <div className="flex flex-col gap-1.5 shrink-0">
-                <button onClick={registerToken} disabled={status === 'asking'} className="bg-blue-600 hover:bg-blue-700 text-white text-[12.5px] font-extrabold px-3.5 py-2 rounded-xl transition-colors">
-                    {status === 'asking' ? '요청 중...' : '알림 받기'}
-                </button>
-                <button
-                    onClick={() => { setDismissed(true); try { localStorage.setItem('notifPromptDismissed', '1'); } catch (e) {} }}
-                    className="text-gray-400 hover:text-white text-[11px] font-bold"
-                >
-                    나중에
-                </button>
-            </div>
-        </div>
-    );
-};
+import { db, functions, ADMIN_EMAIL } from './firebase';
+import { Icons } from './icons';
 
 // --- 알림 관리 (관리자 전용): TBM 알림 시각 설정 + 중요 공지 템플릿 발송 ---
 const NotificationManagement = ({ user }) => {
@@ -117,16 +56,16 @@ const NotificationManagement = ({ user }) => {
         setSavingTime(true);
         try {
             await db.collection('settings').doc('notificationSettings').set({ tbmHour: Number(tbmHour), tbmMinute: Number(tbmMinute) }, { merge: true });
-            alert('TBM 알림 시각이 저장되었습니다.');
+            notify('TBM 알림 시각이 저장되었습니다.');
         } catch (e) {
-            alert('저장 실패: ' + e.message);
+            notify('저장 실패: ' + e.message);
         } finally {
             setSavingTime(false);
         }
     };
 
     const addTemplate = async () => {
-        if (!newTitle.trim() || !newBody.trim()) return alert('제목과 내용을 모두 입력해주세요.');
+        if (!newTitle.trim() || !newBody.trim()) return notify('제목과 내용을 모두 입력해주세요.');
         try {
             await db.collection('notificationTemplates').add({
                 title: newTitle.trim(),
@@ -136,24 +75,24 @@ const NotificationManagement = ({ user }) => {
             setNewTitle('');
             setNewBody('');
         } catch (e) {
-            alert('저장 실패: ' + e.message);
+            notify('저장 실패: ' + e.message);
         }
     };
 
     const deleteTemplate = async (id) => {
-        if (!window.confirm('이 공지 템플릿을 삭제하시겠습니까?')) return;
-        try { await db.collection('notificationTemplates').doc(id).delete(); } catch (e) { alert('삭제 실패: ' + e.message); }
+        if (!await confirmDialog('이 공지 템플릿을 삭제하시겠습니까?')) return;
+        try { await db.collection('notificationTemplates').doc(id).delete(); } catch (e) { notify('삭제 실패: ' + e.message); }
     };
 
     const sendTemplate = async (tpl, emails) => {
         const targetLabel = emails ? `선택한 ${emails.length}명에게` : '전체 가입자에게';
-        if (!window.confirm(`"${tpl.title}" 공지를 ${targetLabel} 지금 발송할까요?`)) return;
+        if (!await confirmDialog(`"${tpl.title}" 공지를 ${targetLabel} 지금 발송할까요?`)) return;
         setSendingId(tpl.id);
         try {
             const fn = functions.httpsCallable('sendImportantNotice');
             const payload = emails ? { title: tpl.title, body: tpl.body, emails } : { title: tpl.title, body: tpl.body };
             const res = await fn(payload);
-            alert(`발송 완료: ${res.data?.successCount ?? 0}명에게 전송됨`);
+            notify(`발송 완료: ${res.data?.successCount ?? 0}명에게 전송됨`);
             try {
                 await db.collection('noticeBoard').add({
                     title: tpl.title,
@@ -168,7 +107,7 @@ const NotificationManagement = ({ user }) => {
             setSelectedEmails(new Set());
         } catch (e) {
             console.error(e);
-            alert('발송 실패: ' + e.message + '\n(Cloud Functions 배포가 아직 안 되어 있을 수 있어요)');
+            notify('발송 실패: ' + e.message + '\n(Cloud Functions 배포가 아직 안 되어 있을 수 있어요)');
         } finally {
             setSendingId(null);
         }
@@ -316,8 +255,8 @@ const NoticeBoard = ({ user }) => {
     }, []);
 
     const handleDelete = async (id) => {
-        if (!window.confirm('이 공지를 게시판에서 삭제하시겠습니까? (이미 보낸 알림 자체는 취소되지 않습니다)')) return;
-        try { await db.collection('noticeBoard').doc(id).delete(); } catch (e) { alert('삭제 실패: ' + e.message); }
+        if (!await confirmDialog('이 공지를 게시판에서 삭제하시겠습니까? (이미 보낸 알림 자체는 취소되지 않습니다)')) return;
+        try { await db.collection('noticeBoard').doc(id).delete(); } catch (e) { notify('삭제 실패: ' + e.message); }
     };
 
     const formatDate = (iso) => {
@@ -359,4 +298,4 @@ const NoticeBoard = ({ user }) => {
     );
 };
 
-export { NotificationPermissionPrompt, NotificationManagement, NoticeBoard };
+export { NotificationManagement, NoticeBoard };

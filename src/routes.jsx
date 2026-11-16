@@ -1,6 +1,7 @@
+import { notify } from './ui-feedback';
 import React, { useState } from 'react';
 import { db, storage } from './firebase';
-import { Icons } from './ui-components';
+import { Icons } from './icons';
 
 export const RouteManagement = ({ user, appRoutes = [], setAppRoutes }) => {
     const [selectedRoute, setSelectedRoute] = useState(null);
@@ -23,7 +24,7 @@ export const RouteManagement = ({ user, appRoutes = [], setAppRoutes }) => {
     }, {});
 
     const handleCreateRoute = async () => {
-        if (!newName.trim()) return alert('노선(라우트) 이름을 입력해주세요.');
+        if (!newName.trim()) return notify('노선(라우트) 이름을 입력해주세요.');
         const id = `route_${Date.now()}`;
         const newRoute = {
             id,
@@ -38,9 +39,9 @@ export const RouteManagement = ({ user, appRoutes = [], setAppRoutes }) => {
             await db.collection('routes').doc(id).set(newRoute);
             setIsAddOpen(false);
             setNewName('');
-            alert('새로운 노선이 생성되었습니다!');
+            notify('새로운 노선이 생성되었습니다!');
         } catch (error) {
-            alert('에러 발생: ' + error.message);
+            notify('에러 발생: ' + error.message);
         }
     };
 
@@ -59,10 +60,10 @@ export const RouteManagement = ({ user, appRoutes = [], setAppRoutes }) => {
                 updatedAt: new Date().toISOString(),
                 lastUpdatedBy: user.name
             });
-            alert('배송 꿀팁이 안전하게 저장되었습니다!');
+            notify('배송 꿀팁이 안전하게 저장되었습니다!');
             setSelectedRoute({ ...selectedRoute, tips: editTips });
         } catch (e) {
-            alert('저장 실패: ' + e.message);
+            notify('저장 실패: ' + e.message);
         }
     };
 
@@ -76,9 +77,9 @@ export const RouteManagement = ({ user, appRoutes = [], setAppRoutes }) => {
             });
             setSelectedRoute({ ...selectedRoute, name: editRouteName.trim() });
             setIsEditingName(false);
-            alert('노선 이름이 성공적으로 변경되었습니다!');
+            notify('노선 이름이 성공적으로 변경되었습니다!');
         } catch (e) {
-            alert('노선 이름 변경 실패: ' + e.message);
+            notify('노선 이름 변경 실패: ' + e.message);
         }
     };
 
@@ -100,7 +101,7 @@ export const RouteManagement = ({ user, appRoutes = [], setAppRoutes }) => {
             
             setSelectedRoute({ ...selectedRoute, mapUrl: url });
         } catch (error) {
-            alert('지도 이미지 업로드에 실패했습니다: ' + error.message);
+            notify('지도 이미지 업로드에 실패했습니다: ' + error.message);
         } finally {
             setIsUploading(false);
         }

@@ -1,9 +1,11 @@
+import { notify, confirmDialog } from './ui-feedback';
 import React, { useState, useMemo, useRef } from 'react';
 import { jsPDF } from 'jspdf';
 import { toJpeg } from 'html-to-image';
 import { elementToA4Pdf } from './pdf-pages';
 import firebase, { auth, db, storage } from './firebase';
-import { Icons, DraggableNode, SignaturePadModal, PdfTemplate } from './ui-components';
+import { Icons } from './icons';
+import { DraggableNode, SignaturePadModal, PdfTemplate } from './ui-components';
 import { SignaturePad } from './signature-pad';
 import { logAccess } from './audit';
 import { CONSENT_FORMS, isConsentType, consentKeysOf } from './consent-forms';
@@ -20,10 +22,10 @@ const ContractSignView = ({ contract, onClose, onSubmit }) => {
     const consentBlocks = isConsentType(contract.templateType) ? consentKeysOf(contract.templateType) : [];
 
     const submit = async () => {
-        if (consentBlocks.some((b) => !answers[b.key])) return alert('모든 동의 항목에서 "동의함" 또는 "동의하지 않음"을 선택해주세요.');
-        if (!ack) return alert('문서 내용을 모두 확인했다는 체크를 해주세요.');
-        if (!signature) return alert('서명을 입력해주세요.');
-        if (consentBlocks.some((b) => answers[b.key] === 'disagree') && !window.confirm('"동의하지 않음"을 선택한 항목이 있습니다. 그대로 제출할까요?\n(동의하지 않으면 계약 체결이나 서비스 이용이 제한될 수 있습니다.)')) return;
+        if (consentBlocks.some((b) => !answers[b.key])) return notify('모든 동의 항목에서 "동의함" 또는 "동의하지 않음"을 선택해주세요.');
+        if (!ack) return notify('문서 내용을 모두 확인했다는 체크를 해주세요.');
+        if (!signature) return notify('서명을 입력해주세요.');
+        if (consentBlocks.some((b) => answers[b.key] === 'disagree') && !await confirmDialog('"동의하지 않음"을 선택한 항목이 있습니다. 그대로 제출할까요?\n(동의하지 않으면 계약 체결이나 서비스 이용이 제한될 수 있습니다.)')) return;
         setBusy(true);
         try { await onSubmit(signature, consentBlocks.length ? answers : null); } finally { setBusy(false); }
     };
@@ -95,7 +97,7 @@ const DocumentBuilder = ({ user, onClose, onSaveContract }) => {
             reader.onload = (evt) => setBgImgSrc(evt.target.result);
             reader.readAsDataURL(file);
         } else {
-            alert('이미지 파일(JPG/PNG)만 업로드 가능합니다.');
+            notify('이미지 파일(JPG/PNG)만 업로드 가능합니다.');
         }
     };
 
@@ -123,7 +125,7 @@ const DocumentBuilder = ({ user, onClose, onSaveContract }) => {
     };
 
     const handleFinalSave = () => {
-        if (!bgImgSrc) return alert('배경 이미지를 업로드해주세요.');
+        if (!bgImgSrc) return notify('배경 이미지를 업로드해주세요.');
         const finalFields = fields.filter(f => f.text.trim() !== '');
         onSaveContract({
             title: contractTitle,
@@ -221,12 +223,12 @@ const ContractManagement = ({ user, contracts, setContracts, contacts, profiles 
     const pendingCount = useMemo(() => (isAdmin ? contracts : []).filter(c => c.status === '서명대기').length, [contracts, isAdmin]);
 
     const handleDeleteContract = async (c) => {
-        if (!window.confirm(`"${c.name} (${c.title})" 서명 요청을 삭제하시겠습니까?\n삭제하면 기사님은 더 이상 서명할 수 없습니다.`)) return;
+        if (!await confirmDialog(`"${c.name} (${c.title})" 서명 요청을 삭제하시겠습니까?\n삭제하면 기사님은 더 이상 서명할 수 없습니다.`)) return;
         try {
             await db.collection('contracts').doc(c.id).delete();
             logAccess('contract_delete', `${c.name} / ${c.title}`, c.id);
         } catch (e) {
-            alert('삭제 실패: ' + e.message);
+            notify('삭제 실패: ' + e.message);
         }
     };
 
@@ -265,7 +267,7 @@ const ContractManagement = ({ user, contracts, setContracts, contacts, profiles 
 
     const handleRemoveRouteFee = (index) => {
         if (templateData.routeFees.length === 1) {
-            alert('최소 1개의 구역/단가가 필요합니다.');
+            notify('최소 1개의 구역/단가가 필요합니다.');
             return;
         }
         const updated = templateData.routeFees.filter((_, idx) => idx !== index);
@@ -301,32 +303,32 @@ const ContractManagement = ({ user, contracts, setContracts, contacts, profiles 
             const newRecord = { name: user.name, title: docData.title, ownerEmail: user.email, status: finalSignature ? '서명완료' : '작성중', date: today, templateType: 'custom', bgImage: finalBgImage, textFields: docData.textFields, signatureField: finalSignature || null };
             await db.collection('contracts').doc(newDocId).set(newRecord);
             setShowBuilder(false);
-        } catch (e) { console.error(e); alert('계약서 저장 및 업로드 실패: ' + e.message); }
+        } catch (e) { console.error(e); notify('계약서 저장 및 업로드 실패: ' + e.message); }
     };
 
     const validateTemplateData = () => {
         if (isConsentType(templateData.templateType)) {
-            if (consentTargets.size === 0) { alert('동의서를 받을 기사님을 한 명 이상 선택해주세요.'); return false; }
+            if (consentTargets.size === 0) { notify('동의서를 받을 기사님을 한 명 이상 선택해주세요.'); return false; }
             return true;
         }
-        if (!templateData.targetEmail) { alert('서명 요청을 수신할 기사님을 선택해주세요.'); return false; }
+        if (!templateData.targetEmail) { notify('서명 요청을 수신할 기사님을 선택해주세요.'); return false; }
         if (templateData.templateType === 'standard_consignment' && !templateData.targetDate) {
-            alert('계약 개시일을 입력해주세요.');
+            notify('계약 개시일을 입력해주세요.');
             return false;
         }
         if (templateData.templateType === 'standard_consignment') {
             const invalid = templateData.routeFees.some(rf => !rf.route || !rf.unitPrice);
             if (invalid || templateData.routeFees.length === 0) {
-                alert('담당구역과 수수료 단가를 모두 빠짐없이 입력해주세요.');
+                notify('담당구역과 수수료 단가를 모두 빠짐없이 입력해주세요.');
                 return false;
             }
         }
         if (templateData.templateType === 'accident_report') {
-            if (!templateData.accidentDate) { alert('재해 발생 일자를 입력해주세요.'); return false; }
-            if (!templateData.accidentLocation) { alert('재해 발생 장소를 입력해주세요.'); return false; }
-            if (!templateData.accidentDetail) { alert('재해 발생 당시 상황을 입력해주세요.'); return false; }
-            if (!templateData.causeAnalysis) { alert('재해 발생 원인을 입력해주세요.'); return false; }
-            if (!templateData.preventionPlan) { alert('재발 방지 계획을 입력해주세요.'); return false; }
+            if (!templateData.accidentDate) { notify('재해 발생 일자를 입력해주세요.'); return false; }
+            if (!templateData.accidentLocation) { notify('재해 발생 장소를 입력해주세요.'); return false; }
+            if (!templateData.accidentDetail) { notify('재해 발생 당시 상황을 입력해주세요.'); return false; }
+            if (!templateData.causeAnalysis) { notify('재해 발생 원인을 입력해주세요.'); return false; }
+            if (!templateData.preventionPlan) { notify('재발 방지 계획을 입력해주세요.'); return false; }
         }
         return true;
     };
@@ -428,8 +430,8 @@ const ContractManagement = ({ user, contracts, setContracts, contacts, profiles 
             setConsentTargets(new Set());
             setTemplateData(emptyTemplateData);
             logAccess('contract_send', `${getTemplateTitle(type)} ${sent}명 발송`);
-            alert(`${sent}명에게 동의서 서명 요청을 발송했습니다.` + (skipped.length ? `\n\n이미 받은(또는 서명 대기 중인) 분은 건너뛰었습니다: ${skipped.join(', ')}` : ''));
-        } catch (e) { alert('발송 실패: ' + e.message); }
+            notify(`${sent}명에게 동의서 서명 요청을 발송했습니다.` + (skipped.length ? `\n\n이미 받은(또는 서명 대기 중인) 분은 건너뛰었습니다: ${skipped.join(', ')}` : ''));
+        } catch (e) { notify('발송 실패: ' + e.message); }
     };
 
     const handleSendTemplate = async () => {
@@ -466,8 +468,8 @@ const ContractManagement = ({ user, contracts, setContracts, contacts, profiles 
             setPreviewContract(null);
             // Reset template inputs
             setTemplateData(emptyTemplateData);
-            alert('기사님께 스마트 서명 요청이 발송되었습니다.');
-        } catch (e) { alert('빌드 실패: ' + e.message); }
+            notify('기사님께 스마트 서명 요청이 발송되었습니다.');
+        } catch (e) { notify('빌드 실패: ' + e.message); }
     };
 
     const handleDriverSign = async (dataUrl, consents) => {
@@ -483,12 +485,12 @@ const ContractManagement = ({ user, contracts, setContracts, contacts, profiles 
             });
             logAccess('contract_sign', `${signingContract.name} / ${signingContract.title}`, signingContract.id);
             setSigningContract(null);
-            alert('서명이 성공적으로 접수되어 최종 PDF 계약서가 자동 생성되었습니다.');
-        } catch (e) { alert('서명 실패: ' + e.message); }
+            notify('서명이 성공적으로 접수되어 최종 PDF 계약서가 자동 생성되었습니다.');
+        } catch (e) { notify('서명 실패: ' + e.message); }
     };
 
     const handleDownloadClick = (contract) => {
-        if (!isAdmin && contract.ownerEmail !== user.email && contract.targetEmail !== user.email) return alert('보안 접근 거부');
+        if (!isAdmin && contract.ownerEmail !== user.email && contract.targetEmail !== user.email) return notify('보안 접근 거부');
         logAccess('contract_download', `${contract.name} / ${contract.title}`, contract.id);
         setIsGeneratingPdf(true);
         setActivePdfContract(contract);
@@ -520,7 +522,7 @@ const ContractManagement = ({ user, contracts, setContracts, contacts, profiles 
                     pdf.save(`코끼리물류_${activePdfContract.title}_${activePdfContract.name}.pdf`);
                 } catch (error) {
                     console.error(error);
-                    alert("PDF 생성 중 실패가 발생했습니다: " + error.message);
+                    notify("PDF 생성 중 실패가 발생했습니다: " + error.message);
                 } finally {
                     setIsGeneratingPdf(false);
                     setActivePdfContract(null);

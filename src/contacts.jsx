@@ -1,3 +1,4 @@
+import { notify, confirmDialog } from './ui-feedback';
 const formatPhoneNumber = (value) => {
     if (!value) return '';
     const raw = value.replace(/[^0-9]/g, '');
@@ -10,7 +11,7 @@ import React, { useState, useEffect } from 'react';
 import { db, ADMIN_EMAIL } from './firebase';
 import { toJpeg } from 'html-to-image';
 import { jsPDF } from 'jspdf';
-import { Icons } from './ui-components';
+import { Icons } from './icons';
 
 // --- Contact Management (비상연락망) ---
 const ContactManagement = ({ user, contacts, setContacts }) => {
@@ -40,7 +41,7 @@ const ContactManagement = ({ user, contacts, setContacts }) => {
             await db.collection('settings').doc('contact').set({ coupangPhone: tempCoupangPhone }, { merge: true });
             setCoupangPhone(tempCoupangPhone);
             setIsEditingCoupang(false);
-        } catch (e) { alert('번호 저장 실패: ' + e.message); }
+        } catch (e) { notify('번호 저장 실패: ' + e.message); }
     };
 
     // Only true if logged in as Admin
@@ -93,7 +94,7 @@ const ContactManagement = ({ user, contacts, setContacts }) => {
     };
 
     const handleSave = async () => {
-        if (!formData.name || !formData.phone) return alert('이름과 전화번호는 필수입니다.');
+        if (!formData.name || !formData.phone) return notify('이름과 전화번호는 필수입니다.');
         try {
             const targetEmail = formData.email || (editingContact && editingContact.email);
             const name = formData.name || '';
@@ -118,28 +119,28 @@ const ContactManagement = ({ user, contacts, setContacts }) => {
                 }, { merge: true });
             }
             setIsModalOpen(false);
-        } catch (e) { console.error(e); alert('저장 실패: ' + e.message); }
+        } catch (e) { console.error(e); notify('저장 실패: ' + e.message); }
     };
 
     const handleDelete = async (contact) => {
-        if (window.confirm(`'${contact.name}' 연락처를 비상연락망 목록에서 삭제하시겠습니까?`)) {
+        if (await confirmDialog(`'${contact.name}' 연락처를 비상연락망 목록에서 삭제하시겠습니까?`)) {
             try {
                 await db.collection('contacts').doc(contact.id).delete();
-                alert('연락처가 성공적으로 삭제되었습니다.');
-            } catch (e) { console.error(e); alert('삭제 실패: ' + e.message); }
+                notify('연락처가 성공적으로 삭제되었습니다.');
+            } catch (e) { console.error(e); notify('삭제 실패: ' + e.message); }
         }
     };
 
     const handleAccountDelete = async (contact) => {
         const confirmMsg = `'${contact.name}' 기사님의 회원 계정 및 비상연락망 정보를 영구적으로 완전 삭제(회원탈퇴)하시겠습니까?\n\n※ 삭제 시 해당 기사는 시스템 접속 권한이 완전 파기됩니다.`;
-        if (window.confirm(confirmMsg)) {
+        if (await confirmDialog(confirmMsg)) {
             try {
                 await db.collection('contacts').doc(contact.id).delete();
                 if (contact.email) {
                     await db.collection('users').doc(contact.email).delete();
                 }
-                alert(`'${contact.name}' 기사님의 회원 계정이 완전히 삭제되었습니다.`);
-            } catch (e) { console.error(e); alert('계정 완전 삭제 실패: ' + e.message); }
+                notify(`'${contact.name}' 기사님의 회원 계정이 완전히 삭제되었습니다.`);
+            } catch (e) { console.error(e); notify('계정 완전 삭제 실패: ' + e.message); }
         }
     };
 
@@ -415,7 +416,7 @@ const ContactManagement = ({ user, contacts, setContacts }) => {
                         pdf.save(`비상연락망_조직도_${rep.name}_${new Date().toISOString().split('T')[0]}.pdf`);
                     }).catch(err => {
                         console.error('PDF 다운로드 실패:', err);
-                        alert('PDF 다운로드 실패: ' + err.message);
+                        notify('PDF 다운로드 실패: ' + err.message);
                     });
                 };
 

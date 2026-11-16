@@ -17,9 +17,13 @@ React 19 + Vite + Tailwind, Firebase(Auth/Firestore/Storage/Functions/FCM). 사�
 
 ## 구조 (src/)
 - `App.jsx` 라우팅·로그인 게이트(퇴사/서약서 서명 전 차단)·접속기록·자동 로그아웃
-- `contracts.jsx` 계약관리(전자서명·동의서 별지 발송), `ui-components.jsx` 계약서 문구/PDF(`CONTRACT_ARTICLES` v1, `CONTRACT_ARTICLES_V2`)
+- `app-shell.jsx` 화면 틀(묶음형 사이드바·폰 상단 바·하단 탭), `home.jsx` 홈(기사 "오늘 할 일" / 대표 "처리할 일"), `icons.jsx` 아이콘
+- `ui-feedback.js` + `ui-kit.jsx` 알림 메시지·확인 창. **브라우저 `alert`/`confirm`을 쓰지 말고 `notify()` / `await confirmDialog()`를 씁니다.**
+- `contracts.jsx` 계약관리(전자서명·동의서 별지 발송), `ui-components.jsx` 계약서 문구/PDF(`CONTRACT_ARTICLES` v1, `CONTRACT_ARTICLES_V2`) — 무거우니 첫 화면 파일(App·app-shell·home)에서 import하지 않습니다
 - `consent-forms.js` 개인정보 동의서 3종, `privacy-*.jsx` 개인정보 관리(점검·서약·교육·접속기록·사고·파기·실태점검 대응)
-- `vehicles.jsx` 서류/차량관리, `safety.jsx` 안전보건, `members.jsx` 회원관리, `notifications.jsx` 알림/공지
+- 안전보건: `safety.jsx` 본체(탭: 오늘 점검/제출 기록/문서·양식), `safety-checklist.jsx` 매일 점검, `safety-forms.jsx` 양식 11종(작성할 때만 로드), `safety-detail.jsx` 기록 상세·PDF(열 때만 로드), `safety-constants.js` 상수
+- `schedule-data.js` 배차표(구글 시트) 읽기 — 스케줄 화면과 홈이 같이 씀. `nav-intent.js` 화면 간 "바로 열기" 요청
+- `vehicles.jsx` 서류/차량관리, `members.jsx` 회원관리, `notifications.jsx` 알림/공지, `notification-prompt.jsx` 알림 권한 안내
 - `functions/index.js` 알림 함수, `setAccountDisabled`(퇴사 계정 차단), `logAccess`(접속기록 서버 기록)
 - `firestore.rules` 보안 규칙
 

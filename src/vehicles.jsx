@@ -1,6 +1,7 @@
+import { notify, confirmDialog } from './ui-feedback';
 import React, { useState, useEffect, useMemo } from 'react';
 import firebase, { db, storage, functions, ADMIN_EMAIL } from './firebase';
-import { Icons } from './ui-components';
+import { Icons } from './icons';
 import { logAccess } from './audit';
 
 // --- Vehicle / Document Management (차량/서류관리) ---
@@ -102,8 +103,8 @@ const VehicleDocumentManagement = ({ user, docs, setDocs, contacts = [] }) => {
     };
 
     const handleSave = async () => {
-        if (!formData.file) return alert('서류 파일(사진)을 반드시 업로드해 주세요.');
-        if (!formData.maskAck) return alert('주민등록번호가 보이지 않도록 가렸는지(또는 해당 없음) 확인 체크를 해주세요.');
+        if (!formData.file) return notify('서류 파일(사진)을 반드시 업로드해 주세요.');
+        if (!formData.maskAck) return notify('주민등록번호가 보이지 않도록 가렸는지(또는 해당 없음) 확인 체크를 해주세요.');
         const numberField = DOC_NUMBER_FIELD[formData.docType];
         let docRef = null;
         try {
@@ -143,7 +144,7 @@ const VehicleDocumentManagement = ({ user, docs, setDocs, contacts = [] }) => {
             console.error(e);
             // 파일 저장에 실패하면 빈 서류 기록이 남지 않도록 방금 만든 기록을 지웁니다.
             if (docRef) { try { await docRef.delete(); } catch (delErr) { console.warn(delErr); } }
-            alert('업로드 실패: ' + (e.code ? e.code + ' — ' : '') + e.message);
+            notify('업로드 실패: ' + (e.code ? e.code + ' — ' : '') + e.message);
         }
     };
 
@@ -161,7 +162,7 @@ const VehicleDocumentManagement = ({ user, docs, setDocs, contacts = [] }) => {
     };
 
     const handleDelete = async (docObj) => {
-        if (window.confirm('증빙 서류를 진짜 삭제하시겠습니까?')) {
+        if (await confirmDialog('증빙 서류를 진짜 삭제하시겠습니까?')) {
             try {
                 await db.collection('vehicleDocs').doc(docObj.id).delete();
                 logAccess('doc_delete', `${docObj.name} / ${docObj.docType}`, docObj.id);
@@ -180,7 +181,7 @@ const VehicleDocumentManagement = ({ user, docs, setDocs, contacts = [] }) => {
         const confirmMsg = target
             ? `${target.name} 기사님께 미제출 서류(${target.missing.join(', ')}) 알림을 보낼까요?`
             : `미제출자 ${targets.length}명 전체에게 각자 빠뜨린 서류 알림을 보낼까요?`;
-        if (!window.confirm(confirmMsg)) return;
+        if (!await confirmDialog(confirmMsg)) return;
 
         if (target) setSendingReminderEmail(target.email);
         else setIsSendingReminders(true);
@@ -188,12 +189,12 @@ const VehicleDocumentManagement = ({ user, docs, setDocs, contacts = [] }) => {
         try {
             const fn = functions.httpsCallable('sendDocumentReminders');
             const reminders = targets.filter(t => t.email).map(t => ({ email: t.email, missingDocs: t.missing }));
-            if (reminders.length === 0) return alert('알림을 받을 수 있는 이메일 정보가 없습니다.');
+            if (reminders.length === 0) return notify('알림을 받을 수 있는 이메일 정보가 없습니다.');
             const res = await fn({ reminders });
-            alert(`발송 완료: ${res.data?.successCount ?? 0}명에게 전송됨`);
+            notify(`발송 완료: ${res.data?.successCount ?? 0}명에게 전송됨`);
         } catch (e) {
             console.error(e);
-            alert('발송 실패: ' + e.message);
+            notify('발송 실패: ' + e.message);
         } finally {
             setSendingReminderEmail(null);
             setIsSendingReminders(false);
@@ -488,7 +489,7 @@ const VehicleDocumentManagement = ({ user, docs, setDocs, contacts = [] }) => {
                                         try {
                                             await db.collection('vehicleDocs').doc(viewingDoc.id).update({ rrnReviewed: true, rrnReviewedAt: firebase.firestore.FieldValue.serverTimestamp() });
                                             setViewingDoc(null);
-                                        } catch (e) { alert('저장 실패: ' + e.message); }
+                                        } catch (e) { notify('저장 실패: ' + e.message); }
                                     }}
                                     className="px-4 py-2.5 rounded-xl bg-amber-600 hover:bg-amber-700 text-white text-[13px] font-extrabold whitespace-nowrap"
                                 >주민번호 노출 없음 — 확인 완료</button>
@@ -581,7 +582,7 @@ const VehicleManagement = ({ user, docs = [], contacts = [], profiles = {} }) =>
     }, [costs]);
 
     const handleSave = async () => {
-        if (!form.vehicleNumber.trim() || !form.amount) return alert('차량번호와 금액을 입력해주세요.');
+        if (!form.vehicleNumber.trim() || !form.amount) return notify('차량번호와 금액을 입력해주세요.');
         try {
             await db.collection('vehicleCosts').add({
                 date: form.date, vehicleNumber: form.vehicleNumber.trim(), costType: form.costType,
@@ -590,11 +591,11 @@ const VehicleManagement = ({ user, docs = [], contacts = [], profiles = {} }) =>
             });
             setForm({ date: new Date().toISOString().split('T')[0], vehicleNumber: '', costType: '주유비', amount: '', memo: '' });
             setIsModalOpen(false);
-        } catch (e) { alert('저장 실패: ' + e.message); }
+        } catch (e) { notify('저장 실패: ' + e.message); }
     };
     const handleDelete = async (id) => {
-        if (!window.confirm('이 비용 기록을 삭제하시겠습니까?')) return;
-        try { await db.collection('vehicleCosts').doc(id).delete(); } catch (e) { alert('삭제 실패: ' + e.message); }
+        if (!await confirmDialog('이 비용 기록을 삭제하시겠습니까?')) return;
+        try { await db.collection('vehicleCosts').doc(id).delete(); } catch (e) { notify('삭제 실패: ' + e.message); }
     };
     const openAddFor = (number) => {
         setForm(f => ({ ...f, vehicleNumber: number || f.vehicleNumber }));

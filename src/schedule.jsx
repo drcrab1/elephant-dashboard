@@ -1,12 +1,13 @@
+import { notify } from './ui-feedback';
 import React, { useState, useEffect } from 'react';
 import { db } from './firebase';
-import { Icons } from './ui-components';
+import { Icons } from './icons';
+import { DEFAULT_ROUTE_COLUMNS, parseScheduleCsv } from './schedule-data';
 
 const ADMIN_EMAIL = 's01025144826@gmail.com';
 
 // --- Schedule Management (Google Sheets Sync View) ---
-// 기본값 (관리자가 아래 '노선 이름 관리'에서 언제든 직접 수정 가능 — Firestore settings/schedule.routeColumns 에 저장됨)
-const DEFAULT_ROUTE_COLUMNS = ['503AB', '503CD', '402CD', '001CD', '901CD', '452ABCD', '454ABD', '452D+454B', '303CD'];
+// 노선 이름 기본값과 배차표 읽기는 schedule-data.js에 있습니다. (홈 화면과 같이 씁니다)
 const colLetter = (i) => String.fromCharCode(65 + 3 + i); // D열부터 시작
 
 // 시트 연동 전 기본 더미 데이터
@@ -77,28 +78,7 @@ const getLocalDateString = (d) => {
         fetch(csvUrl)
             .then(res => res.text())
             .then(csv => {
-                const rows = csv.split('\n');
-                let newSchedule = [];
-
-                rows.forEach(r => {
-                    const cols = r.split(',').map(c => c.trim().replace(/^"|"$/g, ''));
-                    if (cols.length < 12) return;
-                    if (cols[0].replace(/\s+/g, '') === '출근일') return; // 헤더 무시
-
-                    const rawDate = cols[0].replace(/\s+/g, ''); // "1월1일"
-
-                    routeColumns.forEach((route, i) => {
-                        const driverName = cols[3 + i]; // D열(인덱스 3)부터 시작
-                        if (driverName && driverName !== '') {
-                            newSchedule.push({
-                                csvDate: rawDate,
-                                route: route,
-                                driver: driverName
-                            });
-                        }
-                    });
-                });
-                setScheduleData(newSchedule);
+                setScheduleData(parseScheduleCsv(csv, routeColumns));
             })
             .catch(e => {
                 console.error(e);
@@ -111,8 +91,8 @@ const getLocalDateString = (d) => {
             await db.collection('settings').doc('schedule').set({ csvUrl: tempUrl }, { merge: true });
             setCsvUrl(tempUrl);
             setIsEditingUrl(false);
-            alert('구글 시트 연동 URL이 저장되었습니다.');
-        } catch (e) { alert('URL 저장 실패: ' + e.message); }
+            notify('구글 시트 연동 URL이 저장되었습니다.');
+        } catch (e) { notify('URL 저장 실패: ' + e.message); }
     };
 
     const handleAddRouteColumn = () => setTempRoutes([...tempRoutes, '']);
@@ -121,14 +101,14 @@ const getLocalDateString = (d) => {
 
     const handleSaveRoutes = async () => {
         const cleaned = tempRoutes.map(r => r.trim()).filter(r => r !== '');
-        if (cleaned.length === 0) return alert('노선을 최소 1개 이상 입력해주세요.');
+        if (cleaned.length === 0) return notify('노선을 최소 1개 이상 입력해주세요.');
         try {
             await db.collection('settings').doc('schedule').set({ routeColumns: cleaned }, { merge: true });
             setRouteColumns(cleaned);
             setTempRoutes(cleaned);
             setIsEditingRoutes(false);
-            alert('노선 이름이 저장되었습니다.');
-        } catch (e) { alert('노선 저장 실패: ' + e.message); }
+            notify('노선 이름이 저장되었습니다.');
+        } catch (e) { notify('노선 저장 실패: ' + e.message); }
     };
 
     const getWeekDates = () => Array.from({ length: 7 }, (_, i) => {
@@ -337,8 +317,8 @@ const getLocalDateString = (d) => {
                                                 <td
                                                     key={route}
                                                     onClick={() => {
-                                                        if (csvUrl) alert(`스케줄 데이터 수정은 연동된 구글 스프레드시트 원본에서 진행해 주셔야 자동 반영됩니다!`);
-                                                        else alert(`${formatShortDate(dateObj)}(${dayName}) ${route} 노선 배차 정보가 없습니다.`);
+                                                        if (csvUrl) notify(`스케줄 데이터 수정은 연동된 구글 스프레드시트 원본에서 진행해 주셔야 자동 반영됩니다!`);
+                                                        else notify(`${formatShortDate(dateObj)}(${dayName}) ${route} 노선 배차 정보가 없습니다.`);
                                                     }}
                                                     className="p-1"
                                                 >

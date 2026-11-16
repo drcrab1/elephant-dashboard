@@ -1,3 +1,4 @@
+import { notify, confirmDialog } from './ui-feedback';
 import React, { useState, useEffect, useMemo } from 'react';
 import { db } from './firebase';
 import { logAccess } from './audit';
@@ -59,8 +60,8 @@ export const AccessLogTab = () => {
     const nightCount = filtered.filter(isNight).length;
     const ipCount = new Set(filtered.filter((l) => l.role === 'admin' && l.ip).map((l) => l.ip)).size;
 
-    const exportLogs = (masked) => {
-        if (!masked && !window.confirm('계정(이메일)을 가리지 않고 내보냅니다. 업무상 꼭 필요한 경우에만 진행하세요. (이 내보내기도 접속기록에 남습니다)')) return;
+    const exportLogs = async (masked) => {
+        if (!masked && !await confirmDialog('계정(이메일)을 가리지 않고 내보냅니다. 업무상 꼭 필요한 경우에만 진행하세요. (이 내보내기도 접속기록에 남습니다)')) return;
         exportXlsx(filtered.map((l) => ({
             일시: fmtDateTime(l.createdAt), 계정: masked ? maskEmail(l.email) : l.email, 구분: l.role === 'admin' ? '관리자' : '기사',
             수행업무: ACTION_LABEL[l.action] || l.action, 상세: l.detail || '', 접속지IP: l.ip || '',
@@ -142,8 +143,8 @@ const IncidentSection = ({ user }) => {
     }, [incidents, tick]);
 
     const save = async () => {
-        if (!form.content.trim()) return alert('사고 내용을 입력해주세요.');
-        if (!window.confirm('사고를 대장에 등록할까요?\n등록 후에는 수정·삭제할 수 없고(처리 경과는 계속 추가 가능), 등록 시각은 서버 시각으로 기록됩니다.')) return;
+        if (!form.content.trim()) return notify('사고 내용을 입력해주세요.');
+        if (!await confirmDialog('사고를 대장에 등록할까요?\n등록 후에는 수정·삭제할 수 없고(처리 경과는 계속 추가 가능), 등록 시각은 서버 시각으로 기록됩니다.')) return;
         setSaving(true);
         try {
             await db.collection('privacyIncidents').add({
@@ -152,17 +153,17 @@ const IncidentSection = ({ user }) => {
             });
             logAccess('privacy_record_save', '개인정보 사고 등록');
             setForm(null);
-        } catch (e) { alert('등록 실패: ' + e.message); } finally { setSaving(false); }
+        } catch (e) { notify('등록 실패: ' + e.message); } finally { setSaving(false); }
     };
 
     const addEvent = async (incidentId) => {
-        if (!evForm.memo.trim()) return alert('내용을 입력해주세요.');
+        if (!evForm.memo.trim()) return notify('내용을 입력해주세요.');
         try {
             await db.collection('privacyIncidents').doc(incidentId).collection('events').add({ type: evForm.type, memo: evForm.memo.trim(), by: user.name, createdAt: serverTs() });
             logAccess('privacy_record_save', `사고 경과 추가: ${evForm.type}`);
             setEvForm({ type: evForm.type, memo: '' });
             setTick((t) => t + 1);
-        } catch (e) { alert('추가 실패: ' + e.message); }
+        } catch (e) { notify('추가 실패: ' + e.message); }
     };
 
     return (
@@ -256,21 +257,21 @@ const DestructionSection = ({ user, checks }) => {
     const certs = checks.filter((c) => c.kind === 'destruction_cert');
 
     const save = async () => {
-        if (!form.subject.trim()) return alert('파기한 개인정보(대상)를 입력해주세요.');
-        if (!window.confirm('파기 내역을 대장에 기록할까요?\n기록 후에는 수정·삭제할 수 없고, 기록 시각은 서버 시각입니다.')) return;
+        if (!form.subject.trim()) return notify('파기한 개인정보(대상)를 입력해주세요.');
+        if (!await confirmDialog('파기 내역을 대장에 기록할까요?\n기록 후에는 수정·삭제할 수 없고, 기록 시각은 서버 시각입니다.')) return;
         setSaving(true);
         try {
             await db.collection('destructionLogs').add({ ...form, subject: form.subject.trim(), count: form.count.trim(), performer: user.name, createdBy: user.email, createdAt: serverTs() });
             logAccess('privacy_record_save', `파기 기록: ${form.category}`);
             setForm(null);
-        } catch (e) { alert('기록 실패: ' + e.message); } finally { setSaving(false); }
+        } catch (e) { notify('기록 실패: ' + e.message); } finally { setSaving(false); }
     };
 
     const issueCert = async () => {
-        if (certForm.selected.size === 0) return alert('확약서에 넣을 파기 내역을 선택해주세요.');
-        if (!certForm.recipient.trim()) return alert('수신처를 입력해주세요.');
-        if (!certForm.signature) return alert('서명을 입력해주세요.');
-        if (!window.confirm('파기확약서를 발행할까요? 발행 후에는 수정·삭제할 수 없고 작성일은 오늘 날짜로 자동 기록됩니다.')) return;
+        if (certForm.selected.size === 0) return notify('확약서에 넣을 파기 내역을 선택해주세요.');
+        if (!certForm.recipient.trim()) return notify('수신처를 입력해주세요.');
+        if (!certForm.signature) return notify('서명을 입력해주세요.');
+        if (!await confirmDialog('파기확약서를 발행할까요? 발행 후에는 수정·삭제할 수 없고 작성일은 오늘 날짜로 자동 기록됩니다.')) return;
         setSaving(true);
         try {
             const rows = logs.filter((l) => certForm.selected.has(l.id)).map((l) => [fmtDateTime(l.createdAt), `${l.category}: ${l.subject}`, l.reason, l.method, l.count || '-']);
@@ -281,14 +282,14 @@ const DestructionSection = ({ user, checks }) => {
             });
             logAccess('privacy_record_save', '파기확약서 발행');
             setCertForm(null);
-        } catch (e) { alert('발행 실패: ' + e.message); } finally { setSaving(false); }
+        } catch (e) { notify('발행 실패: ' + e.message); } finally { setSaving(false); }
     };
 
     const certPdf = async (rec) => {
         try {
             logAccess('export', '파기확약서 PDF');
             downloadBlob(await reactToPdfBlob(<CertPaper rec={rec} />), `파기확약서_${fmtDate(rec.createdAt).replace(/\./g, '')}.pdf`);
-        } catch (e) { alert('PDF 생성 실패: ' + e.message); }
+        } catch (e) { notify('PDF 생성 실패: ' + e.message); }
     };
 
     return (

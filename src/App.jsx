@@ -1,8 +1,11 @@
+import { notify, confirmDialog } from './ui-feedback';
 import React, { useState, useEffect, Suspense, lazy } from 'react';
 import firebase, { auth, db, ADMIN_EMAIL } from './firebase';
-import { PageView, DashboardHome, Sidebar, BottomNav, Icons } from './ui-components';
+import { Sidebar, BottomNav, MobileTopBar, PageView } from './app-shell';
+import { Home } from './home';
+import { PageLoading, Spinner } from './ui-kit';
 import { LoginScreen } from './auth';
-import { NotificationPermissionPrompt } from './notifications';
+import { NotificationPermissionPrompt } from './notification-prompt';
 import { logAccess } from './audit';
 const NoticeBoard = lazy(() => import('./notifications').then(m => ({ default: m.NoticeBoard })));
 import {
@@ -50,6 +53,9 @@ const sameFlags = (a, b) => a.isActive === b.isActive && a.pledgeRequired === b.
 // 개인정보가 많이 들어 있는 관리자 화면 — 열람 시 접속기록을 남깁니다.
 const SENSITIVE_PAGES = ['회원관리', '서류관리', '계약관리', '안전보건관리', '개인정보 관리', '알림관리'];
 
+// 기사님이 꼭 내야 하는 서류 (메뉴 옆 숫자 표시에 사용)
+const REQUIRED_DOC_TYPES = ['화물운송자격증', '운송사업허가증', '자동차등록증', '최초안전교육수료증'];
+
 // 링크(?menu=...)로 들어왔을 때 열 화면 (카톡으로 공유하는 서약서·계약 서명 링크용)
 const MENU_FROM_LINK = { pledge: '개인정보 서약·교육', contract: '계약관리' };
 
@@ -76,6 +82,9 @@ const App = () => {
         return () => window.removeEventListener('popstate', onPopState);
         // eslint-disable-next-line react-hooks/exhaustive-deps
     }, []);
+
+    // 화면을 바꾸면 맨 위부터 보이도록 합니다.
+    useEffect(() => { window.scrollTo(0, 0); }, [activePage]);
 
     const [contracts, setContracts] = useState([]);
     const [safetyRecords, setSafetyRecords] = useState([]);
@@ -246,21 +255,21 @@ const App = () => {
         const timer = setInterval(() => {
             if (Date.now() - last > limitMs) {
                 clearInterval(timer);
-                window.alert('장시간 사용하지 않아 보안을 위해 자동 로그아웃되었습니다. 다시 로그인해 주세요.');
+                notify('장시간 사용하지 않아 보안을 위해 자동 로그아웃되었습니다. 다시 로그인해 주세요.', { sticky: true, type: 'info' });
                 auth.signOut();
             }
         }, 30000);
         return () => { events.forEach(e => window.removeEventListener(e, bump)); clearInterval(timer); };
     }, [user && user.email]);
 
-    const handleLogout = () => {
-        if (window.confirm('디바이스에서 로그아웃 하시겠습니까?')) auth.signOut();
+    const handleLogout = async () => {
+        if (await confirmDialog('이 기기에서 로그아웃할까요?', { confirmLabel: '로그아웃' })) auth.signOut();
     };
 
     const handleWithdraw = async () => {
         if (!user) return;
         const confirmMsg = `정말로 '${user.name}' 계정을 탈퇴하시겠습니까?\n\n※ 탈퇴 시 등록된 회원 계정 및 비상연락망 정보가 영구적으로 삭제되며 즉시 로그아웃됩니다.`;
-        if (!window.confirm(confirmMsg)) return;
+        if (!await confirmDialog(confirmMsg)) return;
 
         try {
             // Delete user doc from Firestore
@@ -270,11 +279,11 @@ const App = () => {
             contactQuery.forEach(async (d) => {
                 await db.collection('contacts').doc(d.id).delete();
             });
-            alert('회원탈퇴 처리가 정상 완료되었습니다. 그동안 이용해 주셔서 감사합니다.');
+            notify('회원탈퇴 처리가 정상 완료되었습니다. 그동안 이용해 주셔서 감사합니다.', { sticky: true, type: 'success' });
             auth.signOut();
         } catch (e) {
             console.error('회원탈퇴 처리 에러:', e);
-            alert('회원탈퇴 실패: ' + e.message);
+            notify('회원탈퇴 실패: ' + e.message);
         }
     };
 
@@ -284,7 +293,7 @@ const App = () => {
     }
 
     if (isAuthLoading) {
-        return <div className="min-h-screen bg-gray-50 flex items-center justify-center font-bold text-gray-500">인증 정보를 확인 중입니다...</div>;
+        return <div className="min-h-screen bg-gray-50 flex flex-col items-center justify-center gap-3 font-bold text-gray-400 text-[14px]"><img src="/logo.png" alt="" className="w-14 h-14 rounded-2xl object-cover mb-1" /><Spinner />로그인 정보를 확인하고 있습니다...</div>;
     }
 
     if (!user) return <LoginScreen onLogin={setUser} />;
@@ -307,8 +316,14 @@ const App = () => {
     // Firestore 실시간 구독이 다른 데이터를 갱신할 때마다(activePage와 무관하게) 현재 화면
     // 전체가 리마운트되어 입력 중이던 폼 상태 등이 초기화될 수 있었습니다.
     // 컴포넌트를 새로 만드는 대신 실제 엘리먼트를 바로 계산해서 렌더링하도록 수정했습니다.
+    // 메뉴 옆 빨간 숫자: 기사님 본인이 챙겨야 할 것(서명 대기 계약, 아직 안 낸 필수 서류)
+    const menuBadges = user.email === ADMIN_EMAIL ? {} : {
+        계약관리: contracts.filter(c => c.targetEmail === user.email && c.status === '서명대기').length,
+        서류관리: REQUIRED_DOC_TYPES.filter(t => !vehicleDocs.some(d => d.email === user.email && d.docType === t)).length,
+    };
+
     let content = <PageView title={activePage} />;
-    if (activePage === '대시보드') content = <DashboardHome setActivePage={setActivePage} user={user} contracts={contracts} vehicleDocs={vehicleDocs} contacts={appContacts} safetyRecords={safetyRecords} />;
+    if (activePage === '대시보드') content = <Home setActivePage={setActivePage} user={user} contracts={contracts} vehicleDocs={vehicleDocs} contacts={appContacts} safetyRecords={safetyRecords} workRecords={workRecords} />;
     if (activePage === '계약관리') content = <ContractManagement user={user} contracts={contracts} setContracts={setContracts} contacts={appContacts} profiles={profiles} />;
     if (activePage === '스케줄관리') content = <ScheduleManagement user={user} />;
     if (activePage === '안전보건관리') content = <SafetyManagement user={user} records={safetyRecords} setRecords={setSafetyRecords} />;
@@ -327,33 +342,25 @@ const App = () => {
 
     return (
         <div className="min-h-screen bg-[#F8FAFC] relative overflow-x-hidden font-sans text-[#1E293B]">
-            {/* Mobile Top Bar */}
-            <div className="md:hidden fixed top-0 left-0 right-0 h-[60px] bg-white border-b border-gray-100 flex items-center justify-between px-5 z-40 shadow-sm">
-                <div className="flex items-center gap-2" onClick={() => { setActivePage('대시보드'); setIsSidebarOpen(false); }}>
-                    <img src="/logo.png" alt="코끼리물류" className="w-8 h-8 rounded-lg object-cover" />
-                    <span className="text-[17px] font-extrabold text-[#0F172A] tracking-tight">코끼리물류</span>
-                </div>
-                <button onClick={() => setIsSidebarOpen(true)} className="w-10 h-10 flex items-center justify-center rounded-xl bg-gray-50 text-gray-600">
-                    <Icons.Menu />
-                </button>
-            </div>
+            <MobileTopBar setActivePage={(page) => { setActivePage(page); setIsSidebarOpen(false); }} onOpenMenu={() => setIsSidebarOpen(true)} />
 
-            <div className="flex w-full max-w-full overflow-x-hidden min-h-screen pt-[60px] md:pt-0 pb-[70px] md:pb-0">
-                <Sidebar 
-                    activePage={activePage} 
-                    setActivePage={setActivePage} 
-                    user={user} 
-                    onLogout={handleLogout} 
-                    onWithdraw={handleWithdraw} 
-                    isSidebarOpen={isSidebarOpen} 
-                    setIsSidebarOpen={setIsSidebarOpen} 
+            <div className="flex w-full max-w-full overflow-x-hidden min-h-screen pt-[60px] md:pt-0 pb-[74px] md:pb-0">
+                <Sidebar
+                    activePage={activePage}
+                    setActivePage={setActivePage}
+                    user={user}
+                    onLogout={handleLogout}
+                    onWithdraw={handleWithdraw}
+                    isSidebarOpen={isSidebarOpen}
+                    setIsSidebarOpen={setIsSidebarOpen}
+                    badges={menuBadges}
                 />
-                <Suspense fallback={<div className="flex-1 flex items-center justify-center py-20 text-gray-400 font-bold">불러오는 중...</div>}>
+                <Suspense fallback={<PageLoading />}>
                     {content}
                 </Suspense>
             </div>
 
-            <BottomNav activePage={activePage} setActivePage={setActivePage} />
+            <BottomNav activePage={activePage} setActivePage={setActivePage} user={user} onOpenMenu={() => setIsSidebarOpen(true)} badges={menuBadges} />
             <NotificationPermissionPrompt user={user} />
         </div>
     );

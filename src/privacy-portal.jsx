@@ -1,3 +1,4 @@
+import { notify } from './ui-feedback';
 import React, { useState, useEffect, useRef } from 'react';
 import { db, storage } from './firebase';
 import { logAccess } from './audit';
@@ -17,8 +18,8 @@ const PledgeSigner = ({ user, type, onDone }) => {
     const t = PLEDGE_TYPES[type];
 
     const submit = async () => {
-        if (!agree) return alert('서약 내용을 확인하고 동의 체크를 해주세요.');
-        if (!signature) return alert('서명을 입력해주세요.');
+        if (!agree) return notify('서약 내용을 확인하고 동의 체크를 해주세요.');
+        if (!signature) return notify('서명을 입력해주세요.');
         setBusy(true);
         try {
             const now = new Date();
@@ -44,7 +45,7 @@ const PledgeSigner = ({ user, type, onDone }) => {
             onDone && onDone(type);
         } catch (e) {
             console.error(e);
-            alert('서명 저장에 실패했습니다. 잠시 후 다시 시도해주세요.\n' + e.message);
+            notify('서명 저장에 실패했습니다. 잠시 후 다시 시도해주세요.\n' + e.message);
         } finally {
             setBusy(false);
         }
@@ -150,7 +151,7 @@ const TrainingViewer = ({ user, training, onClose, onDone }) => {
             logAccess('training_complete', training.title, training.id);
             onDone();
         } catch (e) {
-            alert('이수 확인 저장에 실패했습니다: ' + e.message);
+            notify('이수 확인 저장에 실패했습니다: ' + e.message);
         } finally {
             setBusy(false);
         }
